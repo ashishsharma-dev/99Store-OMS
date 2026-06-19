@@ -1,0 +1,2709 @@
+{
+  "users": [
+    {
+      "id": "usr-1",
+      "username": "admin",
+      "name": "Aniket Sharma (Super Admin)",
+      "role": "Super Admin",
+      "isActive": true,
+      "lastLoginIp": "::ffff:192.168.1.5",
+      "createdAt": "2026-05-02T04:41:34.500Z"
+    },
+    {
+      "id": "usr-2",
+      "username": "order_user",
+      "name": "Rahul K. (Order Team)",
+      "role": "Order Team",
+      "isActive": true,
+      "lastLoginIp": "127.0.0.1",
+      "createdAt": "2026-05-17T04:41:34.500Z"
+    },
+    {
+      "id": "usr-3",
+      "username": "packing_user",
+      "name": "Suresh Kumar (Packing Team)",
+      "role": "Packing Team",
+      "isActive": true,
+      "lastLoginIp": "::ffff:192.168.1.7",
+      "createdAt": "2026-05-17T04:41:34.500Z"
+    },
+    {
+      "id": "usr-4",
+      "username": "tracking_user",
+      "name": "Neha Mehta (Tracking Team)",
+      "role": "Tracking Team",
+      "isActive": true,
+      "lastLoginIp": "::ffff:192.168.1.2",
+      "createdAt": "2026-05-17T04:41:34.500Z"
+    },
+    {
+      "id": "usr-5",
+      "username": "accounts_user",
+      "name": "Rohan Shah (Accounts Team)",
+      "role": "Accounts Team",
+      "isActive": true,
+      "lastLoginIp": "127.0.0.1",
+      "createdAt": "2026-05-22T04:41:34.500Z"
+    }
+  ],
+  "orders": [
+    {
+      "id": "ord-1001",
+      "orderId": "99S-1001",
+      "customerName": "Aditya Birla",
+      "phonePrimary": "9876543210",
+      "phoneSecondary": "9876543211",
+      "address": "Flat 402, Sunset Heights, Bandra West",
+      "pincode": "400050",
+      "state": "Maharashtra",
+      "area": "Mumbai",
+      "productDetails": "99Store Premium Ceramic Coffee Mug - Matte Black",
+      "paymentType": "Paid",
+      "orderValue": 999,
+      "weight": 0.6,
+      "createdBy": "admin",
+      "isVip": true,
+      "status": "Delivered",
+      "awb": "DTDC901238912",
+      "courier": "DTDC",
+      "eta": "2026-05-25",
+      "createdAt": "2026-05-24T04:41:34.500Z",
+      "updatedAt": "2026-05-27T04:41:34.500Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-05-24T04:41:34.500Z",
+          "updatedBy": "admin",
+          "remarks": "Order imported via manual entry."
+        },
+        {
+          "status": "Packing",
+          "timestamp": "2026-05-25T04:41:34.500Z",
+          "updatedBy": "packing_user",
+          "remarks": "Items verified and bubble wrapped."
+        },
+        {
+          "status": "Courier Selected",
+          "timestamp": "2026-05-25T04:41:34.500Z",
+          "updatedBy": "packing_user",
+          "remarks": "Auto-routed to DTDC (Weight < 1kg)."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-05-25T04:41:34.500Z",
+          "updatedBy": "packing_user",
+          "remarks": "AWB DTDC901238912 allocated."
+        },
+        {
+          "status": "Dispatched",
+          "timestamp": "2026-05-26T04:41:34.500Z",
+          "updatedBy": "tracking_user",
+          "remarks": "Handed over to DTDC pickup hub."
+        },
+        {
+          "status": "OFD",
+          "timestamp": "2026-05-27T04:41:34.500Z",
+          "updatedBy": "tracking_user",
+          "remarks": "Out for delivery from Bandra Hub (Rider: Vikram, 9892182738)."
+        },
+        {
+          "status": "Delivered",
+          "timestamp": "2026-05-27T04:41:34.500Z",
+          "updatedBy": "tracking_user",
+          "remarks": "Delivered. OTP verified."
+        }
+      ]
+    },
+    {
+      "id": "ord-1002",
+      "orderId": "99S-1002",
+      "customerName": "Priya Sharma",
+      "phonePrimary": "8765432109",
+      "address": "House No 12, Sector 15",
+      "pincode": "122001",
+      "state": "Haryana",
+      "area": "Gurugram",
+      "productDetails": "99Store Leather Travel Organiser",
+      "paymentType": "COD",
+      "orderValue": 1499,
+      "weight": 0.8,
+      "createdBy": "order_user",
+      "isVip": false,
+      "status": "Dispatched",
+      "awb": "XB878291038",
+      "courier": "XpressBees",
+      "eta": "2026-06-03",
+      "createdAt": "2026-05-29T04:41:34.500Z",
+      "updatedAt": "2026-05-31T04:41:34.500Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-05-29T04:41:34.500Z",
+          "updatedBy": "order_user",
+          "remarks": "COD Order created. Verified by phone call."
+        },
+        {
+          "status": "Packing",
+          "timestamp": "2026-05-30T04:41:34.500Z",
+          "updatedBy": "packing_user",
+          "remarks": "Packing complete. Sealed with 99Store tape."
+        },
+        {
+          "status": "Courier Selected",
+          "timestamp": "2026-05-30T04:41:34.500Z",
+          "updatedBy": "packing_user",
+          "remarks": "Auto-routed to XpressBees."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-05-30T04:41:34.500Z",
+          "updatedBy": "packing_user",
+          "remarks": "AWB XB878291038 allocated."
+        },
+        {
+          "status": "Dispatched",
+          "timestamp": "2026-05-31T04:41:34.500Z",
+          "updatedBy": "tracking_user",
+          "remarks": "Shipped from Main Warehouse."
+        }
+      ]
+    },
+    {
+      "id": "ord-1003",
+      "orderId": "99S-1003",
+      "customerName": "Rajesh Patel",
+      "phonePrimary": "7654321098",
+      "phoneSecondary": "7654321099",
+      "address": "403, Shanti Niketan Apts, SG Highway",
+      "pincode": "380015",
+      "state": "Gujarat",
+      "area": "Ahmedabad",
+      "productDetails": "99Store Desk Mat Minimalist Wool Felt (Large)",
+      "paymentType": "COD",
+      "orderValue": 1299,
+      "weight": 0.9,
+      "createdBy": "order_user",
+      "isVip": true,
+      "status": "NDR",
+      "awb": "DLV991203948",
+      "courier": "Delhivery",
+      "eta": "2026-05-30",
+      "createdAt": "2026-05-27T04:41:34.501Z",
+      "updatedAt": "2026-05-31T04:41:34.501Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-05-27T04:41:34.501Z",
+          "updatedBy": "order_user",
+          "remarks": "VIP Customer COD order created."
+        },
+        {
+          "status": "Packing",
+          "timestamp": "2026-05-28T04:41:34.501Z",
+          "updatedBy": "packing_user",
+          "remarks": "Standard packing."
+        },
+        {
+          "status": "Courier Selected",
+          "timestamp": "2026-05-28T04:41:34.501Z",
+          "updatedBy": "packing_user",
+          "remarks": "Auto-routed to Delhivery."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-05-28T04:41:34.501Z",
+          "updatedBy": "packing_user",
+          "remarks": "AWB DLV991203948 allocated."
+        },
+        {
+          "status": "Dispatched",
+          "timestamp": "2026-05-29T04:41:34.501Z",
+          "updatedBy": "tracking_user",
+          "remarks": "Dispatched via Express Service."
+        },
+        {
+          "status": "OFD",
+          "timestamp": "2026-05-30T04:41:34.501Z",
+          "updatedBy": "tracking_user",
+          "remarks": "Out for delivery Ahmedabad West."
+        },
+        {
+          "status": "NDR",
+          "timestamp": "2026-05-31T04:41:34.501Z",
+          "updatedBy": "tracking_user",
+          "remarks": "Delivery failed: Customer phone out of reach."
+        }
+      ]
+    },
+    {
+      "id": "ord-1004",
+      "orderId": "99S-1004",
+      "customerName": "Karan Johar",
+      "phonePrimary": "9988776655",
+      "address": "Bunglow 99, Juhu Scheme",
+      "pincode": "400049",
+      "state": "Maharashtra",
+      "area": "Mumbai",
+      "productDetails": "99Store Solid Brass Pen + Leather Stand Set",
+      "paymentType": "Paid",
+      "orderValue": 3999,
+      "weight": 1.5,
+      "createdBy": "admin",
+      "isVip": true,
+      "status": "Label Generated",
+      "createdAt": "2026-05-31T16:41:34.501Z",
+      "updatedAt": "2026-06-01T16:36:26.115Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-05-31T16:41:34.501Z",
+          "updatedBy": "admin",
+          "remarks": "Premium Paid Order created."
+        },
+        {
+          "status": "Packing",
+          "timestamp": "2026-05-31T22:41:34.501Z",
+          "updatedBy": "packing_user",
+          "remarks": "Assigned to packing queue."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-06-01T16:36:26.115Z",
+          "updatedBy": "admin",
+          "remarks": "Packed items verified. Manually routing via Delhivery courier. (Warning: Automated AWB generation failed: Delhivery CMU Manifest failed: Package creation API error.Package might be saved.Please contact tech.admin@delhivery.com. Error message is 'NoneType' object has no attribute 'end_date' . Quote this error message while reporting.)"
+        }
+      ],
+      "courier": "Delhivery"
+    },
+    {
+      "id": "ord-1005",
+      "orderId": "99S-1005",
+      "customerName": "Meera Nair",
+      "phonePrimary": "9009009001",
+      "address": "Apartment 7B, Green Meadows, Indira Nagar",
+      "pincode": "560038",
+      "state": "Karnataka",
+      "area": "Bengaluru",
+      "productDetails": "99Store Bamboo Keyboard & Mouse Combo",
+      "paymentType": "Paid",
+      "orderValue": 2499,
+      "weight": 1.2,
+      "createdBy": "order_user",
+      "isVip": false,
+      "status": "OFD",
+      "createdAt": "2026-06-01T04:41:34.501Z",
+      "updatedAt": "2026-06-01T05:47:13.753Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-06-01T04:41:34.501Z",
+          "updatedBy": "order_user",
+          "remarks": "Order entered manually."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-06-01T05:46:40.833Z",
+          "updatedBy": "admin",
+          "remarks": "Packed items verified. Manually routing via Delhivery courier. (Warning: Automated AWB generation failed: Delhivery AWB Fetch network error: Unexpected token 'B', \"Bad Reques\"... is not valid JSON)"
+        },
+        {
+          "status": "Dispatched",
+          "timestamp": "2026-06-01T05:47:07.833Z",
+          "updatedBy": "admin",
+          "remarks": "Handed over to pickup agent."
+        },
+        {
+          "status": "OFD",
+          "timestamp": "2026-06-01T05:47:13.753Z",
+          "updatedBy": "admin",
+          "remarks": "Package out for delivery. Alternate contact updated."
+        }
+      ],
+      "courier": "Delhivery"
+    },
+    {
+      "id": "ord-1006",
+      "orderId": "99S-1006",
+      "customerName": "Ashish Sharma",
+      "phonePrimary": "8439762192",
+      "address": "A 77 New Krishna Colony Sati Nagar Road Naraich Rambagh",
+      "pincode": "282006",
+      "state": "Uttar Pradesh",
+      "area": "Agra",
+      "productDetails": "Trimmer for Men - Urban Monkey",
+      "paymentType": "Paid",
+      "orderValue": 999,
+      "weight": 0.8,
+      "createdBy": "admin",
+      "isVip": false,
+      "status": "Label Generated",
+      "courier": "Delhivery",
+      "createdAt": "2026-06-01T05:50:45.835Z",
+      "updatedAt": "2026-06-01T05:51:14.372Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-06-01T05:50:45.835Z",
+          "updatedBy": "admin",
+          "remarks": "Order manually created by admin. Auto-routed to DTDC based on package weight."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-06-01T05:51:14.372Z",
+          "updatedBy": "admin",
+          "remarks": "Packed items verified. Manually routing via Delhivery courier. (Warning: Automated AWB generation failed: Delhivery AWB Fetch network error: Unexpected token 'B', \"Bad Reques\"... is not valid JSON)"
+        }
+      ]
+    },
+    {
+      "id": "ord-1007",
+      "orderId": "99S-1007",
+      "customerName": "Aditya Birla",
+      "phonePrimary": "8439762192",
+      "phoneSecondary": "8273422079",
+      "address": "A 77 New Krishna Colony Sati Nagar Road Naraich Rambagh Agra",
+      "pincode": "282006",
+      "state": "UP",
+      "area": "Agra",
+      "productDetails": "99Store Tumbler 1200ML",
+      "paymentType": "Paid",
+      "orderValue": 1200,
+      "weight": 1,
+      "createdBy": "admin",
+      "isVip": false,
+      "status": "Label Generated",
+      "courier": "Delhivery",
+      "createdAt": "2026-06-01T16:51:37.821Z",
+      "updatedAt": "2026-06-01T16:51:55.176Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-06-01T16:51:37.821Z",
+          "updatedBy": "admin",
+          "remarks": "Order manually created by admin. Auto-routed to XpressBees based on package weight."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-06-01T16:51:55.176Z",
+          "updatedBy": "admin",
+          "remarks": "Packed items verified. Manually routing via Delhivery courier. (Warning: Automated AWB generation failed: Delhivery CMU Manifest failed: shipment list contains no data.)"
+        }
+      ]
+    },
+    {
+      "id": "ord-1008",
+      "orderId": "99S-1008",
+      "customerName": "Ashish Sharma",
+      "phonePrimary": "8439762192",
+      "phoneSecondary": "8273422079",
+      "address": "A 77 New Krishna Colony Sati Nagar Road Naraich Rambagh Agra",
+      "pincode": "282006",
+      "state": "UP",
+      "area": "Agra",
+      "productDetails": "UBON Bluetooth Speaker 20Watt",
+      "paymentType": "Paid",
+      "orderValue": 2000,
+      "weight": 0.7,
+      "createdBy": "admin",
+      "isVip": false,
+      "status": "Label Generated",
+      "courier": "Delhivery",
+      "createdAt": "2026-06-01T17:38:17.226Z",
+      "updatedAt": "2026-06-01T17:38:38.920Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-06-01T17:38:17.226Z",
+          "updatedBy": "admin",
+          "remarks": "Order manually created by admin. Auto-routed to DTDC based on package weight."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-06-01T17:38:38.920Z",
+          "updatedBy": "admin",
+          "remarks": "Packed items verified. Manually routing via Delhivery courier. (Warning: Automated AWB generation failed: Delhivery CMU Manifest failed: format key missing in POST)"
+        }
+      ]
+    },
+    {
+      "id": "ord-1009",
+      "orderId": "99S-1009",
+      "customerName": "Alok Sharma",
+      "phonePrimary": "9878767890",
+      "phoneSecondary": "9878654567",
+      "address": "Om Complex, F342, Adarsh Nagar Rd, near Sai Mandir",
+      "pincode": "282005",
+      "state": "UP",
+      "area": "Agra",
+      "productDetails": "Ceramic Coffee Mug",
+      "paymentType": "Paid",
+      "orderValue": 900,
+      "weight": 0.2,
+      "createdBy": "admin",
+      "isVip": false,
+      "status": "Label Generated",
+      "courier": "Delhivery",
+      "createdAt": "2026-06-01T18:17:28.591Z",
+      "updatedAt": "2026-06-01T18:17:45.335Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-06-01T18:17:28.591Z",
+          "updatedBy": "admin",
+          "remarks": "Order manually created by admin. Auto-routed to DTDC based on package weight."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-06-01T18:17:45.335Z",
+          "updatedBy": "admin",
+          "remarks": "Packed items verified. Manually routing via Delhivery courier. (Warning: Automated AWB generation failed: Delhivery CMU Manifest failed: format key missing in POST)"
+        }
+      ]
+    },
+    {
+      "id": "ord-1010",
+      "orderId": "99S-1010",
+      "customerName": "Shelly Sharma",
+      "phonePrimary": "8439762192",
+      "address": "Geeta Nagar Balkeshwar Agra 282005",
+      "pincode": "282004",
+      "state": "UP",
+      "area": "Agra",
+      "productDetails": "Streax Canvo Shampoo 1L",
+      "paymentType": "Paid",
+      "orderValue": 800,
+      "weight": 1,
+      "createdBy": "admin",
+      "isVip": false,
+      "status": "Label Generated",
+      "courier": "Delhivery",
+      "createdAt": "2026-06-01T18:30:41.019Z",
+      "updatedAt": "2026-06-01T18:30:57.215Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-06-01T18:30:41.019Z",
+          "updatedBy": "admin",
+          "remarks": "Order manually created by admin. Auto-routed to XpressBees based on package weight."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-06-01T18:30:57.215Z",
+          "updatedBy": "admin",
+          "remarks": "Packed items verified. Manually routing via Delhivery courier. (Warning: Automated AWB generation failed: Delhivery CMU Manifest failed: format key missing in POST)"
+        }
+      ]
+    },
+    {
+      "id": "ord-1011",
+      "orderId": "99S-1011",
+      "customerName": "Nikki Sharma",
+      "phonePrimary": "8439762192",
+      "address": "A 77 New Krishna Colony Rambagh Agra",
+      "pincode": "282006",
+      "state": "UP",
+      "area": "Agra",
+      "productDetails": "Bella Vita Perfume 100ML",
+      "paymentType": "Paid",
+      "orderValue": 500,
+      "weight": 0.1,
+      "createdBy": "admin",
+      "isVip": false,
+      "status": "Label Generated",
+      "courier": "Delhivery",
+      "createdAt": "2026-06-01T18:35:41.305Z",
+      "updatedAt": "2026-06-01T18:35:49.895Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-06-01T18:35:41.305Z",
+          "updatedBy": "admin",
+          "remarks": "Order manually created by admin. Auto-routed to DTDC based on package weight."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-06-01T18:35:49.895Z",
+          "updatedBy": "admin",
+          "remarks": "Packed items verified. Manually routing via Delhivery courier. (Warning: Automated AWB generation failed: Delhivery CMU Manifest failed: shipment list contains no data.)"
+        }
+      ]
+    },
+    {
+      "id": "ord-1012",
+      "orderId": "99S-1012",
+      "customerName": "Rahul Mehta",
+      "phonePrimary": "8439762192",
+      "address": "B 286 Trans Yamuna Colony Rambagh Agra",
+      "pincode": "282006",
+      "state": "UP",
+      "area": "Agra",
+      "productDetails": "Luminous Battery 150AH",
+      "paymentType": "Paid",
+      "orderValue": 14000,
+      "weight": 59,
+      "createdBy": "admin",
+      "isVip": false,
+      "status": "OFD",
+      "courier": "Delhivery",
+      "createdAt": "2026-06-01T18:40:52.058Z",
+      "updatedAt": "2026-06-02T05:48:50.252Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-06-01T18:40:52.058Z",
+          "updatedBy": "admin",
+          "remarks": "Order manually created by admin. Auto-routed to Delhivery based on package weight."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-06-01T18:41:14.893Z",
+          "updatedBy": "admin",
+          "remarks": "Packed items verified. Manually routing via Delhivery courier. (Warning: Automated AWB generation failed: Delhivery CMU Manifest failed: shipment list contains no data.)"
+        },
+        {
+          "status": "Dispatched",
+          "timestamp": "2026-06-02T05:48:17.314Z",
+          "updatedBy": "admin",
+          "remarks": "Handed over to pickup agent."
+        },
+        {
+          "status": "OFD",
+          "timestamp": "2026-06-02T05:48:50.252Z",
+          "updatedBy": "admin",
+          "remarks": "Package out for delivery. Alternate contact updated."
+        }
+      ]
+    },
+    {
+      "id": "ord-1013",
+      "orderId": "99S-1013",
+      "customerName": "Rohan Mishra",
+      "phonePrimary": "8439762192",
+      "address": "A 77 New Krishna Colony Sati Nagar Road Naraich Rambagh Agra",
+      "pincode": "282006",
+      "state": "UP",
+      "area": "Agra",
+      "productDetails": "99Store Premium Tumbler 500ML",
+      "paymentType": "Paid",
+      "orderValue": 1200,
+      "weight": 0.4,
+      "createdBy": "admin",
+      "isVip": false,
+      "status": "Dispatched",
+      "courier": "Delhivery",
+      "createdAt": "2026-06-02T04:45:50.250Z",
+      "updatedAt": "2026-06-02T05:45:36.522Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-06-02T04:45:50.250Z",
+          "updatedBy": "admin",
+          "remarks": "Order manually created by admin. Auto-routed to DTDC based on package weight."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-06-02T04:46:07.153Z",
+          "updatedBy": "admin",
+          "remarks": "Packed items verified. Manually routing via Delhivery courier. (Warning: Automated AWB generation failed: Delhivery CMU Manifest failed: shipment list contains no data.)"
+        },
+        {
+          "status": "Dispatched",
+          "timestamp": "2026-06-02T05:45:36.522Z",
+          "updatedBy": "admin",
+          "remarks": "Handed over to pickup agent."
+        }
+      ]
+    },
+    {
+      "id": "ord-1014",
+      "orderId": "99S-1014",
+      "customerName": "Jack Wilson",
+      "phonePrimary": "8439762192",
+      "address": "A 77 New Krishna Colony Sati Nagar Road Naraich",
+      "pincode": "282006",
+      "state": "UP",
+      "area": "Agra",
+      "productDetails": "99Store Jack Wilson Toy",
+      "paymentType": "Paid",
+      "orderValue": 2000,
+      "weight": 0.7,
+      "createdBy": "admin",
+      "isVip": false,
+      "status": "Dispatched",
+      "courier": "Delhivery",
+      "createdAt": "2026-06-02T05:34:04.472Z",
+      "updatedAt": "2026-06-02T05:38:45.644Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-06-02T05:34:04.472Z",
+          "updatedBy": "admin",
+          "remarks": "Order manually created by admin. Auto-routed to DTDC based on package weight."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-06-02T05:38:32.147Z",
+          "updatedBy": "admin",
+          "remarks": "Packed items verified. Manually routing via Delhivery courier. (Warning: Automated AWB generation failed: Delhivery CMU Manifest failed: shipment list contains no data.)"
+        },
+        {
+          "status": "Dispatched",
+          "timestamp": "2026-06-02T05:38:45.644Z",
+          "updatedBy": "admin",
+          "remarks": "Handed over to pickup agent."
+        }
+      ]
+    },
+    {
+      "id": "ord-1015",
+      "orderId": "99S-1015",
+      "customerName": "Vinod Sharma",
+      "phonePrimary": "8439762192",
+      "address": "A 77 New Krishna Colony Sati Nagar Road Rambagh",
+      "pincode": "282006",
+      "state": "UP",
+      "area": "Agra",
+      "productDetails": "99Store Chugger 1200ML",
+      "paymentType": "Paid",
+      "orderValue": 1300,
+      "weight": 0.3,
+      "createdBy": "admin",
+      "isVip": false,
+      "status": "Label Generated",
+      "courier": "Delhivery",
+      "createdAt": "2026-06-02T12:51:28.019Z",
+      "updatedAt": "2026-06-02T12:51:36.830Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-06-02T12:51:28.019Z",
+          "updatedBy": "admin",
+          "remarks": "Order manually created by admin. Auto-routed to DTDC based on package weight."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-06-02T12:51:36.830Z",
+          "updatedBy": "admin",
+          "remarks": "Packed items verified. Manually routing via Delhivery courier. (Automated: AWB 18242910218713 generated via Delhivery API successfully.)"
+        }
+      ],
+      "awb": "18242910218713",
+      "eta": "2026-06-05"
+    },
+    {
+      "id": "ord-1016",
+      "orderId": "99S-1016",
+      "customerName": "Test Customer",
+      "phonePrimary": "9876543210",
+      "address": "123 Test Street, Delhi",
+      "pincode": "110001",
+      "state": "DL",
+      "area": "New Delhi",
+      "productDetails": "Test Product XpressBees",
+      "paymentType": "Paid",
+      "orderValue": 1500,
+      "weight": 1.5,
+      "createdBy": "admin",
+      "isVip": false,
+      "status": "Label Generated",
+      "courier": "XpressBees",
+      "createdAt": "2026-06-03T15:31:57.533Z",
+      "updatedAt": "2026-06-03T15:32:27.057Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-06-03T15:31:57.533Z",
+          "updatedBy": "admin",
+          "remarks": "Order manually created by admin. Auto-routed to XpressBees based on package weight."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-06-03T15:32:27.057Z",
+          "updatedBy": "admin",
+          "remarks": "Packed items verified. Manually routing via XpressBees courier. (Automated: AWB XB930004238 generated via XpressBees API successfully.)"
+        }
+      ],
+      "awb": "XB930004238",
+      "eta": "2026-06-06"
+    },
+    {
+      "id": "ord-1017",
+      "orderId": "99S-1017",
+      "customerName": "Test Customer 2",
+      "phonePrimary": "9876543211",
+      "address": "456 Test Road, Mumbai",
+      "pincode": "400001",
+      "state": "MH",
+      "area": "Mumbai",
+      "productDetails": "Test Product 2",
+      "paymentType": "Paid",
+      "orderValue": 2000,
+      "weight": 1.2,
+      "createdBy": "admin",
+      "isVip": false,
+      "status": "Label Generated",
+      "courier": "XpressBees",
+      "createdAt": "2026-06-03T15:35:23.414Z",
+      "updatedAt": "2026-06-03T15:35:50.374Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-06-03T15:35:23.414Z",
+          "updatedBy": "admin",
+          "remarks": "Order manually created by admin. Auto-routed to XpressBees based on package weight."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-06-03T15:35:50.374Z",
+          "updatedBy": "admin",
+          "remarks": "Packed items verified. Manually routing via XpressBees courier. (Automated: AWB XB879844955 generated via XpressBees API successfully.)"
+        }
+      ],
+      "awb": "XB879844955",
+      "eta": "2026-06-06"
+    },
+    {
+      "id": "ord-1018",
+      "orderId": "99S-1018",
+      "customerName": "Test Customer 3",
+      "phonePrimary": "9876543212",
+      "address": "789 Test Road, Mumbai",
+      "pincode": "400001",
+      "state": "MH",
+      "area": "Mumbai",
+      "productDetails": "Test Product 3",
+      "paymentType": "Paid",
+      "orderValue": 3000,
+      "weight": 1.8,
+      "createdBy": "admin",
+      "isVip": false,
+      "status": "Dispatched",
+      "courier": "XpressBees",
+      "createdAt": "2026-06-03T15:39:45.944Z",
+      "updatedAt": "2026-06-03T15:52:31.303Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-06-03T15:39:45.944Z",
+          "updatedBy": "admin",
+          "remarks": "Order manually created by admin. Auto-routed to XpressBees based on package weight."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-06-03T15:41:02.082Z",
+          "updatedBy": "admin",
+          "remarks": "Packed items verified. Manually routing via XpressBees courier. (Automated: AWB XB323045337 generated via XpressBees API successfully.)"
+        },
+        {
+          "status": "Packing",
+          "timestamp": "2026-06-03T15:45:05.293Z",
+          "updatedBy": "packing_operator",
+          "remarks": "Manually resetting status to Packing to access print label button."
+        },
+        {
+          "status": "Dispatched",
+          "timestamp": "2026-06-03T15:52:31.303Z",
+          "updatedBy": "admin",
+          "remarks": "Package labeled with AWB XB323045337. Handed over to logistics pickup driver."
+        }
+      ],
+      "awb": "XB323045337",
+      "eta": "2026-06-06"
+    },
+    {
+      "id": "ord-1019",
+      "orderId": "99S-1019",
+      "customerName": "Jack Daniel",
+      "phonePrimary": "8439762192",
+      "address": "B286 Trans Yamuna Colony Rambagh Agra",
+      "pincode": "282006",
+      "state": "UP",
+      "area": "Agra",
+      "productDetails": "99Store Premium Mobile Case",
+      "paymentType": "Paid",
+      "orderValue": 400,
+      "weight": 0.1,
+      "createdBy": "admin",
+      "isVip": false,
+      "status": "Dispatched",
+      "courier": "XpressBees",
+      "createdAt": "2026-06-03T16:13:00.591Z",
+      "updatedAt": "2026-06-03T18:17:31.594Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-06-03T16:13:00.591Z",
+          "updatedBy": "admin",
+          "remarks": "Order manually created by admin. Auto-routed to DTDC based on package weight."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-06-03T16:13:32.129Z",
+          "updatedBy": "admin",
+          "remarks": "Packed items verified. Manually routing via XpressBees courier. (Warning: Automated AWB generation failed: XpressBees API booking failed: Item Price Should be Greater Than or Equal to Zero)"
+        },
+        {
+          "status": "Dispatched",
+          "timestamp": "2026-06-03T18:17:31.594Z",
+          "updatedBy": "admin",
+          "remarks": "Handed over to pickup agent."
+        }
+      ]
+    },
+    {
+      "id": "ord-1020",
+      "orderId": "99S-1020",
+      "customerName": "Shelly Sharma",
+      "phonePrimary": "8439762192",
+      "address": "B286 Trans Yamuna Colony Rambagh",
+      "pincode": "282006",
+      "state": "UP",
+      "area": "Agra",
+      "productDetails": "99Store Premium Trimmer",
+      "paymentType": "Paid",
+      "orderValue": 1200,
+      "weight": 0.3,
+      "createdBy": "admin",
+      "isVip": false,
+      "status": "Dispatched",
+      "courier": "XpressBees",
+      "createdAt": "2026-06-03T17:21:43.944Z",
+      "updatedAt": "2026-06-03T18:17:15.600Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-06-03T17:21:43.944Z",
+          "updatedBy": "admin",
+          "remarks": "Order manually created by admin. Auto-routed to DTDC based on package weight."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-06-03T17:22:16.662Z",
+          "updatedBy": "admin",
+          "remarks": "Packed items verified. Manually routing via XpressBees courier. (Warning: Automated AWB generation failed: XpressBees API booking failed: Wallet balance is low.)"
+        },
+        {
+          "status": "Dispatched",
+          "timestamp": "2026-06-03T18:17:15.600Z",
+          "updatedBy": "admin",
+          "remarks": "Handed over to pickup agent."
+        }
+      ]
+    },
+    {
+      "id": "ord-1021",
+      "orderId": "99S-1021",
+      "customerName": "Ankit Verma",
+      "phonePrimary": "7895137799",
+      "address": "35 59 Basant Vihar Kamla Nagar Agra",
+      "pincode": "282005",
+      "state": "UP",
+      "area": "Agra",
+      "productDetails": "99Store Weblockin Test Product",
+      "paymentType": "Paid",
+      "orderValue": 30000,
+      "weight": 1,
+      "createdBy": "admin",
+      "isVip": true,
+      "status": "Label Generated",
+      "courier": "XpressBees",
+      "createdAt": "2026-06-03T18:20:12.292Z",
+      "updatedAt": "2026-06-13T16:51:44.797Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-06-03T18:20:12.292Z",
+          "updatedBy": "admin",
+          "remarks": "Order manually created by admin. Auto-routed to XpressBees based on package weight."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-06-13T16:51:44.797Z",
+          "updatedBy": "admin",
+          "remarks": "Packed items verified. Manually routing via XpressBees courier. (Warning: Automated AWB generation failed: XpressBees AWB Retrieval failed: Provide business unit)"
+        }
+      ]
+    },
+    {
+      "id": "ord-1022",
+      "orderId": "99S-1022",
+      "customerName": "Ankit Verma",
+      "phonePrimary": "7895137799",
+      "address": "Basan Vihar Kamla Nagar Agra",
+      "pincode": "282005",
+      "state": "UP",
+      "area": "Agra",
+      "productDetails": "99Store Premium Bag",
+      "paymentType": "COD",
+      "orderValue": 1200,
+      "weight": 0.4,
+      "createdBy": "admin",
+      "isVip": false,
+      "status": "Label Generated",
+      "courier": "XpressBees",
+      "createdAt": "2026-06-10T13:19:48.704Z",
+      "updatedAt": "2026-06-13T16:14:10.333Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-06-10T13:19:48.704Z",
+          "updatedBy": "admin",
+          "remarks": "Order manually created by admin. Auto-routed to DTDC based on package weight."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-06-13T16:14:10.333Z",
+          "updatedBy": "tracking_user",
+          "remarks": "Packed items verified. Manually routing via XpressBees courier. (Warning: Automated AWB generation failed: XpressBees Authentication failed: Failed to fetch token from XpressBees: XpressBees Login HTTP status error: 400. {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"child \\\"username\\\" fails because [\\\"username\\\" is required]\",\"validation\":{\"source\":\"payload\",\"keys\":[\"username\"]}})"
+        }
+      ]
+    },
+    {
+      "id": "ord-1023",
+      "orderId": "99S-1023",
+      "customerName": "Vishnu",
+      "phonePrimary": "7409954268",
+      "address": "B286 Trans Yamuna Colony Agra",
+      "pincode": "282006",
+      "state": "UP",
+      "area": "Agra",
+      "productDetails": "99Store Trimmer ",
+      "paymentType": "Paid",
+      "orderValue": 1300,
+      "weight": 0.4,
+      "createdBy": "admin",
+      "isVip": false,
+      "status": "Dispatched",
+      "courier": "Delhivery",
+      "createdAt": "2026-06-10T13:24:27.316Z",
+      "updatedAt": "2026-06-16T13:57:40.848Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-06-10T13:24:27.316Z",
+          "updatedBy": "admin",
+          "remarks": "Order manually created by admin. Auto-routed to DTDC based on package weight."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-06-10T13:26:47.251Z",
+          "updatedBy": "admin",
+          "remarks": "Packed items verified. Manually routing via Delhivery courier. (Automated: AWB 18242910218724 generated via Delhivery API successfully.)"
+        },
+        {
+          "status": "Dispatched",
+          "timestamp": "2026-06-16T13:57:40.848Z",
+          "updatedBy": "admin",
+          "remarks": "Handed over to pickup agent."
+        }
+      ],
+      "awb": "18242910218724",
+      "eta": "2026-06-13"
+    },
+    {
+      "id": "ord-1024",
+      "orderId": "99S-1024",
+      "customerName": "Jackie Chan",
+      "phonePrimary": "8439762192",
+      "phoneSecondary": "8273422079",
+      "address": "B286 Trans Yamuna Colony Rambagh Agra",
+      "pincode": "282006",
+      "state": "UP",
+      "area": "Agra",
+      "productDetails": "99Store Premium Stuff",
+      "paymentType": "Paid",
+      "orderValue": 200,
+      "weight": 0.5,
+      "createdBy": "admin",
+      "isVip": false,
+      "status": "Label Generated",
+      "courier": "XpressBees",
+      "createdAt": "2026-06-13T16:57:59.151Z",
+      "updatedAt": "2026-06-13T16:58:15.400Z",
+      "history": [
+        {
+          "status": "Created",
+          "timestamp": "2026-06-13T16:57:59.151Z",
+          "updatedBy": "admin",
+          "remarks": "Order manually created by admin. Auto-routed to DTDC based on package weight."
+        },
+        {
+          "status": "Label Generated",
+          "timestamp": "2026-06-13T16:58:15.400Z",
+          "updatedBy": "admin",
+          "remarks": "Packed items verified. Manually routing via XpressBees courier. (Warning: Automated AWB generation failed: XpressBees API booking failed: Token not provided in header)"
+        }
+      ]
+    }
+  ],
+  "ndr": [
+    {
+      "id": "ndr-1",
+      "orderId": "99S-1003",
+      "customerName": "Rajesh Patel",
+      "phonePrimary": "7654321098",
+      "courier": "Delhivery",
+      "awb": "DLV991203948",
+      "reason": "Customer phone out of reach / Switched off",
+      "status": "Pending",
+      "createdAt": "2026-05-31T04:41:34.501Z",
+      "updatedAt": "2026-05-31T04:41:34.501Z",
+      "internalNotes": "VIP Customer, call alternate phone number (7654321099) during next attempt.",
+      "history": [
+        {
+          "action": "NDR Received from Courier API",
+          "timestamp": "2026-05-31T04:41:34.501Z",
+          "remarks": "Status marked as NDR due to failed delivery. Reason: Phone unreachable."
+        }
+      ]
+    }
+  ],
+  "whatsappLogs": [
+    {
+      "id": "wa-prim-1781618263156",
+      "timestamp": "2026-06-16T13:57:43.156Z",
+      "phone": "7409954268",
+      "type": "Primary",
+      "message": "Hi Vishnu, your 99Store order #99S-1023 has been dispatched via Delhivery! Track your package using AWB: 18242910218724. ETA: 2026-06-13. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-sec-1781369883883",
+      "timestamp": "2026-06-13T16:58:03.883Z",
+      "phone": "8273422079",
+      "type": "Secondary",
+      "message": "Order Confirmed: Order #99S-1024 is successfully received and preparing for packing. Alternate number alert.",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1781369882404",
+      "timestamp": "2026-06-13T16:58:02.404Z",
+      "phone": "8439762192",
+      "type": "Primary",
+      "message": "🎉 Order Confirmed! Hi Jackie Chan, your 99Store order #99S-1024 of ₹200 has been successfully received. We will notify you once it's dispatched. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1781097870001",
+      "timestamp": "2026-06-10T13:24:30.001Z",
+      "phone": "7409954268",
+      "type": "Primary",
+      "message": "🎉 Order Confirmed! Hi Vishnu, your 99Store order #99S-1023 of ₹1300 has been successfully received. We will notify you once it's dispatched. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1781097591239",
+      "timestamp": "2026-06-10T13:19:51.239Z",
+      "phone": "7895137799",
+      "type": "Primary",
+      "message": "🎉 Order Confirmed! Hi Ankit Verma, your 99Store order #99S-1022 of ₹1200 has been successfully received. We will notify you once it's dispatched. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780510815212",
+      "timestamp": "2026-06-03T18:20:15.212Z",
+      "phone": "7895137799",
+      "type": "Primary",
+      "message": "🎉 Order Confirmed! Hi Ankit Verma, your 99Store order #99S-1021 of ₹30000 has been successfully received. We will notify you once it's dispatched. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780510653009",
+      "timestamp": "2026-06-03T18:17:33.009Z",
+      "phone": "8439762192",
+      "type": "Primary",
+      "message": "Hi Jack Daniel, your 99Store order #99S-1019 has been dispatched via XpressBees! Track your package using AWB: N/A. ETA: N/A. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780510637043",
+      "timestamp": "2026-06-03T18:17:17.043Z",
+      "phone": "8439762192",
+      "type": "Primary",
+      "message": "Hi Shelly Sharma, your 99Store order #99S-1020 has been dispatched via XpressBees! Track your package using AWB: N/A. ETA: N/A. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780507307265",
+      "timestamp": "2026-06-03T17:21:47.265Z",
+      "phone": "8439762192",
+      "type": "Primary",
+      "message": "🎉 Order Confirmed! Hi Shelly Sharma, your 99Store order #99S-1020 of ₹1200 has been successfully received. We will notify you once it's dispatched. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780503199235",
+      "timestamp": "2026-06-03T16:13:19.235Z",
+      "phone": "8439762192",
+      "type": "Primary",
+      "message": "🎉 Order Confirmed! Hi Jack Daniel, your 99Store order #99S-1019 of ₹400 has been successfully received. We will notify you once it's dispatched. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780501954598",
+      "timestamp": "2026-06-03T15:52:34.598Z",
+      "phone": "9876543212",
+      "type": "Primary",
+      "message": "Hi Test Customer 3, your 99Store order #99S-1018 has been dispatched via XpressBees! Track your package using AWB: XB323045337. ETA: 2026-06-06. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780501187767",
+      "timestamp": "2026-06-03T15:39:47.767Z",
+      "phone": "9876543212",
+      "type": "Primary",
+      "message": "🎉 Order Confirmed! Hi Test Customer 3, your 99Store order #99S-1018 of ₹3000 has been successfully received. We will notify you once it's dispatched. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780500926036",
+      "timestamp": "2026-06-03T15:35:26.036Z",
+      "phone": "9876543211",
+      "type": "Primary",
+      "message": "🎉 Order Confirmed! Hi Test Customer 2, your 99Store order #99S-1017 of ₹2000 has been successfully received. We will notify you once it's dispatched. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780500720827",
+      "timestamp": "2026-06-03T15:32:00.827Z",
+      "phone": "9876543210",
+      "type": "Primary",
+      "message": "🎉 Order Confirmed! Hi Test Customer, your 99Store order #99S-1016 of ₹1500 has been successfully received. We will notify you once it's dispatched. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780404691372",
+      "timestamp": "2026-06-02T12:51:31.372Z",
+      "phone": "8439762192",
+      "type": "Primary",
+      "message": "🎉 Order Confirmed! Hi Vinod Sharma, your 99Store order #99S-1015 of ₹1300 has been successfully received. We will notify you once it's dispatched. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780379331991",
+      "timestamp": "2026-06-02T05:48:51.991Z",
+      "phone": "8439762192",
+      "type": "Primary",
+      "message": "🟢 Out for Delivery! Hi Rahul Mehta, your 99Store order #99S-1012 is out for delivery today. Please keep your phone reachable. Courier AWB: N/A.",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780379298959",
+      "timestamp": "2026-06-02T05:48:18.959Z",
+      "phone": "8439762192",
+      "type": "Primary",
+      "message": "Hi Rahul Mehta, your 99Store order #99S-1012 has been dispatched via Delhivery! Track your package using AWB: N/A. ETA: N/A. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780379138808",
+      "timestamp": "2026-06-02T05:45:38.808Z",
+      "phone": "8439762192",
+      "type": "Primary",
+      "message": "Hi Rohan Mishra, your 99Store order #99S-1013 has been dispatched via Delhivery! Track your package using AWB: N/A. ETA: N/A. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780378727662",
+      "timestamp": "2026-06-02T05:38:47.662Z",
+      "phone": "8439762192",
+      "type": "Primary",
+      "message": "Hi Jack Wilson, your 99Store order #99S-1014 has been dispatched via Delhivery! Track your package using AWB: N/A. ETA: N/A. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780378447393",
+      "timestamp": "2026-06-02T05:34:07.393Z",
+      "phone": "8439762192",
+      "type": "Primary",
+      "message": "Hi Jack Wilson, your 99Store order #99S-1014 has been dispatched via DTDC! Track your package using AWB: PENDING. ETA: 3-4 Days. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780375550449",
+      "timestamp": "2026-06-02T04:45:50.449Z",
+      "phone": "8439762192",
+      "type": "Primary",
+      "message": "Hi Rohan Mishra, your 99Store order #99S-1013 has been dispatched via DTDC! Track your package using AWB: PENDING. ETA: 3-4 Days. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780339252269",
+      "timestamp": "2026-06-01T18:40:52.269Z",
+      "phone": "8439762192",
+      "type": "Primary",
+      "message": "Hi Rahul Mehta, your 99Store order #99S-1012 has been dispatched via Delhivery! Track your package using AWB: PENDING. ETA: 3-4 Days. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780338941457",
+      "timestamp": "2026-06-01T18:35:41.457Z",
+      "phone": "8439762192",
+      "type": "Primary",
+      "message": "Hi Nikki Sharma, your 99Store order #99S-1011 has been dispatched via DTDC! Track your package using AWB: PENDING. ETA: 3-4 Days. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780338641217",
+      "timestamp": "2026-06-01T18:30:41.217Z",
+      "phone": "8439762192",
+      "type": "Primary",
+      "message": "Hi Shelly Sharma, your 99Store order #99S-1010 has been dispatched via XpressBees! Track your package using AWB: PENDING. ETA: 3-4 Days. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-sec-1780337848736",
+      "timestamp": "2026-06-01T18:17:28.736Z",
+      "phone": "9878654567",
+      "type": "Secondary",
+      "message": "Tracking Update for #99S-1009: Package shipped via DTDC. AWB: PENDING. Follow delivery status updates.",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780337848732",
+      "timestamp": "2026-06-01T18:17:28.732Z",
+      "phone": "9878767890",
+      "type": "Primary",
+      "message": "Hi Alok Sharma, your 99Store order #99S-1009 has been dispatched via DTDC! Track your package using AWB: PENDING. ETA: 3-4 Days. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-sec-1780335497392",
+      "timestamp": "2026-06-01T17:38:17.392Z",
+      "phone": "8273422079",
+      "type": "Secondary",
+      "message": "Tracking Update for #99S-1008: Package shipped via DTDC. AWB: PENDING. Follow delivery status updates.",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780335497381",
+      "timestamp": "2026-06-01T17:38:17.381Z",
+      "phone": "8439762192",
+      "type": "Primary",
+      "message": "Hi Ashish Sharma, your 99Store order #99S-1008 has been dispatched via DTDC! Track your package using AWB: PENDING. ETA: 3-4 Days. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-sec-1780332697970",
+      "timestamp": "2026-06-01T16:51:37.970Z",
+      "phone": "8273422079",
+      "type": "Secondary",
+      "message": "Tracking Update for #99S-1007: Package shipped via XpressBees. AWB: PENDING. Follow delivery status updates.",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780332697966",
+      "timestamp": "2026-06-01T16:51:37.966Z",
+      "phone": "8439762192",
+      "type": "Primary",
+      "message": "Hi Aditya Birla, your 99Store order #99S-1007 has been dispatched via XpressBees! Track your package using AWB: PENDING. ETA: 3-4 Days. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780293045912",
+      "timestamp": "2026-06-01T05:50:45.912Z",
+      "phone": "8439762192",
+      "type": "Primary",
+      "message": "Hi Ashish Sharma, your 99Store order #99S-1006 has been dispatched via DTDC! Track your package using AWB: PENDING. ETA: 3-4 Days. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780292833784",
+      "timestamp": "2026-06-01T05:47:13.784Z",
+      "phone": "9009009001",
+      "type": "Primary",
+      "message": "🟢 Out for Delivery! Hi Meera Nair, your 99Store order #99S-1005 is out for delivery today. Please keep your phone reachable. Courier AWB: N/A.",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-prim-1780292828131",
+      "timestamp": "2026-06-01T05:47:08.131Z",
+      "phone": "9009009001",
+      "type": "Primary",
+      "message": "Hi Meera Nair, your 99Store order #99S-1005 has been dispatched via Delhivery! Track your package using AWB: N/A. ETA: N/A. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-1",
+      "timestamp": "2026-05-24T04:41:34.501Z",
+      "phone": "9876543210",
+      "type": "Primary",
+      "message": "Welcome Aditya Birla! Your order 99S-1001 for 99Store Premium Ceramic Coffee Mug - Matte Black has been created. Thank you for shopping with 99Store!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-2",
+      "timestamp": "2026-05-26T04:41:34.501Z",
+      "phone": "9876543210",
+      "type": "Primary",
+      "message": "Hi Aditya Birla, your 99Store order 99S-1001 is dispatched! Courier: DTDC, AWB: DTDC901238912. Track status online.",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-3",
+      "timestamp": "2026-05-27T04:41:34.501Z",
+      "phone": "9876543211",
+      "type": "Secondary",
+      "message": "Tracking Update: Order 99S-1001 is now OUT FOR DELIVERY (OFD). Rider: Vikram (9892182738). ETA: Today.",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-4",
+      "timestamp": "2026-05-27T04:41:34.501Z",
+      "phone": "9876543210",
+      "type": "Primary",
+      "message": "Delivered! Your 99Store order 99S-1001 was successfully delivered today. Enjoy your purchase!",
+      "status": "Sent"
+    },
+    {
+      "id": "wa-5",
+      "timestamp": "2026-05-29T04:41:34.501Z",
+      "phone": "8765432109",
+      "type": "Primary",
+      "message": "Welcome Priya Sharma! Your COD order 99S-1002 has been created. Amount due on delivery: ₹1499.00.",
+      "status": "Sent"
+    }
+  ],
+  "courierLogs": [
+    {
+      "id": "cl-track-1781619855064",
+      "timestamp": "2026-06-16T14:24:15.064Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218724",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218724\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vishnu\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-10T18:56:46.963\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1023\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-10T18:56:47.018\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-10T18:56:47.018\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Manifest uploaded\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Manifested\",\n          \"StatusCode\": \"X-UCI\",\n          \"StatusDateTime\": \"2026-06-10T18:56:47.018\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1781618261027",
+      "timestamp": "2026-06-16T13:57:41.027Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218724",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218724\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vishnu\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-10T18:56:46.963\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1023\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-10T18:56:47.018\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-10T18:56:47.018\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Manifest uploaded\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Manifested\",\n          \"StatusCode\": \"X-UCI\",\n          \"StatusDateTime\": \"2026-06-10T18:56:47.018\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1781618257684",
+      "timestamp": "2026-06-16T13:57:37.684Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218724",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218724\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vishnu\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-10T18:56:46.963\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1023\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-10T18:56:47.018\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-10T18:56:47.018\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Manifest uploaded\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Manifested\",\n          \"StatusCode\": \"X-UCI\",\n          \"StatusDateTime\": \"2026-06-10T18:56:47.018\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1781369977950",
+      "timestamp": "2026-06-13T16:59:37.950Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218724",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218724\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vishnu\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-10T18:56:46.963\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1023\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-10T18:56:47.018\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-10T18:56:47.018\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Manifest uploaded\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Manifested\",\n          \"StatusCode\": \"X-UCI\",\n          \"StatusDateTime\": \"2026-06-10T18:56:47.018\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-xb-manifest-1781369901773",
+      "timestamp": "2026-06-13T16:58:21.773Z",
+      "courier": "XpressBees",
+      "action": "Forward Manifesting",
+      "requestPayload": "{\n  \"order_number\": \"99S-1024\",\n  \"unique_order_number\": \"yes\",\n  \"shipping_charges\": 40,\n  \"discount\": 0,\n  \"cod_charges\": 0,\n  \"payment_type\": \"prepaid\",\n  \"order_amount\": 200,\n  \"package_weight\": 500,\n  \"package_length\": 10,\n  \"package_breadth\": 10,\n  \"package_height\": 10,\n  \"request_auto_pickup\": \"yes\",\n  \"service_type\": \"NDD\",\n  \"pickup_vendor_code\": \"VEND001\",\n  \"consignee\": {\n    \"name\": \"Jackie Chan\",\n    \"address\": \"B286 Trans Yamuna Colony Rambagh Agra\",\n    \"address_2\": \"Agra\",\n    \"city\": \"Agra\",\n    \"state\": \"UP\",\n    \"pincode\": \"282006\",\n    \"phone\": \"8439762192\"\n  },\n  \"pickup\": {\n    \"vendor_code\": \"VEND001\",\n    \"warehouse_name\": \"Shivay Air Hub\",\n    \"name\": \"Vishnu Singh Sikarwar\",\n    \"address\": \"J.K. NAGAR, NANDLALPUR HATHRAS ROAD KUBERPUR\",\n    \"address_2\": \"Kuberpur\",\n    \"city\": \"Agra\",\n    \"state\": \"Uttar Pradesh\",\n    \"pincode\": \"282006\",\n    \"phone\": \"9999999999\"\n  },\n  \"order_items\": [\n    {\n      \"name\": \"99Store Premium Stuff\",\n      \"qty\": \"1\",\n      \"price\": 200,\n      \"sku\": \"SKU001\"\n    }\n  ],\n  \"courier_id\": \"1\",\n  \"collectable_amount\": \"0\",\n  \"awb_number\": \"153999460000000\",\n  \"awb\": \"153999460000000\"\n}",
+      "responsePayload": "{\n  \"ReturnCode\": 101,\n  \"ReturnMessage\": \"Token not provided in header\",\n  \"TokenNumber\": null\n}",
+      "status": "Error"
+    },
+    {
+      "id": "cl-xb-awbretrieve-1781369901172",
+      "timestamp": "2026-06-13T16:58:21.172Z",
+      "courier": "XpressBees",
+      "action": "Get AWB Generated Series",
+      "requestPayload": "{\n  \"BusinessUnit\": \"ECOM\",\n  \"ServiceType\": \"FORWARD\",\n  \"BatchID\": \"DnxLq\"\n}",
+      "responsePayload": "{\n  \"ReturnMessage\": \"Successful\",\n  \"ReturnCode\": 100,\n  \"AWBNoGenRequestedDateTime\": \"13-06-2026 22:28:16\",\n  \"BatchID\": \"DnxLq\",\n  \"AWBNoSeries\": [\n    \"153999460000000\",\n    \"153999460000001\",\n    \"153999460000002\",\n    \"153999460000003\",\n    \"153999460000004\",\n    \"... and 99995 more AWB numbers (truncated to prevent bloat)\"\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-xb-awbgen-1781369896203",
+      "timestamp": "2026-06-13T16:58:16.203Z",
+      "courier": "XpressBees",
+      "action": "AWB Series Generation",
+      "requestPayload": "{\n  \"BusinessUnit\": \"ECOM\",\n  \"ServiceType\": \"FORWARD\",\n  \"DeliveryType\": \"PREPAID\"\n}",
+      "responsePayload": "{\n  \"ReturnMessage\": \"successful\",\n  \"ReturnCode\": 100,\n  \"BatchID\": \"DnxLq\"\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1781369790546",
+      "timestamp": "2026-06-13T16:56:30.546Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218724",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218724\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vishnu\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-10T18:56:46.963\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1023\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-10T18:56:47.018\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-10T18:56:47.018\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Manifest uploaded\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Manifested\",\n          \"StatusCode\": \"X-UCI\",\n          \"StatusDateTime\": \"2026-06-10T18:56:47.018\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1781369541007",
+      "timestamp": "2026-06-13T16:52:21.007Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218724",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218724\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vishnu\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-10T18:56:46.963\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1023\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-10T18:56:47.018\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-10T18:56:47.018\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Manifest uploaded\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Manifested\",\n          \"StatusCode\": \"X-UCI\",\n          \"StatusDateTime\": \"2026-06-10T18:56:47.018\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-xb-awbretrieve-1781369524151",
+      "timestamp": "2026-06-13T16:52:04.151Z",
+      "courier": "XpressBees",
+      "action": "Get AWB Generated Series",
+      "requestPayload": "{\n  \"BatchID\": \"DnxLq\"\n}",
+      "responsePayload": "{\n  \"ReturnMessage\": \"Provide business unit\",\n  \"ReturnCode\": 103,\n  \"AWBNoGenRequestedDateTime\": null,\n  \"BatchID\": \"\",\n  \"AWBNoSeries\": null\n}",
+      "status": "Error"
+    },
+    {
+      "id": "cl-xb-awbgen-1781369523692",
+      "timestamp": "2026-06-13T16:52:03.692Z",
+      "courier": "XpressBees",
+      "action": "AWB Series Generation",
+      "requestPayload": "{\n  \"BusinessUnit\": \"ECOM\",\n  \"ServiceType\": \"FORWARD\",\n  \"DeliveryType\": \"PREPAID\"\n}",
+      "responsePayload": "{\n  \"ReturnMessage\": \"successful\",\n  \"ReturnCode\": 100,\n  \"BatchID\": \"DnxLq\"\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1781368481041",
+      "timestamp": "2026-06-13T16:34:41.041Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218724",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218724\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vishnu\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-10T18:56:46.963\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1023\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-10T18:56:47.018\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-10T18:56:47.018\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Manifest uploaded\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Manifested\",\n          \"StatusCode\": \"X-UCI\",\n          \"StatusDateTime\": \"2026-06-10T18:56:47.018\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1781368329482",
+      "timestamp": "2026-06-13T16:32:09.482Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218724",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218724\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vishnu\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-10T18:56:46.963\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1023\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-10T18:56:47.018\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-10T18:56:47.018\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Manifest uploaded\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Manifested\",\n          \"StatusCode\": \"X-UCI\",\n          \"StatusDateTime\": \"2026-06-10T18:56:47.018\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1781368327948",
+      "timestamp": "2026-06-13T16:32:07.948Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218724",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218724\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vishnu\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-10T18:56:46.963\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1023\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-10T18:56:47.018\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-10T18:56:47.018\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Manifest uploaded\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Manifested\",\n          \"StatusCode\": \"X-UCI\",\n          \"StatusDateTime\": \"2026-06-10T18:56:47.018\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1781368326309",
+      "timestamp": "2026-06-13T16:32:06.309Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218724",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218724\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vishnu\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-10T18:56:46.963\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1023\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-10T18:56:47.018\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-10T18:56:47.018\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Manifest uploaded\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Manifested\",\n          \"StatusCode\": \"X-UCI\",\n          \"StatusDateTime\": \"2026-06-10T18:56:47.018\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1781368323150",
+      "timestamp": "2026-06-13T16:32:03.150Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218724",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218724\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vishnu\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-10T18:56:46.963\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1023\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-10T18:56:47.018\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-10T18:56:47.018\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Manifest uploaded\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Manifested\",\n          \"StatusCode\": \"X-UCI\",\n          \"StatusDateTime\": \"2026-06-10T18:56:47.018\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1781368307681",
+      "timestamp": "2026-06-13T16:31:47.681Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218724",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218724\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vishnu\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-10T18:56:46.963\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1023\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-10T18:56:47.018\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-10T18:56:47.018\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Manifest uploaded\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Manifested\",\n          \"StatusCode\": \"X-UCI\",\n          \"StatusDateTime\": \"2026-06-10T18:56:47.018\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1781367255762",
+      "timestamp": "2026-06-13T16:14:15.762Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218724",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218724\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vishnu\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-10T18:56:46.963\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1023\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-10T18:56:47.018\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-10T18:56:47.018\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Manifest uploaded\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Manifested\",\n          \"StatusCode\": \"X-UCI\",\n          \"StatusDateTime\": \"2026-06-10T18:56:47.018\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-fail-1781367251006",
+      "timestamp": "2026-06-13T16:14:11.006Z",
+      "courier": "XpressBees",
+      "action": "Login / Generate AWB",
+      "requestPayload": "{\n  \"orderId\": \"99S-1022\",\n  \"courier\": \"XpressBees\",\n  \"weight\": 0.4,\n  \"paymentType\": \"COD\",\n  \"codAmount\": 1200,\n  \"customerName\": \"Ankit Verma\",\n  \"pincode\": \"282005\"\n}",
+      "responsePayload": "{\n  \"error\": \"Authentication failed: Failed to fetch token from XpressBees: XpressBees Login HTTP status error: 400. {\\\"statusCode\\\":400,\\\"error\\\":\\\"Bad Request\\\",\\\"message\\\":\\\"child \\\\\\\"username\\\\\\\" fails because [\\\\\\\"username\\\\\\\" is required]\\\",\\\"validation\\\":{\\\"source\\\":\\\"payload\\\",\\\"keys\\\":[\\\"username\\\"]}}\"\n}",
+      "status": "Error"
+    },
+    {
+      "id": "cl-track-1781366965105",
+      "timestamp": "2026-06-13T16:09:25.105Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218724",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218724\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vishnu\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-10T18:56:46.963\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1023\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-10T18:56:47.018\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-10T18:56:47.018\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Manifest uploaded\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Manifested\",\n          \"StatusCode\": \"X-UCI\",\n          \"StatusDateTime\": \"2026-06-10T18:56:47.018\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1781364703680",
+      "timestamp": "2026-06-13T15:31:43.680Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218724",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218724\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vishnu\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-10T18:56:46.963\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1023\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-10T18:56:47.018\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-10T18:56:47.018\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Manifest uploaded\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Manifested\",\n          \"StatusCode\": \"X-UCI\",\n          \"StatusDateTime\": \"2026-06-10T18:56:47.018\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1781099368600",
+      "timestamp": "2026-06-10T13:49:28.600Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218724",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218724\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vishnu\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-10T18:56:46.963\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1023\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-10T18:56:47.018\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-10T18:56:47.018\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Manifest uploaded\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Manifested\",\n          \"StatusCode\": \"X-UCI\",\n          \"StatusDateTime\": \"2026-06-10T18:56:47.018\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1781098325219",
+      "timestamp": "2026-06-10T13:32:05.219Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218724",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218724\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vishnu\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-10T18:56:46.963\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1023\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-10T18:56:47.018\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-10T18:56:47.018\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Manifest uploaded\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Manifested\",\n          \"StatusCode\": \"X-UCI\",\n          \"StatusDateTime\": \"2026-06-10T18:56:47.018\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1781098057339",
+      "timestamp": "2026-06-10T13:27:37.339Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218724",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218724\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vishnu\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-10T18:56:46.963\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1023\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-10T18:56:47.018\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-10T18:56:47.018\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Manifest uploaded\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Manifested\",\n          \"StatusCode\": \"X-UCI\",\n          \"StatusDateTime\": \"2026-06-10T18:56:47.018\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-cmu-manifest-1781098008120",
+      "timestamp": "2026-06-10T13:26:48.120Z",
+      "courier": "Delhivery",
+      "action": "Create Shipment",
+      "requestPayload": "{\n  \"url\": \"POST /api/cmu/create.json\",\n  \"headers\": {\n    \"Accept\": \"application/json\",\n    \"Content-Type\": \"application/json\",\n    \"Authorization\": \"Token 11a53f...\"\n  },\n  \"body\": \"format=json&data={\\\"shipments\\\":[{\\\"name\\\":\\\"Vishnu\\\",\\\"add\\\":\\\"B286 Trans Yamuna Colony Agra\\\",\\\"pin\\\":\\\"282006\\\",\\\"city\\\":\\\"Agra\\\",\\\"state\\\":\\\"UP\\\",\\\"country\\\":\\\"India\\\",\\\"phone\\\":\\\"7409954268\\\",\\\"order\\\":\\\"99S-1023\\\",\\\"payment_mode\\\":\\\"Prepaid\\\",\\\"return_pin\\\":\\\"\\\",\\\"return_city\\\":\\\"\\\",\\\"return_phone\\\":\\\"\\\",\\\"return_add\\\":\\\"\\\",\\\"return_state\\\":\\\"\\\",\\\"return_country\\\":\\\"\\\",\\\"products_desc\\\":\\\"99Store Trimmer \\\",\\\"hsn_code\\\":\\\"\\\",\\\"cod_amount\\\":\\\"\\\",\\\"order_date\\\":null,\\\"total_amount\\\":\\\"1300\\\",\\\"seller_add\\\":\\\"\\\",\\\"seller_name\\\":\\\"\\\",\\\"seller_inv\\\":\\\"\\\",\\\"quantity\\\":\\\"1\\\",\\\"waybill\\\":\\\"18242910218724\\\",\\\"shipment_width\\\":\\\"100\\\",\\\"shipment_height\\\":\\\"100\\\",\\\"weight\\\":\\\"0.4\\\",\\\"shipping_mode\\\":\\\"Surface\\\",\\\"address_type\\\":\\\"\\\"}],\\\"pickup_location\\\":{\\\"name\\\":\\\"Default Pickup Location\\\"}}\"\n}",
+      "responsePayload": "{\n  \"cash_pickups_count\": 0,\n  \"package_count\": 1,\n  \"prepaid_count\": 1,\n  \"pickups_count\": 0,\n  \"replacement_count\": 0,\n  \"cash_pickups\": 0,\n  \"cod_amount\": 0,\n  \"cod_count\": 0,\n  \"upload_wbn\": \"UPL13974482053892952007\",\n  \"packages\": [\n    {\n      \"waybill\": \"18242910218724\",\n      \"refnum\": \"99S-1023\",\n      \"client\": \"4067c8-SOMENTERPRISES-do\",\n      \"payment\": \"Pre-paid\",\n      \"cod_amount\": 0,\n      \"status\": \"Success\",\n      \"sort_code\": \"AGR/JAH\",\n      \"serviceable\": true,\n      \"remarks\": [\n        \"\"\n      ]\n    }\n  ],\n  \"success\": true\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-awb-fetch-1781098007639",
+      "timestamp": "2026-06-10T13:26:47.639Z",
+      "courier": "Delhivery",
+      "action": "Fetch AWB",
+      "requestPayload": "GET /waybill/api/fetch/json/?token=11a53f...&cl=SOM ENTERPRISES&client_name=SOM ENTERPRISES",
+      "responsePayload": "\"18242910218724\"",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1780510662130",
+      "timestamp": "2026-06-03T18:17:42.130Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218713",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218713\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vinod Sharma\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-02T18:21:37.322\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1015\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-02T18:21:37.377\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-02T18:21:37.377\"\n            }\n          },\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Shipment not ready for pickup\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-02T20:09:10\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"FMEOD-152\",\n              \"StatusDateTime\": \"2026-06-02T20:09:10\"\n            }\n          },\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Shipment not ready for pickup\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-03T17:55:09\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"FMEOD-152\",\n              \"StatusDateTime\": \"2026-06-03T17:55:09\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Shipment not ready for pickup\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Manifested\",\n          \"StatusCode\": \"FMEOD-152\",\n          \"StatusDateTime\": \"2026-06-03T17:55:09\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-xb-manifest-1780507337465",
+      "timestamp": "2026-06-03T17:22:17.465Z",
+      "courier": "XpressBees",
+      "action": "Create Shipment",
+      "requestPayload": "{\n  \"order_number\": \"99S-1020\",\n  \"unique_order_number\": \"yes\",\n  \"shipping_charges\": 40,\n  \"discount\": 0,\n  \"cod_charges\": 0,\n  \"payment_type\": \"prepaid\",\n  \"order_amount\": 1200,\n  \"package_weight\": 300,\n  \"package_length\": 10,\n  \"package_breadth\": 10,\n  \"package_height\": 10,\n  \"request_auto_pickup\": \"yes\",\n  \"consignee\": {\n    \"name\": \"Shelly Sharma\",\n    \"address\": \"B286 Trans Yamuna Colony Rambagh\",\n    \"address_2\": \"Agra\",\n    \"city\": \"Agra\",\n    \"state\": \"UP\",\n    \"pincode\": \"282006\",\n    \"phone\": \"8439762192\"\n  },\n  \"pickup\": {\n    \"warehouse_name\": \"99Store Delhi NCR Hub\",\n    \"name\": \"Warehouse Manager\",\n    \"address\": \"140 MG Road\",\n    \"address_2\": \"Near Metro Station\",\n    \"city\": \"Agra\",\n    \"state\": \"Uttar Pradesh\",\n    \"pincode\": \"282001\",\n    \"phone\": \"9999999999\"\n  },\n  \"order_items\": [\n    {\n      \"name\": \"99Store Premium Trimmer\",\n      \"qty\": \"1\",\n      \"price\": 1200,\n      \"sku\": \"SKU001\"\n    }\n  ],\n  \"courier_id\": \"1\",\n  \"collectable_amount\": \"0\"\n}",
+      "responsePayload": "{\n  \"status\": false,\n  \"message\": \"Wallet balance is low.\"\n}",
+      "status": "Error"
+    },
+    {
+      "id": "cl-xb-manifest-1780503212813",
+      "timestamp": "2026-06-03T16:13:32.813Z",
+      "courier": "XpressBees",
+      "action": "Create Shipment",
+      "requestPayload": "{\n  \"order_number\": \"99S-1019\",\n  \"unique_order_number\": \"yes\",\n  \"shipping_charges\": 40,\n  \"discount\": 0,\n  \"cod_charges\": 0,\n  \"payment_type\": \"prepaid\",\n  \"order_amount\": 400,\n  \"package_weight\": 100,\n  \"package_length\": 10,\n  \"package_breadth\": 10,\n  \"package_height\": 10,\n  \"request_auto_pickup\": \"yes\",\n  \"consignee\": {\n    \"name\": \"Jack Daniel\",\n    \"address\": \"B286 Trans Yamuna Colony Rambagh Agra\",\n    \"address_2\": \"Agra\",\n    \"city\": \"Agra\",\n    \"state\": \"UP\",\n    \"pincode\": \"282006\",\n    \"phone\": \"8439762192\"\n  },\n  \"pickup\": {\n    \"warehouse_name\": \"99Store Delhi NCR Hub\",\n    \"name\": \"Warehouse Manager\",\n    \"address\": \"140 MG Road\",\n    \"address_2\": \"Near Metro Station\",\n    \"city\": \"Agra\",\n    \"state\": \"Uttar Pradesh\",\n    \"pincode\": \"282001\",\n    \"phone\": \"9999999999\"\n  },\n  \"order_items\": [\n    {\n      \"name\": \"99Store Premium Mobile Case\",\n      \"qty\": \"1\",\n      \"sku\": \"SKU001\"\n    }\n  ],\n  \"courier_id\": \"1\",\n  \"collectable_amount\": \"0\"\n}",
+      "responsePayload": "{\n  \"status\": false,\n  \"message\": \"Item Price Should be Greater Than or Equal to Zero\"\n}",
+      "status": "Error"
+    },
+    {
+      "id": "cl-xb-track-1780502004882",
+      "timestamp": "2026-06-03T15:53:24.882Z",
+      "courier": "XpressBees",
+      "action": "Track Shipment (Simulated)",
+      "requestPayload": "GET /shipments2/track/XB323045337",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"XB323045337\",\n        \"Consignee\": {\n          \"Name\": \"Simulated XpressBees Recipient\"\n        },\n        \"Status\": {\n          \"Status\": \"Out for Delivery\",\n          \"StatusLocation\": \"Agra Hub\",\n          \"StatusDateTime\": \"2026-06-03T15:53:24.882Z\"\n        },\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Scan\": \"Out for Delivery\",\n              \"ScanDateTime\": \"2026-06-03T13:53:24.882Z\",\n              \"ScannedLocation\": \"Agra Delivery Hub\",\n              \"Instructions\": \"Delivery associate Vikram (9876543211) dispatched with package.\"\n            }\n          },\n          {\n            \"ScanDetail\": {\n              \"Scan\": \"In Transit\",\n              \"ScanDateTime\": \"2026-06-03T07:53:24.882Z\",\n              \"ScannedLocation\": \"Delhi Hub\",\n              \"Instructions\": \"Departed from warehouse hub.\"\n            }\n          },\n          {\n            \"ScanDetail\": {\n              \"Scan\": \"Manifest Uploaded\",\n              \"ScanDateTime\": \"2026-06-02T15:53:24.882Z\",\n              \"ScannedLocation\": \"Main Warehouse\",\n              \"Instructions\": \"Order Booked & AWB assigned via XpressBees.\"\n            }\n          }\n        ]\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-xb-track-1780501451450",
+      "timestamp": "2026-06-03T15:44:11.450Z",
+      "courier": "XpressBees",
+      "action": "Track Shipment (Simulated)",
+      "requestPayload": "GET /shipments2/track/XB323045337",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"XB323045337\",\n        \"Consignee\": {\n          \"Name\": \"Simulated XpressBees Recipient\"\n        },\n        \"Status\": {\n          \"Status\": \"Out for Delivery\",\n          \"StatusLocation\": \"Agra Hub\",\n          \"StatusDateTime\": \"2026-06-03T15:44:11.450Z\"\n        },\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Scan\": \"Out for Delivery\",\n              \"ScanDateTime\": \"2026-06-03T13:44:11.450Z\",\n              \"ScannedLocation\": \"Agra Delivery Hub\",\n              \"Instructions\": \"Delivery associate Vikram (9876543211) dispatched with package.\"\n            }\n          },\n          {\n            \"ScanDetail\": {\n              \"Scan\": \"In Transit\",\n              \"ScanDateTime\": \"2026-06-03T07:44:11.450Z\",\n              \"ScannedLocation\": \"Delhi Hub\",\n              \"Instructions\": \"Departed from warehouse hub.\"\n            }\n          },\n          {\n            \"ScanDetail\": {\n              \"Scan\": \"Manifest Uploaded\",\n              \"ScanDateTime\": \"2026-06-02T15:44:11.450Z\",\n              \"ScannedLocation\": \"Main Warehouse\",\n              \"Instructions\": \"Order Booked & AWB assigned via XpressBees.\"\n            }\n          }\n        ]\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-success-1780501262149",
+      "timestamp": "2026-06-03T15:41:02.149Z",
+      "courier": "XpressBees",
+      "action": "Generate AWB (Simulated)",
+      "requestPayload": "{\n  \"orderId\": \"99S-1018\",\n  \"courier\": \"XpressBees\",\n  \"weight\": 1.8,\n  \"paymentType\": \"Paid\",\n  \"codAmount\": 3000,\n  \"customerName\": \"Test Customer 3\",\n  \"pincode\": \"400001\"\n}",
+      "responsePayload": "{\n  \"status\": \"SUCCESS\",\n  \"awb\": \"XB323045337\",\n  \"eta\": \"2026-06-06\",\n  \"charge\": 100,\n  \"shipper\": \"99Store Fulfillment Center - Delhi NCR (Simulated)\",\n  \"apiKeyUsed\": \"MOCK_TOKEN_12345\"\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-xb-track-1780501027157",
+      "timestamp": "2026-06-03T15:37:07.157Z",
+      "courier": "XpressBees",
+      "action": "Track Shipment (Simulated)",
+      "requestPayload": "GET /shipments2/track/XB879844955",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"XB879844955\",\n        \"Consignee\": {\n          \"Name\": \"Simulated XpressBees Recipient\"\n        },\n        \"Status\": {\n          \"Status\": \"Out for Delivery\",\n          \"StatusLocation\": \"Agra Hub\",\n          \"StatusDateTime\": \"2026-06-03T15:37:07.157Z\"\n        },\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Scan\": \"Out for Delivery\",\n              \"ScanDateTime\": \"2026-06-03T13:37:07.157Z\",\n              \"ScannedLocation\": \"Agra Delivery Hub\",\n              \"Instructions\": \"Delivery associate Vikram (9876543211) dispatched with package.\"\n            }\n          },\n          {\n            \"ScanDetail\": {\n              \"Scan\": \"In Transit\",\n              \"ScanDateTime\": \"2026-06-03T07:37:07.157Z\",\n              \"ScannedLocation\": \"Delhi Hub\",\n              \"Instructions\": \"Departed from warehouse hub.\"\n            }\n          },\n          {\n            \"ScanDetail\": {\n              \"Scan\": \"Manifest Uploaded\",\n              \"ScanDateTime\": \"2026-06-02T15:37:07.157Z\",\n              \"ScannedLocation\": \"Main Warehouse\",\n              \"Instructions\": \"Order Booked & AWB assigned via XpressBees.\"\n            }\n          }\n        ]\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-success-1780500950457",
+      "timestamp": "2026-06-03T15:35:50.457Z",
+      "courier": "XpressBees",
+      "action": "Generate AWB (Simulated)",
+      "requestPayload": "{\n  \"orderId\": \"99S-1017\",\n  \"courier\": \"XpressBees\",\n  \"weight\": 1.2,\n  \"paymentType\": \"Paid\",\n  \"codAmount\": 2000,\n  \"customerName\": \"Test Customer 2\",\n  \"pincode\": \"400001\"\n}",
+      "responsePayload": "{\n  \"status\": \"SUCCESS\",\n  \"awb\": \"XB879844955\",\n  \"eta\": \"2026-06-06\",\n  \"charge\": 85,\n  \"shipper\": \"99Store Fulfillment Center - Delhi NCR (Simulated)\",\n  \"apiKeyUsed\": \"MOCK_TOKEN_12345\"\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-xb-track-1780500836068",
+      "timestamp": "2026-06-03T15:33:56.068Z",
+      "courier": "XpressBees",
+      "action": "Track Shipment (Simulated)",
+      "requestPayload": "GET /shipments2/track/XB930004238",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"XB930004238\",\n        \"Consignee\": {\n          \"Name\": \"Simulated XpressBees Recipient\"\n        },\n        \"Status\": {\n          \"Status\": \"Out for Delivery\",\n          \"StatusLocation\": \"Agra Hub\",\n          \"StatusDateTime\": \"2026-06-03T15:33:56.067Z\"\n        },\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Scan\": \"Out for Delivery\",\n              \"ScanDateTime\": \"2026-06-03T13:33:56.068Z\",\n              \"ScannedLocation\": \"Agra Delivery Hub\",\n              \"Instructions\": \"Delivery associate Vikram (9876543211) dispatched with package.\"\n            }\n          },\n          {\n            \"ScanDetail\": {\n              \"Scan\": \"In Transit\",\n              \"ScanDateTime\": \"2026-06-03T07:33:56.068Z\",\n              \"ScannedLocation\": \"Delhi Hub\",\n              \"Instructions\": \"Departed from warehouse hub.\"\n            }\n          },\n          {\n            \"ScanDetail\": {\n              \"Scan\": \"Manifest Uploaded\",\n              \"ScanDateTime\": \"2026-06-02T15:33:56.068Z\",\n              \"ScannedLocation\": \"Main Warehouse\",\n              \"Instructions\": \"Order Booked & AWB assigned via XpressBees.\"\n            }\n          }\n        ]\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-success-1780500747212",
+      "timestamp": "2026-06-03T15:32:27.212Z",
+      "courier": "XpressBees",
+      "action": "Generate AWB (Simulated)",
+      "requestPayload": "{\n  \"orderId\": \"99S-1016\",\n  \"courier\": \"XpressBees\",\n  \"weight\": 1.5,\n  \"paymentType\": \"Paid\",\n  \"codAmount\": 1500,\n  \"customerName\": \"Test Customer\",\n  \"pincode\": \"110001\"\n}",
+      "responsePayload": "{\n  \"status\": \"SUCCESS\",\n  \"awb\": \"XB930004238\",\n  \"eta\": \"2026-06-06\",\n  \"charge\": 92.5,\n  \"shipper\": \"99Store Fulfillment Center - Delhi NCR (Simulated)\",\n  \"apiKeyUsed\": \"MOCK_TOKEN_12345\"\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1780416686846",
+      "timestamp": "2026-06-02T16:11:26.846Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218713",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218713\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vinod Sharma\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-02T18:21:37.322\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1015\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-02T18:21:37.377\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-02T18:21:37.377\"\n            }\n          },\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Shipment not ready for pickup\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-02T20:09:10\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"FMEOD-152\",\n              \"StatusDateTime\": \"2026-06-02T20:09:10\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Shipment not ready for pickup\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Manifested\",\n          \"StatusCode\": \"FMEOD-152\",\n          \"StatusDateTime\": \"2026-06-02T20:09:10\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1780404726279",
+      "timestamp": "2026-06-02T12:52:06.279Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218713",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218713\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vinod Sharma\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-02T18:21:37.322\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1015\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-02T18:21:37.377\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-02T18:21:37.377\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Manifest uploaded\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Manifested\",\n          \"StatusCode\": \"X-UCI\",\n          \"StatusDateTime\": \"2026-06-02T18:21:37.377\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-cmu-manifest-1780404698012",
+      "timestamp": "2026-06-02T12:51:38.012Z",
+      "courier": "Delhivery",
+      "action": "Create Shipment",
+      "requestPayload": "{\n  \"url\": \"POST /api/cmu/create.json\",\n  \"headers\": {\n    \"Accept\": \"application/json\",\n    \"Content-Type\": \"application/json\",\n    \"Authorization\": \"Token 11a53f...\"\n  },\n  \"body\": \"format=json&data={\\\"shipments\\\":[{\\\"name\\\":\\\"Vinod Sharma\\\",\\\"add\\\":\\\"A 77 New Krishna Colony Sati Nagar Road Rambagh\\\",\\\"pin\\\":\\\"282006\\\",\\\"city\\\":\\\"Agra\\\",\\\"state\\\":\\\"UP\\\",\\\"country\\\":\\\"India\\\",\\\"phone\\\":\\\"8439762192\\\",\\\"order\\\":\\\"99S-1015\\\",\\\"payment_mode\\\":\\\"Prepaid\\\",\\\"return_pin\\\":\\\"\\\",\\\"return_city\\\":\\\"\\\",\\\"return_phone\\\":\\\"\\\",\\\"return_add\\\":\\\"\\\",\\\"return_state\\\":\\\"\\\",\\\"return_country\\\":\\\"\\\",\\\"products_desc\\\":\\\"99Store Chugger 1200ML\\\",\\\"hsn_code\\\":\\\"\\\",\\\"cod_amount\\\":\\\"\\\",\\\"order_date\\\":null,\\\"total_amount\\\":\\\"1300\\\",\\\"seller_add\\\":\\\"\\\",\\\"seller_name\\\":\\\"\\\",\\\"seller_inv\\\":\\\"\\\",\\\"quantity\\\":\\\"1\\\",\\\"waybill\\\":\\\"18242910218713\\\",\\\"shipment_width\\\":\\\"100\\\",\\\"shipment_height\\\":\\\"100\\\",\\\"weight\\\":\\\"0.3\\\",\\\"shipping_mode\\\":\\\"Surface\\\",\\\"address_type\\\":\\\"\\\"}],\\\"pickup_location\\\":{\\\"name\\\":\\\"Default Pickup Location\\\"}}\"\n}",
+      "responsePayload": "{\n  \"cash_pickups_count\": 0,\n  \"package_count\": 1,\n  \"prepaid_count\": 1,\n  \"pickups_count\": 0,\n  \"replacement_count\": 0,\n  \"cash_pickups\": 0,\n  \"cod_amount\": 0,\n  \"cod_count\": 0,\n  \"upload_wbn\": \"UPL1375629886431776740\",\n  \"packages\": [\n    {\n      \"waybill\": \"18242910218713\",\n      \"refnum\": \"99S-1015\",\n      \"client\": \"4067c8-SOMENTERPRISES-do\",\n      \"payment\": \"Pre-paid\",\n      \"cod_amount\": 0,\n      \"status\": \"Success\",\n      \"sort_code\": \"AGR/JAH\",\n      \"serviceable\": true,\n      \"remarks\": [\n        \"\"\n      ]\n    }\n  ],\n  \"success\": true\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-awb-fetch-1780404697400",
+      "timestamp": "2026-06-02T12:51:37.400Z",
+      "courier": "Delhivery",
+      "action": "Fetch AWB",
+      "requestPayload": "GET /waybill/api/fetch/json/?token=11a53f...&cl=SOM ENTERPRISES&client_name=SOM ENTERPRISES",
+      "responsePayload": "\"18242910218713\"",
+      "status": "Success"
+    },
+    {
+      "id": "cl-cmu-manifest-1780378713729",
+      "timestamp": "2026-06-02T05:38:33.729Z",
+      "courier": "Delhivery",
+      "action": "Create Shipment",
+      "requestPayload": "{\n  \"url\": \"POST /api/cmu/create.json?format=json\",\n  \"headers\": {\n    \"Content-Type\": \"application/x-www-form-urlencoded\",\n    \"Authorization\": \"Token 11a53f...\"\n  },\n  \"body\": {\n    \"format\": \"json\",\n    \"data\": {\n      \"shipments\": [\n        {\n          \"client\": \"SOM ENTERPRISES\",\n          \"name\": \"Jack Wilson\",\n          \"add\": \"A 77 New Krishna Colony Sati Nagar Road Naraich\",\n          \"pin\": \"282006\",\n          \"city\": \"Agra\",\n          \"state\": \"UP\",\n          \"country\": \"India\",\n          \"phone\": \"8439762192\",\n          \"order\": \"99S-1014\",\n          \"payment_mode\": \"Pre-paid\",\n          \"products_desc\": \"99Store Jack Wilson Toy\",\n          \"cod_amount\": \"0\",\n          \"total_amount\": \"2000\",\n          \"quantity\": \"1\",\n          \"weight\": \"0.5\",\n          \"shipment_mode\": \"Surface\",\n          \"pickup_location\": {\n            \"name\": \"Default Pickup Location\"\n          },\n          \"waybill\": \"18242910218702\"\n        }\n      ]\n    }\n  }\n}",
+      "responsePayload": "{\n  \"rmk\": \"shipment list contains no data.\",\n  \"error\": true,\n  \"success\": false,\n  \"cash_pickups_count\": 0,\n  \"cash_pickups\": 0,\n  \"cod_count\": 0,\n  \"package_count\": 0,\n  \"upload_wbn\": null,\n  \"replacement_count\": 0,\n  \"cod_amount\": 0,\n  \"prepaid_count\": 0,\n  \"pickups_count\": 0,\n  \"packages\": []\n}",
+      "status": "Error"
+    },
+    {
+      "id": "cl-awb-fetch-1780378713387",
+      "timestamp": "2026-06-02T05:38:33.387Z",
+      "courier": "Delhivery",
+      "action": "Fetch AWB",
+      "requestPayload": "GET /waybill/api/fetch/json/?token=11a53f...&cl=SOM ENTERPRISES&client_name=SOM ENTERPRISES",
+      "responsePayload": "\"18242910218702\"",
+      "status": "Success"
+    },
+    {
+      "id": "cl-cmu-manifest-1780375567969",
+      "timestamp": "2026-06-02T04:46:07.969Z",
+      "courier": "Delhivery",
+      "action": "Create Shipment",
+      "requestPayload": "{\n  \"url\": \"POST /api/cmu/create.json?format=json\",\n  \"headers\": {\n    \"Content-Type\": \"application/x-www-form-urlencoded\",\n    \"Authorization\": \"Token 11a53f...\"\n  },\n  \"body\": {\n    \"format\": \"json\",\n    \"data\": {\n      \"shipments\": [\n        {\n          \"client\": \"SOM ENTERPRISES\",\n          \"name\": \"Rohan Mishra\",\n          \"add\": \"A 77 New Krishna Colony Sati Nagar Road Naraich Rambagh Agra\",\n          \"pin\": \"282006\",\n          \"city\": \"Agra\",\n          \"state\": \"UP\",\n          \"country\": \"India\",\n          \"phone\": \"8439762192\",\n          \"order\": \"99S-1013\",\n          \"payment_mode\": \"Prepaid\",\n          \"products_desc\": \"99Store Premium Tumbler 500ML\",\n          \"cod_amount\": \"0\",\n          \"total_amount\": \"1200\",\n          \"quantity\": \"1\",\n          \"weight\": \"0.5\",\n          \"shipment_mode\": \"Surface\",\n          \"waybill\": \"18242910218691\"\n        }\n      ],\n      \"pickup_location\": {\n        \"name\": \"Default Pickup Location\"\n      }\n    }\n  }\n}",
+      "responsePayload": "{\n  \"rmk\": \"shipment list contains no data.\",\n  \"error\": true,\n  \"success\": false,\n  \"cash_pickups_count\": 0,\n  \"cash_pickups\": 0,\n  \"cod_count\": 0,\n  \"package_count\": 0,\n  \"upload_wbn\": null,\n  \"replacement_count\": 0,\n  \"cod_amount\": 0,\n  \"prepaid_count\": 0,\n  \"pickups_count\": 0,\n  \"packages\": []\n}",
+      "status": "Error"
+    },
+    {
+      "id": "cl-awb-fetch-1780375567663",
+      "timestamp": "2026-06-02T04:46:07.663Z",
+      "courier": "Delhivery",
+      "action": "Fetch AWB",
+      "requestPayload": "GET /waybill/api/fetch/json/?token=11a53f...&cl=SOM ENTERPRISES&client_name=SOM ENTERPRISES",
+      "responsePayload": "\"18242910218691\"",
+      "status": "Success"
+    },
+    {
+      "id": "cl-cmu-manifest-1780339276428",
+      "timestamp": "2026-06-01T18:41:16.428Z",
+      "courier": "Delhivery",
+      "action": "Create Shipment",
+      "requestPayload": "{\n  \"url\": \"POST /api/cmu/create.json?format=json\",\n  \"headers\": {\n    \"Content-Type\": \"application/x-www-form-urlencoded\",\n    \"Authorization\": \"Token 11a53f...\"\n  },\n  \"body\": {\n    \"format\": \"json\",\n    \"data\": {\n      \"shipments\": [\n        {\n          \"client\": \"SOM ENTERPRISES\",\n          \"name\": \"Rahul Mehta\",\n          \"add\": \"B 286 Trans Yamuna Colony Rambagh Agra\",\n          \"pin\": \"282006\",\n          \"city\": \"Agra\",\n          \"state\": \"UP\",\n          \"country\": \"India\",\n          \"phone\": \"8439762192\",\n          \"order\": \"99S-1012\",\n          \"payment_mode\": \"Pre-paid\",\n          \"products_desc\": \"Luminous Battery 150AH\",\n          \"cod_amount\": 0,\n          \"total_amount\": 14000,\n          \"quantity\": \"1\",\n          \"shipment_mode\": \"Surface\",\n          \"pickup_location\": {\n            \"name\": \"Default Pickup Location\"\n          },\n          \"waybill\": \"18242910218680\"\n        }\n      ]\n    }\n  }\n}",
+      "responsePayload": "{\n  \"rmk\": \"shipment list contains no data.\",\n  \"error\": true,\n  \"success\": false,\n  \"cash_pickups_count\": 0,\n  \"cash_pickups\": 0,\n  \"cod_count\": 0,\n  \"package_count\": 0,\n  \"upload_wbn\": null,\n  \"replacement_count\": 0,\n  \"cod_amount\": 0,\n  \"prepaid_count\": 0,\n  \"pickups_count\": 0,\n  \"packages\": []\n}",
+      "status": "Error"
+    },
+    {
+      "id": "cl-awb-fetch-1780339275915",
+      "timestamp": "2026-06-01T18:41:15.915Z",
+      "courier": "Delhivery",
+      "action": "Fetch AWB",
+      "requestPayload": "GET /waybill/api/fetch/json/?token=11a53f...&cl=SOM ENTERPRISES&client_name=SOM ENTERPRISES",
+      "responsePayload": "\"18242910218680\"",
+      "status": "Success"
+    },
+    {
+      "id": "cl-cmu-manifest-1780338951139",
+      "timestamp": "2026-06-01T18:35:51.139Z",
+      "courier": "Delhivery",
+      "action": "Create Shipment",
+      "requestPayload": "{\n  \"url\": \"POST /api/cmu/create.json?format=json\",\n  \"headers\": {\n    \"Content-Type\": \"application/x-www-form-urlencoded\",\n    \"Authorization\": \"Token 11a53f...\"\n  },\n  \"body\": {\n    \"format\": \"json\",\n    \"data\": {\n      \"shipments\": [\n        {\n          \"client\": \"SOM ENTERPRISES\",\n          \"name\": \"Nikki Sharma\",\n          \"add\": \"A 77 New Krishna Colony Rambagh Agra\",\n          \"pin\": \"282006\",\n          \"city\": \"Agra\",\n          \"state\": \"UP\",\n          \"country\": \"India\",\n          \"phone\": \"8439762192\",\n          \"order\": \"99S-1011\",\n          \"payment_mode\": \"Pre-paid\",\n          \"products_desc\": \"Bella Vita Perfume 100ML\",\n          \"cod_amount\": 0,\n          \"total_amount\": 500,\n          \"quantity\": \"1\",\n          \"shipment_mode\": \"Surface\",\n          \"pickup_location\": {\n            \"code\": \"INUPABBP\"\n          },\n          \"waybill\": \"18242910218676\"\n        }\n      ]\n    }\n  }\n}",
+      "responsePayload": "{\n  \"rmk\": \"shipment list contains no data.\",\n  \"error\": true,\n  \"success\": false,\n  \"cash_pickups_count\": 0,\n  \"cash_pickups\": 0,\n  \"cod_count\": 0,\n  \"package_count\": 0,\n  \"upload_wbn\": null,\n  \"replacement_count\": 0,\n  \"cod_amount\": 0,\n  \"prepaid_count\": 0,\n  \"pickups_count\": 0,\n  \"packages\": []\n}",
+      "status": "Error"
+    },
+    {
+      "id": "cl-awb-fetch-1780338950675",
+      "timestamp": "2026-06-01T18:35:50.675Z",
+      "courier": "Delhivery",
+      "action": "Fetch AWB",
+      "requestPayload": "GET /waybill/api/fetch/json/?token=11a53f...&cl=SOM ENTERPRISES&client_name=SOM ENTERPRISES",
+      "responsePayload": "\"18242910218676\"",
+      "status": "Success"
+    },
+    {
+      "id": "cl-cmu-manifest-1780338658552",
+      "timestamp": "2026-06-01T18:30:58.552Z",
+      "courier": "Delhivery",
+      "action": "Create Shipment",
+      "requestPayload": "{\n  \"url\": \"POST /api/cmu/create.json\",\n  \"headers\": {\n    \"Content-Type\": \"application/json\",\n    \"Authorization\": \"Token 11a53f...\"\n  },\n  \"body\": {\n    \"format\": \"json\",\n    \"shipments\": [\n      {\n        \"client\": \"SOM ENTERPRISES\",\n        \"name\": \"Shelly Sharma\",\n        \"add\": \"Geeta Nagar Balkeshwar Agra 282005\",\n        \"pin\": \"282004\",\n        \"city\": \"Agra\",\n        \"state\": \"UP\",\n        \"country\": \"India\",\n        \"phone\": \"8439762192\",\n        \"order\": \"99S-1010\",\n        \"payment_mode\": \"Pre-paid\",\n        \"products_desc\": \"Streax Canvo Shampoo 1L\",\n        \"cod_amount\": 0,\n        \"total_amount\": 800,\n        \"quantity\": \"1\",\n        \"shipment_mode\": \"Surface\",\n        \"pickup_location\": {\n          \"code\": \"INUPABBP\"\n        },\n        \"waybill\": \"18242910218665\"\n      }\n    ]\n  }\n}",
+      "responsePayload": "{\n  \"rmk\": \"format key missing in POST\",\n  \"error\": true,\n  \"success\": false,\n  \"cash_pickups_count\": 0,\n  \"cash_pickups\": 0,\n  \"cod_count\": 0,\n  \"package_count\": 0,\n  \"upload_wbn\": null,\n  \"replacement_count\": 0,\n  \"cod_amount\": 0,\n  \"prepaid_count\": 0,\n  \"pickups_count\": 0,\n  \"packages\": []\n}",
+      "status": "Error"
+    },
+    {
+      "id": "cl-awb-fetch-1780338658247",
+      "timestamp": "2026-06-01T18:30:58.247Z",
+      "courier": "Delhivery",
+      "action": "Fetch AWB",
+      "requestPayload": "GET /waybill/api/fetch/json/?token=11a53f...&cl=SOM ENTERPRISES&client_name=SOM ENTERPRISES",
+      "responsePayload": "\"18242910218665\"",
+      "status": "Success"
+    },
+    {
+      "id": "cl-cmu-manifest-1780337866120",
+      "timestamp": "2026-06-01T18:17:46.120Z",
+      "courier": "Delhivery",
+      "action": "Create Shipment",
+      "requestPayload": "{\n  \"url\": \"POST /api/cmu/create.json\",\n  \"headers\": {\n    \"Content-Type\": \"application/json\",\n    \"Authorization\": \"Token 11a53f...\"\n  },\n  \"body\": {\n    \"format\": \"json\",\n    \"shipments\": [\n      {\n        \"client\": \"SOM ENTERPRISES\",\n        \"name\": \"Alok Sharma\",\n        \"add\": \"Om Complex, F342, Adarsh Nagar Rd, near Sai Mandir\",\n        \"pin\": \"282005\",\n        \"city\": \"Agra\",\n        \"state\": \"UP\",\n        \"country\": \"India\",\n        \"phone\": \"9878767890\",\n        \"order\": \"99S-1009\",\n        \"payment_mode\": \"Pre-paid\",\n        \"products_desc\": \"Ceramic Coffee Mug\",\n        \"cod_amount\": 0,\n        \"total_amount\": 900,\n        \"quantity\": \"1\",\n        \"shipment_mode\": \"Surface\",\n        \"pickup_location\": {\n          \"code\": \"INUPABBP\"\n        },\n        \"waybill\": \"18242910218654\"\n      }\n    ]\n  }\n}",
+      "responsePayload": "{\n  \"rmk\": \"format key missing in POST\",\n  \"error\": true,\n  \"success\": false,\n  \"cash_pickups_count\": 0,\n  \"cash_pickups\": 0,\n  \"cod_count\": 0,\n  \"package_count\": 0,\n  \"upload_wbn\": null,\n  \"replacement_count\": 0,\n  \"cod_amount\": 0,\n  \"prepaid_count\": 0,\n  \"pickups_count\": 0,\n  \"packages\": []\n}",
+      "status": "Error"
+    },
+    {
+      "id": "cl-awb-fetch-1780337865844",
+      "timestamp": "2026-06-01T18:17:45.844Z",
+      "courier": "Delhivery",
+      "action": "Fetch AWB",
+      "requestPayload": "GET /waybill/api/fetch/json/?token=11a53f...&cl=SOM ENTERPRISES&client_name=SOM ENTERPRISES",
+      "responsePayload": "\"18242910218654\"",
+      "status": "Success"
+    },
+    {
+      "id": "cl-cmu-manifest-1780335520142",
+      "timestamp": "2026-06-01T17:38:40.142Z",
+      "courier": "Delhivery",
+      "action": "Create Shipment",
+      "requestPayload": "{\n  \"url\": \"POST /api/cmu/create.json\",\n  \"headers\": {\n    \"Content-Type\": \"application/json\",\n    \"Authorization\": \"Token 11a53f...\"\n  },\n  \"body\": {\n    \"shipments\": [\n      {\n        \"client\": \"SOM ENTERPRISES\",\n        \"name\": \"Ashish Sharma\",\n        \"add\": \"A 77 New Krishna Colony Sati Nagar Road Naraich Rambagh Agra\",\n        \"pin\": \"282006\",\n        \"city\": \"Agra\",\n        \"state\": \"UP\",\n        \"country\": \"India\",\n        \"phone\": \"8439762192\",\n        \"order\": \"99S-1008\",\n        \"payment_mode\": \"Pre-paid\",\n        \"products_desc\": \"UBON Bluetooth Speaker 20Watt\",\n        \"cod_amount\": 0,\n        \"total_amount\": 2000,\n        \"quantity\": \"1\",\n        \"shipment_mode\": \"Surface\",\n        \"pickup_location\": {\n          \"code\": \"INUPABBP\"\n        },\n        \"waybill\": \"18242910218643\"\n      }\n    ]\n  }\n}",
+      "responsePayload": "{\n  \"rmk\": \"format key missing in POST\",\n  \"error\": true,\n  \"success\": false,\n  \"cash_pickups_count\": 0,\n  \"cash_pickups\": 0,\n  \"cod_count\": 0,\n  \"package_count\": 0,\n  \"upload_wbn\": null,\n  \"replacement_count\": 0,\n  \"cod_amount\": 0,\n  \"prepaid_count\": 0,\n  \"pickups_count\": 0,\n  \"packages\": []\n}",
+      "status": "Error"
+    },
+    {
+      "id": "cl-awb-fetch-1780335519845",
+      "timestamp": "2026-06-01T17:38:39.845Z",
+      "courier": "Delhivery",
+      "action": "Fetch AWB",
+      "requestPayload": "GET /waybill/api/fetch/json/?token=11a53f...&cl=SOM ENTERPRISES&client_name=SOM ENTERPRISES",
+      "responsePayload": "\"18242910218643\"",
+      "status": "Success"
+    },
+    {
+      "id": "cl-cmu-manifest-1780332716397",
+      "timestamp": "2026-06-01T16:51:56.397Z",
+      "courier": "Delhivery",
+      "action": "Create Shipment",
+      "requestPayload": "{\n  \"url\": \"POST /api/cmu/create.json\",\n  \"headers\": {\n    \"Content-Type\": \"application/x-www-form-urlencoded\",\n    \"Authorization\": \"Token 11a53f...\"\n  },\n  \"body\": {\n    \"shipments\": [\n      {\n        \"client\": \"SOM ENTERPRISES\",\n        \"name\": \"Aditya Birla\",\n        \"add\": \"A 77 New Krishna Colony Sati Nagar Road Naraich Rambagh Agra\",\n        \"pin\": \"282006\",\n        \"city\": \"Agra\",\n        \"state\": \"UP\",\n        \"country\": \"India\",\n        \"phone\": \"8439762192\",\n        \"order\": \"99S-1007\",\n        \"payment_mode\": \"Pre-paid\",\n        \"products_desc\": \"99Store Tumbler 1200ML\",\n        \"cod_amount\": 0,\n        \"total_amount\": 1200,\n        \"quantity\": \"1\",\n        \"shipment_mode\": \"Surface\",\n        \"pickup_location\": {\n          \"name\": \"Default Pickup Location\"\n        },\n        \"waybill\": \"18242910218632\"\n      }\n    ]\n  }\n}",
+      "responsePayload": "{\n  \"rmk\": \"shipment list contains no data.\",\n  \"error\": true,\n  \"success\": false,\n  \"cash_pickups_count\": 0,\n  \"cash_pickups\": 0,\n  \"cod_count\": 0,\n  \"package_count\": 0,\n  \"upload_wbn\": null,\n  \"replacement_count\": 0,\n  \"cod_amount\": 0,\n  \"prepaid_count\": 0,\n  \"pickups_count\": 0,\n  \"packages\": []\n}",
+      "status": "Error"
+    },
+    {
+      "id": "cl-awb-fetch-1780332715801",
+      "timestamp": "2026-06-01T16:51:55.801Z",
+      "courier": "Delhivery",
+      "action": "Fetch AWB",
+      "requestPayload": "GET /waybill/api/fetch/json/?token=11a53f...&cl=SOM ENTERPRISES&client_name=SOM ENTERPRISES",
+      "responsePayload": "\"18242910218632\"",
+      "status": "Success"
+    },
+    {
+      "id": "cl-cmu-manifest-1780331787424",
+      "timestamp": "2026-06-01T16:36:27.424Z",
+      "courier": "Delhivery",
+      "action": "Create Shipment",
+      "requestPayload": "{\n  \"url\": \"POST /api/cmu/create.json\",\n  \"headers\": {\n    \"Content-Type\": \"application/x-www-form-urlencoded\",\n    \"Authorization\": \"Token 11a53f...\"\n  },\n  \"body\": {\n    \"shipments\": [\n      {\n        \"client\": \"SOM ENTERPRISES\",\n        \"name\": \"Karan Johar\",\n        \"add\": \"Bunglow 99, Juhu Scheme\",\n        \"pin\": \"400049\",\n        \"city\": \"Mumbai\",\n        \"state\": \"Maharashtra\",\n        \"country\": \"India\",\n        \"phone\": \"9988776655\",\n        \"order\": \"99S-1004\",\n        \"payment_mode\": \"Pre-paid\",\n        \"products_desc\": \"99Store Solid Brass Pen + Leather Stand Set\",\n        \"cod_amount\": 0,\n        \"total_amount\": 3999,\n        \"quantity\": \"1\",\n        \"shipment_mode\": \"Surface\",\n        \"pickup_location\": {\n          \"name\": \"Default Pickup Location\"\n        }\n      }\n    ]\n  }\n}",
+      "responsePayload": "{\n  \"rmk\": \"Package creation API error.Package might be saved.Please contact tech.admin@delhivery.com. Error message is 'NoneType' object has no attribute 'end_date' . Quote this error message while reporting.\",\n  \"error\": true,\n  \"success\": false,\n  \"cash_pickups_count\": 0,\n  \"cash_pickups\": 0,\n  \"cod_count\": 0,\n  \"package_count\": 0,\n  \"upload_wbn\": null,\n  \"replacement_count\": 0,\n  \"cod_amount\": 0,\n  \"prepaid_count\": 0,\n  \"pickups_count\": 0,\n  \"packages\": []\n}",
+      "status": "Error"
+    },
+    {
+      "id": "cl-awb-fetch-1780331787053",
+      "timestamp": "2026-06-01T16:36:27.053Z",
+      "courier": "Delhivery",
+      "action": "Fetch AWB",
+      "requestPayload": "GET /waybill/api/fetch/json/?token=11a53f...&cl=SOM ENTERPRISES&client_name=SOM ENTERPRISES",
+      "responsePayload": "{\n  \"error\": \"Bad Request! Unable to fetch client for Waybill API action fetch\"\n}",
+      "status": "Error"
+    },
+    {
+      "id": "cl-awb-fetch-fail-1780293075282",
+      "timestamp": "2026-06-01T05:51:15.282Z",
+      "courier": "Delhivery",
+      "action": "Fetch AWB",
+      "requestPayload": "GET /waybill/api/fetch/json/?token=11a53f...&cl=SOM ENTERPRISES&client_name=SOM ENTERPRISES",
+      "responsePayload": "{\n  \"error\": \"Unexpected token 'B', \\\"Bad Reques\\\"... is not valid JSON\"\n}",
+      "status": "Error"
+    },
+    {
+      "id": "cl-awb-fetch-fail-1780292801574",
+      "timestamp": "2026-06-01T05:46:41.574Z",
+      "courier": "Delhivery",
+      "action": "Fetch AWB",
+      "requestPayload": "GET /waybill/api/fetch/json/?token=11a53f...&cl=99Store&client_name=99Store",
+      "responsePayload": "{\n  \"error\": \"Unexpected token 'B', \\\"Bad Reques\\\"... is not valid JSON\"\n}",
+      "status": "Error"
+    },
+    {
+      "id": "cl-1",
+      "timestamp": "2026-05-25T04:41:34.501Z",
+      "courier": "DTDC",
+      "action": "Generate AWB",
+      "requestPayload": "{\n  \"orderId\": \"99S-1001\",\n  \"shipper\": \"99Store Warehouse, Delhi\",\n  \"recipient\": {\n    \"name\": \"Aditya Birla\",\n    \"address\": \"Flat 402, Sunset Heights, Bandra West\",\n    \"pincode\": \"400050\",\n    \"phone\": \"9876543210\"\n  },\n  \"weight\": 0.6,\n  \"payment\": \"Prepaid\"\n}",
+      "responsePayload": "{\n  \"status\": \"SUCCESS\",\n  \"awb\": \"DTDC901238912\",\n  \"estimated_days\": 2,\n  \"charge\": 85\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-2",
+      "timestamp": "2026-05-30T04:41:34.501Z",
+      "courier": "XpressBees",
+      "action": "Generate AWB",
+      "requestPayload": "{\n  \"orderId\": \"99S-1002\",\n  \"shipper\": \"99Store Warehouse, Delhi\",\n  \"recipient\": {\n    \"name\": \"Priya Sharma\",\n    \"address\": \"House No 12, Sector 15\",\n    \"pincode\": \"122001\",\n    \"phone\": \"8765432109\"\n  },\n  \"weight\": 0.8,\n  \"payment\": \"COD\",\n  \"cod_amount\": 1499\n}",
+      "responsePayload": "{\n  \"status\": \"SUCCESS\",\n  \"awb\": \"XB878291038\",\n  \"estimated_days\": 3,\n  \"charge\": 110\n}",
+      "status": "Success"
+    }
+  ],
+  "settings": {
+    "ipWhitelist": [
+      "127.0.0.1",
+      "::1",
+      "192.168.1.10",
+      "192.168.1.11"
+    ],
+    "isIpWhitelistEnabled": false,
+    "autoCourierEnabled": true,
+    "dtdcActive": true,
+    "xpressbeesActive": true,
+    "deliveryActive": true,
+    "aggregatorActive": true,
+    "dtdcConfig": {
+      "apiKey": "dtdc_live_sec_99store_8a9238bc",
+      "priority": 1
+    },
+    "xpressbeesConfig": {
+      "apiKey": "",
+      "priority": 2,
+      "email": "admin@shivayair.com",
+      "password": "Xpress@1234567",
+      "baseUrl": "https://shipment.xpressbees.com/api",
+      "warehouseName": "Shivay Air Hub",
+      "contactName": "Vishnu Singh Sikarwar",
+      "address": "J.K. NAGAR, NANDLALPUR HATHRAS ROAD KUBERPUR",
+      "address2": "Kuberpur",
+      "city": "Agra",
+      "state": "Uttar Pradesh",
+      "pincode": "282006",
+      "phone": "9999999999",
+      "secretKey": "d0277ffa8e293bf04578ee8f63337fe71ac41f854e296fb95b5975ed5aa4a802",
+      "xbKey": "JnueT39994Dyats",
+      "vendorCode": "VEND001",
+      "serviceType": "NDD",
+      "authType": "new",
+      "tokenUrl": "https://userauthapis.xbees.in/api/auth/generateToken",
+      "manifestUrl": "https://apishipmentmanifestation.xbees.in/shipmentmanifestation/forward",
+      "awbGenUrl": "https://xbclientapi.xbees.in/POSTShipmentService.svc/AWBNumberSeriesGeneration",
+      "awbRetrieveUrl": "https://xbclientapi.xbees.in/TrackingService.svc/GetAWBNumberGeneratedSeries",
+      "cancelUrl": "https://clientshipupdatesapi.xbees.in/forwardcancellation",
+      "ndrUrl": "https://clientshipupdatesapi.xbees.in/client/UpdateNDRDeferredDeliveryDate",
+      "pincodeUrl": "https://xbmasterapi.xbees.in/expose/get/serviceabilitypincode/details",
+      "trackSummaryUrl": "https://apishipmenttracking.xbees.in/GetShipmentAuditLog",
+      "trackBulkUrl": "https://apishipmenttracking.xbees.in/GetCurrentShipmentStatus"
+    },
+    "deliveryConfig": {
+      "apiKey": "11a53ff6a76e21d9a87daba7747b88e5e4f76556",
+      "priority": 3,
+      "clientName": "SOM ENTERPRISES",
+      "pickupLocation": "Default Pickup Location"
+    }
+  },
+  "messages": [
+    {
+      "id": "msg-1781235683948",
+      "senderId": "usr-1",
+      "senderName": "Aniket Sharma (Super Admin)",
+      "senderUsername": "admin",
+      "recipientId": "usr-2",
+      "recipientName": "Rahul K. (Order Team)",
+      "recipientUsername": "order_user",
+      "content": "Hey",
+      "timestamp": "2026-06-12T03:41:23.948Z",
+      "isReadBy": [
+        "usr-1",
+        "usr-2"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781236409983",
+      "senderId": "usr-1",
+      "senderName": "Aniket Sharma (Super Admin)",
+      "senderUsername": "admin",
+      "recipientId": "usr-2",
+      "recipientName": "Rahul K. (Order Team)",
+      "recipientUsername": "order_user",
+      "content": "Working on it now.",
+      "timestamp": "2026-06-12T03:53:29.983Z",
+      "isReadBy": [
+        "usr-1",
+        "usr-2"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781236565305",
+      "senderId": "usr-2",
+      "senderName": "Rahul K. (Order Team)",
+      "senderUsername": "order_user",
+      "recipientId": "usr-1",
+      "recipientName": "Aniket Sharma (Super Admin)",
+      "recipientUsername": "admin",
+      "content": "Hey boi its a test",
+      "timestamp": "2026-06-12T03:56:05.305Z",
+      "isReadBy": [
+        "usr-2",
+        "usr-1"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781364030943",
+      "senderId": "usr-1",
+      "senderName": "Aniket Sharma (Super Admin)",
+      "senderUsername": "admin",
+      "recipientId": "usr-2",
+      "recipientName": "Rahul K. (Order Team)",
+      "recipientUsername": "order_user",
+      "content": "Hey",
+      "timestamp": "2026-06-13T15:20:30.943Z",
+      "isReadBy": [
+        "usr-1"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781364725540",
+      "senderId": "usr-4",
+      "senderName": "Neha Mehta (Tracking Team)",
+      "senderUsername": "tracking_user",
+      "recipientId": "usr-2",
+      "recipientName": "Rahul K. (Order Team)",
+      "recipientUsername": "order_user",
+      "content": "Working on it now.",
+      "timestamp": "2026-06-13T15:32:05.540Z",
+      "isReadBy": [
+        "usr-4"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781364777657",
+      "senderId": "usr-1",
+      "senderName": "Aniket Sharma (Super Admin)",
+      "senderUsername": "admin",
+      "recipientId": "usr-2",
+      "recipientName": "Rahul K. (Order Team)",
+      "recipientUsername": "order_user",
+      "content": "Hey",
+      "timestamp": "2026-06-13T15:32:57.658Z",
+      "isReadBy": [
+        "usr-1"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781365017267",
+      "senderId": "usr-4",
+      "senderName": "Neha Mehta (Tracking Team)",
+      "senderUsername": "tracking_user",
+      "recipientId": "usr-3",
+      "recipientName": "Suresh Kumar (Packing Team)",
+      "recipientUsername": "packing_user",
+      "content": "I am tracking team",
+      "timestamp": "2026-06-13T15:36:57.267Z",
+      "isReadBy": [
+        "usr-4",
+        "usr-3"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781365046399",
+      "senderId": "usr-4",
+      "senderName": "Neha Mehta (Tracking Team)",
+      "senderUsername": "tracking_user",
+      "recipientId": "usr-3",
+      "recipientName": "Suresh Kumar (Packing Team)",
+      "recipientUsername": "packing_user",
+      "content": "Hey",
+      "timestamp": "2026-06-13T15:37:26.399Z",
+      "isReadBy": [
+        "usr-4",
+        "usr-3"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781365054593",
+      "senderId": "usr-1",
+      "senderName": "Aniket Sharma (Super Admin)",
+      "senderUsername": "admin",
+      "recipientId": "usr-4",
+      "recipientName": "Neha Mehta (Tracking Team)",
+      "recipientUsername": "tracking_user",
+      "content": "Hey",
+      "timestamp": "2026-06-13T15:37:34.593Z",
+      "isReadBy": [
+        "usr-1",
+        "usr-4"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781365068509",
+      "senderId": "usr-4",
+      "senderName": "Neha Mehta (Tracking Team)",
+      "senderUsername": "tracking_user",
+      "recipientId": "usr-1",
+      "recipientName": "Aniket Sharma (Super Admin)",
+      "recipientUsername": "admin",
+      "content": "Hi",
+      "timestamp": "2026-06-13T15:37:48.509Z",
+      "isReadBy": [
+        "usr-4",
+        "usr-1"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781365086779",
+      "senderId": "usr-1",
+      "senderName": "Aniket Sharma (Super Admin)",
+      "senderUsername": "admin",
+      "recipientId": "usr-4",
+      "recipientName": "Neha Mehta (Tracking Team)",
+      "recipientUsername": "tracking_user",
+      "content": "This is a test",
+      "timestamp": "2026-06-13T15:38:06.779Z",
+      "isReadBy": [
+        "usr-1",
+        "usr-4"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781365164715",
+      "senderId": "usr-4",
+      "senderName": "Neha Mehta (Tracking Team)",
+      "senderUsername": "tracking_user",
+      "recipientId": "usr-1",
+      "recipientName": "Aniket Sharma (Super Admin)",
+      "recipientUsername": "admin",
+      "content": "Order is packed.",
+      "timestamp": "2026-06-13T15:39:24.715Z",
+      "isReadBy": [
+        "usr-4",
+        "usr-1"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781365222544",
+      "senderId": "usr-1",
+      "senderName": "Aniket Sharma (Super Admin)",
+      "senderUsername": "admin",
+      "recipientId": "usr-4",
+      "recipientName": "Neha Mehta (Tracking Team)",
+      "recipientUsername": "tracking_user",
+      "content": "Hey",
+      "timestamp": "2026-06-13T15:40:22.544Z",
+      "isReadBy": [
+        "usr-1",
+        "usr-4"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781365239380",
+      "senderId": "usr-1",
+      "senderName": "Aniket Sharma (Super Admin)",
+      "senderUsername": "admin",
+      "recipientId": "usr-4",
+      "recipientName": "Neha Mehta (Tracking Team)",
+      "recipientUsername": "tracking_user",
+      "content": "Are you working on the same",
+      "timestamp": "2026-06-13T15:40:39.380Z",
+      "isReadBy": [
+        "usr-1",
+        "usr-4"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781365255404",
+      "senderId": "usr-4",
+      "senderName": "Neha Mehta (Tracking Team)",
+      "senderUsername": "tracking_user",
+      "recipientId": "usr-1",
+      "recipientName": "Aniket Sharma (Super Admin)",
+      "recipientUsername": "admin",
+      "content": "Yes i am working...",
+      "timestamp": "2026-06-13T15:40:55.404Z",
+      "isReadBy": [
+        "usr-4",
+        "usr-1"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781365284272",
+      "senderId": "usr-4",
+      "senderName": "Neha Mehta (Tracking Team)",
+      "senderUsername": "tracking_user",
+      "recipientId": "usr-1",
+      "recipientName": "Aniket Sharma (Super Admin)",
+      "recipientUsername": "admin",
+      "content": "are you working",
+      "timestamp": "2026-06-13T15:41:24.272Z",
+      "isReadBy": [
+        "usr-4",
+        "usr-1"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781365286251",
+      "senderId": "usr-4",
+      "senderName": "Neha Mehta (Tracking Team)",
+      "senderUsername": "tracking_user",
+      "recipientId": "usr-1",
+      "recipientName": "Aniket Sharma (Super Admin)",
+      "recipientUsername": "admin",
+      "content": "??",
+      "timestamp": "2026-06-13T15:41:26.251Z",
+      "isReadBy": [
+        "usr-4",
+        "usr-1"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781365288495",
+      "senderId": "usr-1",
+      "senderName": "Aniket Sharma (Super Admin)",
+      "senderUsername": "admin",
+      "recipientId": "usr-4",
+      "recipientName": "Neha Mehta (Tracking Team)",
+      "recipientUsername": "tracking_user",
+      "content": "Hey how are you?",
+      "timestamp": "2026-06-13T15:41:28.495Z",
+      "isReadBy": [
+        "usr-1",
+        "usr-4"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781365298020",
+      "senderId": "usr-4",
+      "senderName": "Neha Mehta (Tracking Team)",
+      "senderUsername": "tracking_user",
+      "recipientId": "usr-1",
+      "recipientName": "Aniket Sharma (Super Admin)",
+      "recipientUsername": "admin",
+      "content": "i am good",
+      "timestamp": "2026-06-13T15:41:38.020Z",
+      "isReadBy": [
+        "usr-4",
+        "usr-1"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781365306900",
+      "senderId": "usr-4",
+      "senderName": "Neha Mehta (Tracking Team)",
+      "senderUsername": "tracking_user",
+      "recipientId": "usr-1",
+      "recipientName": "Aniket Sharma (Super Admin)",
+      "recipientUsername": "admin",
+      "content": "are you working?",
+      "timestamp": "2026-06-13T15:41:46.900Z",
+      "isReadBy": [
+        "usr-4",
+        "usr-1"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781365328478",
+      "senderId": "usr-1",
+      "senderName": "Aniket Sharma (Super Admin)",
+      "senderUsername": "admin",
+      "recipientId": "usr-4",
+      "recipientName": "Neha Mehta (Tracking Team)",
+      "recipientUsername": "tracking_user",
+      "content": "No, not right now. How about you?",
+      "timestamp": "2026-06-13T15:42:08.478Z",
+      "isReadBy": [
+        "usr-1",
+        "usr-4"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781365350996",
+      "senderId": "usr-4",
+      "senderName": "Neha Mehta (Tracking Team)",
+      "senderUsername": "tracking_user",
+      "recipientId": "usr-1",
+      "recipientName": "Aniket Sharma (Super Admin)",
+      "recipientUsername": "admin",
+      "content": "I am working on the OFD today",
+      "timestamp": "2026-06-13T15:42:30.996Z",
+      "isReadBy": [
+        "usr-4",
+        "usr-1"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781365368157",
+      "senderId": "usr-1",
+      "senderName": "Aniket Sharma (Super Admin)",
+      "senderUsername": "admin",
+      "recipientId": "usr-4",
+      "recipientName": "Neha Mehta (Tracking Team)",
+      "recipientUsername": "tracking_user",
+      "content": "Oo that's great.",
+      "timestamp": "2026-06-13T15:42:48.157Z",
+      "isReadBy": [
+        "usr-1",
+        "usr-4"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781365394891",
+      "senderId": "usr-4",
+      "senderName": "Neha Mehta (Tracking Team)",
+      "senderUsername": "tracking_user",
+      "recipientId": "usr-1",
+      "recipientName": "Aniket Sharma (Super Admin)",
+      "recipientUsername": "admin",
+      "content": "hey",
+      "timestamp": "2026-06-13T15:43:14.891Z",
+      "isReadBy": [
+        "usr-4",
+        "usr-1"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781424501815",
+      "senderId": "usr-1",
+      "senderName": "Aniket Sharma (Super Admin)",
+      "senderUsername": "admin",
+      "recipientId": "usr-4",
+      "recipientName": "Neha Mehta (Tracking Team)",
+      "recipientUsername": "tracking_user",
+      "content": "Order is packed.",
+      "timestamp": "2026-06-14T08:08:21.815Z",
+      "isReadBy": [
+        "usr-1",
+        "usr-4"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781424515826",
+      "senderId": "usr-1",
+      "senderName": "Aniket Sharma (Super Admin)",
+      "senderUsername": "admin",
+      "recipientId": "usr-3",
+      "recipientName": "Suresh Kumar (Packing Team)",
+      "recipientUsername": "packing_user",
+      "content": "Ready to dispatch.",
+      "timestamp": "2026-06-14T08:08:35.826Z",
+      "isReadBy": [
+        "usr-1",
+        "usr-3"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781424526953",
+      "senderId": "usr-3",
+      "senderName": "Suresh Kumar (Packing Team)",
+      "senderUsername": "packing_user",
+      "recipientId": "usr-1",
+      "recipientName": "Aniket Sharma (Super Admin)",
+      "recipientUsername": "admin",
+      "content": "Yes thanks",
+      "timestamp": "2026-06-14T08:08:46.953Z",
+      "isReadBy": [
+        "usr-3",
+        "usr-1"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781424542222",
+      "senderId": "usr-1",
+      "senderName": "Aniket Sharma (Super Admin)",
+      "senderUsername": "admin",
+      "recipientId": "all",
+      "recipientName": "All Users",
+      "recipientUsername": "all",
+      "content": "Operations running smoothly.",
+      "timestamp": "2026-06-14T08:09:02.222Z",
+      "isReadBy": [
+        "usr-1",
+        "usr-3"
+      ],
+      "isBroadcast": true,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781424563779",
+      "senderId": "usr-1",
+      "senderName": "Aniket Sharma (Super Admin)",
+      "senderUsername": "admin",
+      "recipientId": "usr-5",
+      "recipientName": "Rohan Shah (Accounts Team)",
+      "recipientUsername": "accounts_user",
+      "content": "Ready to dispatch.",
+      "timestamp": "2026-06-14T08:09:23.779Z",
+      "isReadBy": [
+        "usr-1"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781424703684",
+      "senderId": "usr-3",
+      "senderName": "Suresh Kumar (Packing Team)",
+      "senderUsername": "packing_user",
+      "recipientId": "usr-4",
+      "recipientName": "Neha Mehta (Tracking Team)",
+      "recipientUsername": "tracking_user",
+      "content": "Working on it now.",
+      "timestamp": "2026-06-14T08:11:43.684Z",
+      "isReadBy": [
+        "usr-3",
+        "usr-4"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781427537679",
+      "senderId": "usr-1",
+      "senderName": "Aniket Sharma (Super Admin)",
+      "senderUsername": "admin",
+      "recipientId": "usr-3",
+      "recipientName": "Suresh Kumar (Packing Team)",
+      "recipientUsername": "packing_user",
+      "content": "hey",
+      "timestamp": "2026-06-14T08:58:57.679Z",
+      "isReadBy": [
+        "usr-1",
+        "usr-3"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781427565041",
+      "senderId": "usr-4",
+      "senderName": "Neha Mehta (Tracking Team)",
+      "senderUsername": "tracking_user",
+      "recipientId": "usr-1",
+      "recipientName": "Aniket Sharma (Super Admin)",
+      "recipientUsername": "admin",
+      "content": "Hey",
+      "timestamp": "2026-06-14T08:59:25.041Z",
+      "isReadBy": [
+        "usr-4",
+        "usr-1"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781427574437",
+      "senderId": "usr-4",
+      "senderName": "Neha Mehta (Tracking Team)",
+      "senderUsername": "tracking_user",
+      "recipientId": "usr-1",
+      "recipientName": "Aniket Sharma (Super Admin)",
+      "recipientUsername": "admin",
+      "content": "Order is packed.",
+      "timestamp": "2026-06-14T08:59:34.437Z",
+      "isReadBy": [
+        "usr-4",
+        "usr-1"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781615969174",
+      "senderId": "usr-3",
+      "senderName": "Suresh Kumar (Packing Team)",
+      "senderUsername": "packing_user",
+      "recipientId": "usr-1",
+      "recipientName": "Aniket Sharma (Super Admin)",
+      "recipientUsername": "admin",
+      "content": "Hey \\",
+      "timestamp": "2026-06-16T13:19:29.174Z",
+      "isReadBy": [
+        "usr-3",
+        "usr-1"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781615988697",
+      "senderId": "usr-1",
+      "senderName": "Aniket Sharma (Super Admin)",
+      "senderUsername": "admin",
+      "recipientId": "usr-3",
+      "recipientName": "Suresh Kumar (Packing Team)",
+      "recipientUsername": "packing_user",
+      "content": "Ready to dispatch.",
+      "timestamp": "2026-06-16T13:19:48.697Z",
+      "isReadBy": [
+        "usr-1",
+        "usr-3"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781615998734",
+      "senderId": "usr-3",
+      "senderName": "Suresh Kumar (Packing Team)",
+      "senderUsername": "packing_user",
+      "recipientId": "usr-1",
+      "recipientName": "Aniket Sharma (Super Admin)",
+      "recipientUsername": "admin",
+      "content": "No",
+      "timestamp": "2026-06-16T13:19:58.734Z",
+      "isReadBy": [
+        "usr-3",
+        "usr-1"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781616024153",
+      "senderId": "usr-1",
+      "senderName": "Aniket Sharma (Super Admin)",
+      "senderUsername": "admin",
+      "recipientId": "usr-3",
+      "recipientName": "Suresh Kumar (Packing Team)",
+      "recipientUsername": "packing_user",
+      "content": "Why, do your work on time",
+      "timestamp": "2026-06-16T13:20:24.153Z",
+      "isReadBy": [
+        "usr-1",
+        "usr-3"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781616044877",
+      "senderId": "usr-1",
+      "senderName": "Aniket Sharma (Super Admin)",
+      "senderUsername": "admin",
+      "recipientId": "usr-3",
+      "recipientName": "Suresh Kumar (Packing Team)",
+      "recipientUsername": "packing_user",
+      "content": "hey",
+      "timestamp": "2026-06-16T13:20:44.877Z",
+      "isReadBy": [
+        "usr-1",
+        "usr-3"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781616046188",
+      "senderId": "usr-3",
+      "senderName": "Suresh Kumar (Packing Team)",
+      "senderUsername": "packing_user",
+      "recipientId": "usr-1",
+      "recipientName": "Aniket Sharma (Super Admin)",
+      "recipientUsername": "admin",
+      "content": "Working on it now.",
+      "timestamp": "2026-06-16T13:20:46.188Z",
+      "isReadBy": [
+        "usr-3",
+        "usr-1"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781616054746",
+      "senderId": "usr-1",
+      "senderName": "Aniket Sharma (Super Admin)",
+      "senderUsername": "admin",
+      "recipientId": "usr-3",
+      "recipientName": "Suresh Kumar (Packing Team)",
+      "recipientUsername": "packing_user",
+      "content": "ok bund marao",
+      "timestamp": "2026-06-16T13:20:54.746Z",
+      "isReadBy": [
+        "usr-1",
+        "usr-3"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781616144695",
+      "senderId": "usr-1",
+      "senderName": "Aniket Sharma (Super Admin)",
+      "senderUsername": "admin",
+      "recipientId": "usr-3",
+      "recipientName": "Suresh Kumar (Packing Team)",
+      "recipientUsername": "packing_user",
+      "content": "hey",
+      "timestamp": "2026-06-16T13:22:24.695Z",
+      "isReadBy": [
+        "usr-1",
+        "usr-3"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781616158624",
+      "senderId": "usr-3",
+      "senderName": "Suresh Kumar (Packing Team)",
+      "senderUsername": "packing_user",
+      "recipientId": "usr-1",
+      "recipientName": "Aniket Sharma (Super Admin)",
+      "recipientUsername": "admin",
+      "content": "Heey",
+      "timestamp": "2026-06-16T13:22:38.624Z",
+      "isReadBy": [
+        "usr-3",
+        "usr-1"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    },
+    {
+      "id": "msg-1781616187210",
+      "senderId": "usr-3",
+      "senderName": "Suresh Kumar (Packing Team)",
+      "senderUsername": "packing_user",
+      "recipientId": "usr-1",
+      "recipientName": "Aniket Sharma (Super Admin)",
+      "recipientUsername": "admin",
+      "content": "Test",
+      "timestamp": "2026-06-16T13:23:07.210Z",
+      "isReadBy": [
+        "usr-3",
+        "usr-1"
+      ],
+      "isBroadcast": false,
+      "isAlertBanner": false
+    }
+  ]
+}

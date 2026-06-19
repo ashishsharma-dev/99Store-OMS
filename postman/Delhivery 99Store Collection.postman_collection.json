@@ -1,0 +1,341 @@
+{
+  "info": {
+    "_postman_id": "615a36aa-9e85-4e56-b0b9-e0444e7c50c1",
+    "name": "Delhivery 99Store Collection",
+    "description": "Postman collection for testing Delhivery APIs used in 99Store OMS flow: serviceability, waybill, shipment creation, tracking, packing slip/label and pickup request.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "{{staging_base_url}}"
+    },
+    {
+      "key": "token",
+      "value": "{{delhivery_token}}"
+    },
+    {
+      "key": "client_name",
+      "value": "{{delhivery_client_name}}"
+    },
+    {
+      "key": "pickup_location",
+      "value": "{{pickup_location}}"
+    },
+    {
+      "key": "waybill",
+      "value": "{{waybill}}"
+    },
+    {
+      "key": "order_id",
+      "value": "{{order_id}}"
+    }
+  ],
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "Authorization",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "Token {{delhivery_token}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.request.headers.upsert({ key: 'Authorization', value: 'Token ' + pm.environment.get('delhivery_token') });",
+          "pm.request.headers.upsert({ key: 'Accept', value: 'application/json' });"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Pincode Serviceability",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Token {{delhivery_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{staging_base_url}}/c/api/pin-codes/json/?filter_codes={{destination_pincode}}",
+          "host": [
+            "{{staging_base_url}}"
+          ],
+          "path": [
+            "c",
+            "api",
+            "pin-codes",
+            "json",
+            ""
+          ],
+          "query": [
+            {
+              "key": "filter_codes",
+              "value": "{{destination_pincode}}"
+            }
+          ]
+        },
+        "description": "Checks if a pincode is serviceable."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Fetch Waybill / AWB",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{staging_base_url}}/waybill/api/fetch/json/?token={{delhivery_token}}&cl={{delhivery_client_name}}&client_name={{delhivery_client_name}}",
+          "host": [
+            "{{staging_base_url}}"
+          ],
+          "path": [
+            "waybill",
+            "api",
+            "fetch",
+            "json",
+            ""
+          ],
+          "query": [
+            {
+              "key": "token",
+              "value": "{{delhivery_token}}"
+            },
+            {
+              "key": "cl",
+              "value": "{{delhivery_client_name}}"
+            },
+            {
+              "key": "client_name",
+              "value": "{{delhivery_client_name}}"
+            }
+          ]
+        },
+        "description": "Fetches a test AWB/waybill. Saves the returned waybill into the environment variable named waybill."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+              "const text = pm.response.text();",
+              "try {",
+              "  const json = pm.response.json();",
+              "  const awb = json.waybill || json.wbn || json.awb || json.awb_number || json.waybill_number || json.response || null;",
+              "  if (awb && typeof awb === 'string') pm.environment.set('waybill', awb);",
+              "} catch (e) {",
+              "  const match = text.match(/\\d{6,}/);",
+              "  if (match) pm.environment.set('waybill', match[0]);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Create Shipment / Manifest",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/x-www-form-urlencoded"
+          },
+          {
+            "key": "Authorization",
+            "value": "Token {{delhivery_token}}"
+          }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "format",
+              "value": "json",
+              "type": "text"
+            },
+            {
+              "key": "data",
+              "value": "{\n  \"shipments\": [\n    {\n      \"client\": \"{{delhivery_client_name}}\",\n      \"name\": \"Test Customer\",\n      \"add\": \"Test Address, Test Area\",\n      \"pin\": \"{{destination_pincode}}\",\n      \"city\": \"New Delhi\",\n      \"state\": \"Delhi\",\n      \"country\": \"India\",\n      \"phone\": \"9999999999\",\n      \"order\": \"{{order_id}}\",\n      \"payment_mode\": \"Pre-paid\",\n      \"products_desc\": \"Test Product\",\n      \"cod_amount\": 0,\n      \"total_amount\": 499,\n      \"quantity\": \"1\",\n      \"waybill\": \"{{waybill}}\",\n      \"shipment_mode\": \"Surface\",\n      \"pickup_location\": {\n        \"name\": \"{{pickup_location}}\"\n      }\n    }\n  ]\n}",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{staging_base_url}}/api/cmu/create.json",
+          "host": [
+            "{{staging_base_url}}"
+          ],
+          "path": [
+            "api",
+            "cmu",
+            "create.json"
+          ]
+        },
+        "description": "Creates or manifests a shipment using the same urlencoded payload shape used by the backend Delhivery service."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200 or 201', function () { pm.expect([200, 201]).to.include(pm.response.code); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Track Shipment",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{staging_base_url}}/api/v1/packages/json/?token={{delhivery_token}}&waybill={{waybill}}",
+          "host": [
+            "{{staging_base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "packages",
+            "json",
+            ""
+          ],
+          "query": [
+            {
+              "key": "token",
+              "value": "{{delhivery_token}}"
+            },
+            {
+              "key": "waybill",
+              "value": "{{waybill}}"
+            }
+          ]
+        },
+        "description": "Tracks a shipment by waybill."
+      }
+    },
+    {
+      "name": "05 - Generate Packing Slip / Label",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{delhivery_token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{staging_base_url}}/api/p/packing_slip?wbns={{waybill}}",
+          "host": [
+            "{{staging_base_url}}"
+          ],
+          "path": [
+            "api",
+            "p",
+            "packing_slip"
+          ],
+          "query": [
+            {
+              "key": "wbns",
+              "value": "{{waybill}}"
+            }
+          ]
+        },
+        "description": "Generates packing slip or label for a waybill."
+      }
+    },
+    {
+      "name": "06 - Pickup Request",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Token {{delhivery_token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"pickup_time\": \"16:00:00\",\n  \"pickup_date\": \"{{pickup_date}}\",\n  \"pickup_location\": \"{{pickup_location}}\",\n  \"expected_package_count\": 1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{staging_base_url}}/fm/request/new/",
+          "host": [
+            "{{staging_base_url}}"
+          ],
+          "path": [
+            "fm",
+            "request",
+            "new",
+            ""
+          ]
+        },
+        "description": "Creates a pickup request for the registered warehouse or pickup location."
+      }
+    }
+  ]
+}
