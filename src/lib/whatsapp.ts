@@ -121,7 +121,7 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
     message: primaryResult.success ? primaryMessage : `${primaryMessage}\n\n❌ Error: ${primaryResult.error}`,
     status: primaryResult.success ? 'Sent' : 'Failed'
   };
-  db.addWhatsAppLog(primaryLog);
+  await db.addWhatsAppLog(primaryLog);
   logsSent.push(primaryLog);
 
   // --- 2. Secondary Number Notifications ---
@@ -162,9 +162,29 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
       message: secondaryResult.success ? secondaryMessage : `${secondaryMessage}\n\n❌ Error: ${secondaryResult.error}`,
       status: secondaryResult.success ? 'Sent' : 'Failed'
     };
-    db.addWhatsAppLog(secondaryLog);
+    await db.addWhatsAppLog(secondaryLog);
     logsSent.push(secondaryLog);
   }
 
   return logsSent;
+}
+
+/**
+ * Sends a secure Login Verification OTP code to a user via WhatsApp and logs the status.
+ */
+export async function sendLoginOTP(phone: string, otp: string): Promise<{ success: boolean; error?: string }> {
+  const messageText = `🔐 Your 99Store login verification code is: ${otp}. It is valid for 5 minutes. Do not share this code with anyone.`;
+  const result = await sendWhatsAppMessage(phone, messageText);
+  
+  const otpLog: WhatsAppLog = {
+    id: `wa-otp-${Date.now()}`,
+    timestamp: new Date().toISOString(),
+    phone,
+    type: 'Primary',
+    message: result.success ? messageText : `${messageText}\n\n❌ Error: ${result.error}`,
+    status: result.success ? 'Sent' : 'Failed'
+  };
+  
+  await db.addWhatsAppLog(otpLog);
+  return result;
 }

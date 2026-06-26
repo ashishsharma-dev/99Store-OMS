@@ -9,7 +9,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const order = db.getOrderById(id);
+    const order = await db.getOrderById(id);
     if (!order) {
       return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
     }
@@ -26,34 +26,64 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { status, remarks, updatedBy, courier, awb, eta } = body;
+    const { 
+      status, 
+      remarks, 
+      updatedBy, 
+      courier, 
+      awb, 
+      eta,
+      partiallyPaidAmount,
+      feNumber,
+      assignedTo,
+      inNdrWorkingSheet,
+      ndrAction,
+      futureDeliveryDate
+    } = body;
 
-    if (!status || !updatedBy) {
-      return NextResponse.json({ error: 'Status and updatedBy are required fields.' }, { status: 400 });
+    if (!updatedBy) {
+      return NextResponse.json({ error: 'updatedBy is a required field.' }, { status: 400 });
     }
 
-    const order = db.getOrderById(id);
+    const order = await db.getOrderById(id);
     if (!order) {
       return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
     }
 
     const previousStatus = order.status;
     const now = new Date().toISOString();
+    const targetStatus = status || previousStatus;
 
     // 1. Update status and tracking details
-    order.status = status as OrderStatus;
+    order.status = targetStatus as OrderStatus;
     order.updatedAt = now;
     if (courier) order.courier = courier;
     if (awb) order.awb = awb;
     if (eta) order.eta = eta;
 
+    // Additional requirement fields
+    if (partiallyPaidAmount !== undefined) {
+      order.partiallyPaidAmount = parseFloat(partiallyPaidAmount);
+      order.finalPayableAmount = order.orderValue - order.partiallyPaidAmount;
+    }
+    if (feNumber !== undefined) order.feNumber = feNumber;
+    if (inNdrWorkingSheet !== undefined) order.inNdrWorkingSheet = !!inNdrWorkingSheet;
+    if (ndrAction !== undefined) order.ndrAction = ndrAction;
+    if (futureDeliveryDate !== undefined) order.futureDeliveryDate = futureDeliveryDate;
+
     // 2. Perform automated workflow integrations based on status changes
-    let systemRemarks = remarks || `Status transitioned from ${previousStatus} to ${status}.`;
+    let systemRemarks = remarks || `Status transitioned from ${previousStatus} to ${targetStatus}.`;
+
+    if (assignedTo !== undefined && assignedTo !== order.assignedTo) {
+      const prevAssignee = order.assignedTo || 'Unassigned';
+      order.assignedTo = assignedTo;
+      systemRemarks = remarks || `Order reassigned from ${prevAssignee} to ${assignedTo || 'Unassigned'}.`;
+    }
 
     const baseUrl = new URL(request.url).origin;
 
     // A. PACKING queue -> Trigger Auto AWB generation if not yet allocated
-    if (status === 'Label Generated' && !order.awb) {
+    if (targetStatus === 'Label Generated' && !order.awb) {
       const selectedCourier = courier || order.courier || 'DTDC';
       try {
         const courierRes = await fetch(`${baseUrl}/api/integrations/courier`, {
@@ -94,11 +124,11 @@ export async function PATCH(
     });
 
     // Save order status
-    db.saveOrder(order);
+    await db.saveOrder(order);
 
     // C. NDR Trigger
     if (status === 'NDR') {
-      const existingNdr = db.getNdrRecordByOrderId(order.orderId);
+      const existingNdr = await db.getNdrRecordByOrderId(order.orderId);
       if (!existingNdr) {
         const newNdr: NdrRecord = {
           id: `ndr-${Date.now()}`,
@@ -120,13 +150,13 @@ export async function PATCH(
             }
           ]
         };
-        db.saveNdrRecord(newNdr);
+        await db.saveNdrRecord(newNdr);
       }
     }
 
     // D. Trigger Automated WhatsApp messaging for logistics
     const waTriggerStatuses = ['Dispatched', 'OFD', 'Delivered', 'NDR', 'Return'];
-    if (waTriggerStatuses.includes(status)) {
+    if (status && waTriggerStatuses.includes(status)) {
       // Trigger real WhatsApp in background directly, bypassing loopback network dependencies
       triggerWhatsAppNotification({
         orderId: order.orderId,

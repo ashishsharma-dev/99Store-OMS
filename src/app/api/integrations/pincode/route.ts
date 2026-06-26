@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
   // Try live Delhivery pincode serviceability lookup if active
   try {
-    const settings = db.getSettings();
+    const settings = await db.getSettings();
     if (settings.deliveryActive && settings.deliveryConfig.apiKey) {
       const apiKey = settings.deliveryConfig.apiKey;
       const isProduction = !apiKey.startsWith('MOCK') && !apiKey.includes('test') && !apiKey.includes('staging');
@@ -57,7 +57,7 @@ export async function GET(request: Request) {
 
   // Try live Xpressbees pincode lookup if active
   try {
-    const settings = db.getSettings();
+    const settings = await db.getSettings();
     if (settings.xpressbeesActive) {
       const token = await getXpressBeesToken(settings.xpressbeesConfig);
       const pincodeUrl = settings.xpressbeesConfig.pincodeUrl || 'https://xbmasterapi.xbees.in/expose/get/serviceabilitypincode/details';

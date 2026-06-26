@@ -21,6 +21,7 @@ import { Order, OrderStatus } from '@/lib/types';
 export default function Tracking() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncLoading, setSyncLoading] = useState(false);
   const [search, setSearch] = useState('');
   
   // Selected Order for detailing and logistics control
@@ -99,6 +100,37 @@ export default function Tracking() {
     }
   };
 
+  const handleBulkSync = async () => {
+    setSyncLoading(true);
+    try {
+      const res = await fetch('/api/integrations/courier/sync', {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert(`Sync Complete!\nChecked: ${data.totalChecked} packages\nUpdated: ${data.totalUpdated} statuses`);
+        // Refresh local orders
+        await fetchActiveShipments();
+
+        // If the selected order is active, reload it to reflect changes
+        if (selectedOrder) {
+          const freshRes = await fetch(`/api/orders/${selectedOrder.id}`);
+          const freshData = await freshRes.json();
+          if (freshRes.ok && freshData.success && freshData.order) {
+            setSelectedOrder(freshData.order);
+          }
+        }
+      } else {
+        alert(data.error || 'Failed to sync courier statuses.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error when syncing courier statuses.');
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
   const handleUpdateStatus = async (status: OrderStatus, customRemarks?: string) => {
     if (!selectedOrder) return;
 
@@ -165,9 +197,13 @@ export default function Tracking() {
           </p>
         </div>
 
-        <button onClick={fetchActiveShipments} className="premium-btn premium-btn-secondary">
-          <RefreshCcw size={14} />
-          <span>Sync Tracking API</span>
+        <button 
+          onClick={handleBulkSync} 
+          className="premium-btn premium-btn-secondary"
+          disabled={syncLoading}
+        >
+          <RefreshCcw size={14} className={syncLoading ? 'animate-spin' : ''} />
+          <span>{syncLoading ? 'Syncing...' : 'Sync Tracking API'}</span>
         </button>
       </div>
 

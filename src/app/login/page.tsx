@@ -8,6 +8,7 @@ export default function Login() {
   const router = useRouter();
   
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'username' | 'otp'>('username');
   
@@ -29,8 +30,8 @@ export default function Login() {
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim()) {
-      setError('Please enter a username.');
+    if (!username.trim() || !password.trim()) {
+      setError('Please enter both username and password.');
       return;
     }
 
@@ -38,12 +39,30 @@ export default function Login() {
     setError('');
     setMessage('');
 
-    // Simulate standard latency
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: username.trim().toLowerCase(),
+          password
+        })
+      });
+
+      const data = await res.json();
       setLoading(false);
+
+      if (!res.ok) {
+        setError(data.error || 'Failed to send OTP.');
+        return;
+      }
+
       setStep('otp');
-      setMessage(`OTP code sent! Use "999999" (or any 6-digit code) to log in.`);
-    }, 800);
+      setMessage(data.message || 'OTP code sent! Check your registered WhatsApp.');
+    } catch (err: any) {
+      setLoading(false);
+      setError('Network connection failed. Please check your Next.js server.');
+    }
   };
 
   const handleVerifyLogin = async (e: React.FormEvent) => {
@@ -210,7 +229,7 @@ export default function Login() {
 
           {step === 'username' ? (
             <form onSubmit={handleSendOtp}>
-              <div style={{ marginBottom: '20px' }}>
+              <div style={{ marginBottom: '16px' }}>
                 <label style={{
                   display: 'block',
                   fontSize: '12px',
@@ -228,6 +247,29 @@ export default function Login() {
                   placeholder="e.g. admin"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                  disabled={loading}
+                  required
+                />
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  color: '#A1A1AA',
+                  marginBottom: '8px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  Password
+                </label>
+                <input
+                  type="password"
+                  className="premium-input"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
                   required
                 />

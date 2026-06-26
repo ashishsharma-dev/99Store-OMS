@@ -2,6 +2,24 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { CourierApiLog } from '@/lib/types';
 import { getXpressBeesToken } from '@/lib/xpressbees';
+import { syncOrderStatus } from '@/lib/courierSync';
+
+function isDtdcStaging(apiKey?: string, username?: string): boolean {
+  const key = (apiKey || '').toLowerCase();
+  const user = (username || '').toLowerCase();
+  return (
+    key.includes('demo') ||
+    key.includes('alpha') ||
+    key.includes('staging') ||
+    key.includes('test') ||
+    key === 'f4ae602554b4a185d21695991885f0' ||
+    user.includes('test') ||
+    user.includes('stage') ||
+    user.includes('demo') ||
+    user.includes('alpha') ||
+    user === 'gl018_trk_json'
+  );
+}
 
 export async function GET(request: Request) {
   try {
@@ -14,10 +32,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Missing action or waybill parameter.' }, { status: 400 });
     }
 
-    const settings = db.getSettings();
+    const settings = await db.getSettings();
 
-    // Determine if it is XpressBees
+    // Determine if it is XpressBees or DTDC
     const isXpressBees = queryCourier === 'XpressBees' || waybill.startsWith('XB') || waybill.startsWith('5963');
+    const isDtdc = queryCourier === 'DTDC' || waybill.startsWith('DTDC');
 
     if (isXpressBees) {
       if (!settings.xpressbeesActive) {
@@ -73,7 +92,7 @@ export async function GET(request: Request) {
             ]
           };
 
-          db.addCourierLog({
+          await db.addCourierLog({
             id: `cl-xb-track-${Date.now()}`,
             timestamp: new Date().toISOString(),
             courier: 'XpressBees',
@@ -82,6 +101,11 @@ export async function GET(request: Request) {
             responsePayload: JSON.stringify(simulatedTracking, null, 2),
             status: 'Success'
           });
+
+          // Auto-sync status to database
+          const courierStatus = simulatedTracking.ShipmentData[0].Shipment.Status.Status;
+          const scanLocation = simulatedTracking.ShipmentData[0].Shipment.Status.StatusLocation;
+          await syncOrderStatus(waybill, courierStatus, scanLocation);
 
           return NextResponse.json(simulatedTracking);
         }
@@ -156,7 +180,7 @@ export async function GET(request: Request) {
           };
         }
 
-        db.addCourierLog({
+        await db.addCourierLog({
           id: `cl-xb-track-${Date.now()}`,
           timestamp: new Date().toISOString(),
           courier: 'XpressBees',
@@ -166,10 +190,231 @@ export async function GET(request: Request) {
           status: res.ok ? 'Success' : 'Error'
         });
 
+        // Auto-sync status to database
+        const courierStatus = unifiedData?.ShipmentData?.[0]?.Shipment?.Status?.Status;
+        const scanLocation = unifiedData?.ShipmentData?.[0]?.Shipment?.Status?.StatusLocation;
+        if (courierStatus) {
+          await syncOrderStatus(waybill, courierStatus, scanLocation);
+        }
+
         return NextResponse.json(unifiedData);
       }
 
       return NextResponse.json({ error: `Invalid action: ${action}` }, { status: 400 });
+    }
+
+    if (isDtdc) {
+      if (!settings.dtdcActive) {
+        return NextResponse.json({ error: 'DTDC integration is disabled in settings.' }, { status: 400 });
+      }
+
+      const apiKey = settings.dtdcConfig.apiKey;
+      const isMockToken = apiKey.startsWith('MOCK') || apiKey.includes('tok_99store') || apiKey.includes('dummy');
+
+      if (action === 'track') {
+        if (isMockToken) {
+          const simulatedTracking = {
+            ShipmentData: [
+              {
+                Shipment: {
+                  AWB: waybill,
+                  Consignee: { Name: "Simulated DTDC Recipient" },
+                  Status: {
+                    Status: "Out for Delivery",
+                    StatusLocation: "Delhi Hub",
+                    StatusDateTime: new Date().toISOString()
+                  },
+                  Scans: [
+                    {
+                      ScanDetail: {
+                        Scan: "Out for Delivery",
+                        ScanDateTime: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+                        ScannedLocation: "Delhi Delivery Hub",
+                        Instructions: "Delivery associate out with parcel."
+                      }
+                    },
+                    {
+                      ScanDetail: {
+                        Scan: "In Transit",
+                        ScanDateTime: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+                        ScannedLocation: "Agra Hub",
+                        Instructions: "Departed from facility."
+                      }
+                    },
+                    {
+                      ScanDetail: {
+                        Scan: "Manifest Uploaded",
+                        ScanDateTime: new Date(Date.now() - 18 * 60 * 60 * 1000).toISOString(),
+                        ScannedLocation: "Warehouse",
+                        Instructions: "Soft booking generated via DTDC."
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          };
+
+          await db.addCourierLog({
+            id: `cl-dtdc-track-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            courier: 'DTDC',
+            action: 'Track Shipment (Simulated)',
+            requestPayload: `GET /dtdc-tracking-api/rest/JSONCnTrk/getTrackDetails AWB: ${waybill}`,
+            responsePayload: JSON.stringify(simulatedTracking, null, 2),
+            status: 'Success'
+          });
+
+          await syncOrderStatus(waybill, 'Out for Delivery', 'Delhi Hub');
+          return NextResponse.json(simulatedTracking);
+        }
+
+        // Live DTDC Tracking
+        const username = settings.dtdcConfig.username || 'username';
+        const password = settings.dtdcConfig.password || 'password';
+        const isStaging = isDtdcStaging(apiKey, username);
+
+        const trackAuthUrl = isStaging 
+          ? 'https://dtdcstagingapi.dtdc.com/dtdc-api/api/dtdc/authenticate' 
+          : 'https://blktracksvc.dtdc.com/dtdc-api/api/dtdc/authenticate';
+          
+        const trackDetailsUrl = isStaging
+          ? 'https://dtdcstagingapi.dtdc.com/dtdc-tracking-api/dtdc-api/rest/JSONCnTrk/getTrackDetails'
+          : 'https://blktracksvc.dtdc.com/dtdc-api/rest/JSONCnTrk/getTrackDetails';
+
+        let accessToken = '';
+        let authResponseText = '';
+        try {
+          const authRes = await fetch(`${trackAuthUrl}?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
+            method: 'GET'
+          });
+          authResponseText = await authRes.text();
+          accessToken = authRes.headers.get('X-Access-Token') || authRes.headers.get('x-access-token') || authResponseText.trim();
+          try {
+            const authJson = JSON.parse(authResponseText);
+            accessToken = authJson.token || authJson.accessToken || authJson.xAccessToken || accessToken;
+          } catch(e) {}
+        } catch (authErr: any) {
+          return NextResponse.json({ error: `DTDC Tracking Auth failed: ${authErr.message}` }, { status: 500 });
+        }
+
+        // Make tracking API request using token
+        const trackPayload = {
+          trkType: 'cnno',
+          strcnno: waybill,
+          addtnlDtl: 'Y'
+        };
+
+        try {
+          const trackRes = await fetch(trackDetailsUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-access-token': accessToken,
+              'X-Access-Token': accessToken
+            },
+            body: JSON.stringify(trackPayload)
+          });
+
+          const trackResText = await trackRes.text();
+          let trackData;
+          try {
+            trackData = JSON.parse(trackResText);
+          } catch (e) {
+            trackData = { error: trackResText };
+          }
+
+          await db.addCourierLog({
+            id: `cl-dtdc-track-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            courier: 'DTDC',
+            action: 'Track Shipment',
+            requestPayload: `POST ${trackDetailsUrl}\nPayload: ${JSON.stringify(trackPayload)}`,
+            responsePayload: JSON.stringify(trackData, null, 2),
+            status: trackRes.ok ? 'Success' : 'Error'
+          });
+
+          // Normalize/Map DTDC structure to unified format
+          const rawScans = Array.isArray(trackData) 
+            ? trackData 
+            : Array.isArray(trackData.scans) 
+              ? trackData.scans 
+              : Array.isArray(trackData.data) 
+                ? trackData.data 
+                : (trackData.history || []);
+                
+          // Fetch current status
+          const currentStatus = trackData.status || trackData.current_status || (trackData.data && trackData.data.status) || 'In Transit';
+          const currentLocation = trackData.location || (trackData.data && trackData.data.location) || 'Origin Hub';
+
+          const unifiedData = {
+            ShipmentData: [
+              {
+                Shipment: {
+                  AWB: waybill,
+                  Status: {
+                    Status: currentStatus,
+                    StatusLocation: currentLocation
+                  },
+                  Scans: rawScans.map((s: any) => ({
+                    ScanDetail: {
+                      ScannedLocation: s.activityLocation || s.location || 'Hub',
+                      ScanDateTime: s.statusDate ? `${s.statusDate}T${s.statusTime || '00:00:00'}` : new Date().toISOString(),
+                      Scan: s.activity || s.status || 'Scan Recorded',
+                      Instructions: s.remarks || s.instructions || ''
+                    }
+                  }))
+                }
+              }
+            ]
+          };
+
+          // Auto-sync status to database
+          if (currentStatus) {
+            await syncOrderStatus(waybill, currentStatus, currentLocation);
+          }
+
+          return NextResponse.json(unifiedData);
+        } catch (err: any) {
+          return NextResponse.json({ error: `DTDC Tracking Request failed: ${err.message}` }, { status: 500 });
+        }
+      }
+
+      if (action === 'label') {
+        if (isMockToken) {
+          return NextResponse.json({
+            success: true,
+            label_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+          });
+        }
+
+        const isDemo = isDtdcStaging(apiKey);
+        const dtdcBaseUrl = isDemo ? 'https://alphademodashboardapi.shipsy.io' : 'https://pxapi.dtdc.in';
+        const labelUrl = `${dtdcBaseUrl}/api/customer/integration/consignment/shippinglabel/stream?reference_number=${encodeURIComponent(waybill)}&label_code=SHIP_LABEL_4X6&label_format=pdf`;
+
+        try {
+          const labelRes = await fetch(labelUrl, {
+            method: 'GET',
+            headers: {
+              'api-key': apiKey
+            }
+          });
+
+          if (!labelRes.ok) {
+            return NextResponse.json({ error: `Failed to fetch DTDC label: HTTP ${labelRes.status}` }, { status: 400 });
+          }
+
+          const blob = await labelRes.blob();
+          return new Response(blob, {
+            headers: {
+              'Content-Type': 'application/pdf',
+              'Content-Disposition': `inline; filename="label-${waybill}.pdf"`
+            }
+          });
+        } catch (err: any) {
+          return NextResponse.json({ error: `Failed to proxy DTDC label: ${err.message}` }, { status: 500 });
+        }
+      }
     }
 
     // Default Delhivery integration GET logic
@@ -178,8 +423,78 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Delhivery integration is disabled or not configured in settings.' }, { status: 400 });
     }
 
-    const isProduction = !apiKey.startsWith('MOCK') && !apiKey.includes('test') && !apiKey.includes('staging');
+    const isMockToken = apiKey.startsWith('MOCK') || apiKey.includes('tok_99store') || apiKey.includes('dummy') || apiKey.includes('example');
+    const isProduction = !isMockToken && !apiKey.startsWith('MOCK') && !apiKey.includes('test') && !apiKey.includes('staging');
     const delhiveryBaseUrl = isProduction ? 'https://track.delhivery.com' : 'https://staging-express.delhivery.com';
+
+    if (isMockToken) {
+      if (action === 'track') {
+        const simulatedTracking = {
+          ShipmentData: [
+            {
+              Shipment: {
+                AWB: waybill,
+                Status: {
+                  Status: "Out for Delivery",
+                  StatusLocation: "Delhi Hub",
+                  StatusDateTime: new Date().toISOString()
+                },
+                Scans: [
+                  {
+                    ScanDetail: {
+                      Scan: "Out for Delivery",
+                      ScanDateTime: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+                      ScannedLocation: "Delhi Hub",
+                      Instructions: "Package out for delivery."
+                    }
+                  },
+                  {
+                    ScanDetail: {
+                      Scan: "In Transit",
+                      ScanDateTime: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+                      ScannedLocation: "Hub Agra",
+                      Instructions: "Departed hub."
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        };
+
+        await db.addCourierLog({
+          id: `cl-track-mock-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          courier: 'Delhivery',
+          action: 'Track Shipment (Simulated)',
+          requestPayload: `GET /api/v1/packages/json/?waybill=${waybill}`,
+          responsePayload: JSON.stringify(simulatedTracking, null, 2),
+          status: 'Success'
+        });
+
+        await syncOrderStatus(waybill, 'Out for Delivery', 'Delhi Hub');
+        return NextResponse.json(simulatedTracking);
+      }
+
+      if (action === 'label') {
+        const simulatedLabel = {
+          success: true,
+          label_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+        };
+
+        await db.addCourierLog({
+          id: `cl-label-mock-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          courier: 'Delhivery',
+          action: 'Packing Slip (Simulated)',
+          requestPayload: `GET /api/p/packing_slip?wbns=${waybill}`,
+          responsePayload: JSON.stringify(simulatedLabel, null, 2),
+          status: 'Success'
+        });
+
+        return NextResponse.json(simulatedLabel);
+      }
+    }
 
     if (action === 'track') {
       const url = `${delhiveryBaseUrl}/api/v1/packages/json/?token=${encodeURIComponent(apiKey)}&waybill=${encodeURIComponent(waybill)}`;
@@ -189,7 +504,7 @@ export async function GET(request: Request) {
       });
       const data = await res.json();
 
-      db.addCourierLog({
+      await db.addCourierLog({
         id: `cl-track-${Date.now()}`,
         timestamp: new Date().toISOString(),
         courier: 'Delhivery',
@@ -198,6 +513,13 @@ export async function GET(request: Request) {
         responsePayload: JSON.stringify(data, null, 2),
         status: res.ok ? 'Success' : 'Error'
       });
+
+      // Auto-sync status to database
+      const courierStatus = data?.ShipmentData?.[0]?.Shipment?.Status?.Status;
+      const scanLocation = data?.ShipmentData?.[0]?.Shipment?.Status?.StatusLocation;
+      if (courierStatus) {
+        await syncOrderStatus(waybill, courierStatus, scanLocation);
+      }
 
       return NextResponse.json(data);
     }
@@ -213,7 +535,7 @@ export async function GET(request: Request) {
       });
       const data = await res.json();
 
-      db.addCourierLog({
+      await db.addCourierLog({
         id: `cl-label-${Date.now()}`,
         timestamp: new Date().toISOString(),
         courier: 'Delhivery',
@@ -237,7 +559,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const action = body.action || 'book'; // 'book' | 'cancel' | 'manifest' | 'reverse'
-    const settings = db.getSettings();
+    const settings = await db.getSettings();
 
     // 1. CANCEL SHIPMENT
     if (action === 'cancel') {
@@ -247,53 +569,133 @@ export async function POST(request: Request) {
       }
 
       const isXpressBees = courier === 'XpressBees' || waybill.startsWith('XB');
-      if (!isXpressBees) {
-        return NextResponse.json({ error: 'Cancellation API currently only supported for XpressBees.' }, { status: 400 });
-      }
+      const isDtdc = courier === 'DTDC' || waybill.startsWith('DTDC');
 
-      const token = await getXpressBeesToken(settings.xpressbeesConfig);
-      const isMockToken = token === 'MOCK_TOKEN_12345';
-      const baseUrl = settings.xpressbeesConfig.baseUrl || 'https://shipment.xpressbees.com/api';
+      if (isXpressBees) {
+        let token = await getXpressBeesToken(settings.xpressbeesConfig);
+        const isMockToken = token === 'MOCK_TOKEN_12345';
+        const baseUrl = settings.xpressbeesConfig.baseUrl || 'https://shipment.xpressbees.com/api';
 
-      if (isMockToken) {
-        db.addCourierLog({
+        if (isMockToken) {
+          await db.addCourierLog({
+            id: `cl-xb-cancel-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            courier: 'XpressBees',
+            action: 'Cancel Shipment (Simulated)',
+            requestPayload: JSON.stringify(body, null, 2),
+            responsePayload: JSON.stringify({ status: true, message: 'Shipment cancellation simulated successfully.' }, null, 2),
+            status: 'Success'
+          });
+          return NextResponse.json({ success: true, message: 'Cancellation simulated successfully.' });
+        }
+
+        const authType = settings.xpressbeesConfig.authType || 'new';
+        const cancelUrl = settings.xpressbeesConfig.cancelUrl || 'https://clientshipupdatesapi.xbees.in/forwardcancellation';
+        const targetCancelUrl = authType === 'new' ? cancelUrl : `${baseUrl}/shipments2/cancel`;
+
+        const cancelRes = await fetch(targetCancelUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'XBKey': settings.xpressbeesConfig.xbKey || ''
+          },
+          body: JSON.stringify({ awb: waybill, awb_number: waybill })
+        });
+        const cancelData = await cancelRes.json();
+
+        await db.addCourierLog({
           id: `cl-xb-cancel-${Date.now()}`,
           timestamp: new Date().toISOString(),
           courier: 'XpressBees',
-          action: 'Cancel Shipment (Simulated)',
-          requestPayload: JSON.stringify(body, null, 2),
-          responsePayload: JSON.stringify({ status: true, message: 'Shipment cancellation simulated successfully.' }, null, 2),
-          status: 'Success'
+          action: 'Cancel Shipment',
+          requestPayload: JSON.stringify({ awb: waybill, awb_number: waybill }, null, 2),
+          responsePayload: JSON.stringify(cancelData, null, 2),
+          status: cancelRes.ok && (authType === 'new' ? (cancelData.status === true || cancelData.ReturnCode === 100 || cancelRes.status === 200) : cancelData.status === true) ? 'Success' : 'Error'
         });
-        return NextResponse.json({ success: true, message: 'Cancellation simulated successfully.' });
+
+        return NextResponse.json(cancelData);
+      } else if (isDtdc) {
+        const apiKey = settings.dtdcConfig.apiKey;
+        const isMockToken = apiKey.startsWith('MOCK') || apiKey.includes('tok_99store') || apiKey.includes('dummy');
+        
+        if (isMockToken) {
+          const simulatedCancelResponse = {
+            success: true,
+            message: 'DTDC Shipment successfully cancelled (Simulated).'
+          };
+          await db.addCourierLog({
+            id: `cl-dtdc-cancel-mock-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            courier: 'DTDC',
+            action: 'Cancel Shipment (Simulated)',
+            requestPayload: JSON.stringify(body, null, 2),
+            responsePayload: JSON.stringify(simulatedCancelResponse, null, 2),
+            status: 'Success'
+          });
+          return NextResponse.json(simulatedCancelResponse);
+        }
+
+        // Live DTDC Cancellation
+        const isDemo = isDtdcStaging(apiKey);
+        const dtdcBaseUrl = isDemo ? 'https://alphademodashboardapi.shipsy.io' : 'https://pxapi.dtdc.in';
+        const cancelUrl = `${dtdcBaseUrl}/api/customer/integration/consignment/cancel`;
+        const customerCode = settings.dtdcConfig.customerCode || 'MOCK_CUST';
+
+        const cancelPayload = {
+          AWBNo: [waybill],
+          customerCode
+        };
+
+        try {
+          const res = await fetch(cancelUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'api-key': apiKey
+            },
+            body: JSON.stringify(cancelPayload)
+          });
+
+          const responseText = await res.text();
+          let cancelData;
+          try {
+            cancelData = JSON.parse(responseText);
+          } catch (e) {
+            cancelData = { error: responseText };
+          }
+
+          const isCancelSuccess = res.ok && (
+            cancelData.success === true ||
+            cancelData.status === 'OK' ||
+            cancelData.status === 'success' ||
+            (cancelData.data?.[0] && cancelData.data[0].success !== false)
+          );
+
+          await db.addCourierLog({
+            id: `cl-dtdc-cancel-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            courier: 'DTDC',
+            action: 'Cancel Shipment',
+            requestPayload: JSON.stringify(cancelPayload, null, 2),
+            responsePayload: JSON.stringify(cancelData, null, 2),
+            status: isCancelSuccess ? 'Success' : 'Error'
+          });
+
+          return NextResponse.json(cancelData);
+        } catch (err: any) {
+          await db.addCourierLog({
+            id: `cl-dtdc-cancel-fail-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            courier: 'DTDC',
+            action: 'Cancel Shipment',
+            requestPayload: JSON.stringify(cancelPayload, null, 2),
+            responsePayload: JSON.stringify({ error: err.message || err }, null, 2),
+            status: 'Error'
+          });
+          return NextResponse.json({ error: `DTDC cancellation API failed: ${err.message}` }, { status: 500 });
+        }
       }
-
-      const authType = settings.xpressbeesConfig.authType || 'new';
-      const cancelUrl = settings.xpressbeesConfig.cancelUrl || 'https://clientshipupdatesapi.xbees.in/forwardcancellation';
-      const targetCancelUrl = authType === 'new' ? cancelUrl : `${baseUrl}/shipments2/cancel`;
-
-      const cancelRes = await fetch(targetCancelUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'XBKey': settings.xpressbeesConfig.xbKey || ''
-        },
-        body: JSON.stringify({ awb: waybill, awb_number: waybill })
-      });
-      const cancelData = await cancelRes.json();
-
-      db.addCourierLog({
-        id: `cl-xb-cancel-${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        courier: 'XpressBees',
-        action: 'Cancel Shipment',
-        requestPayload: JSON.stringify({ awb: waybill, awb_number: waybill }, null, 2),
-        responsePayload: JSON.stringify(cancelData, null, 2),
-        status: cancelRes.ok && (authType === 'new' ? (cancelData.status === true || cancelData.ReturnCode === 100 || cancelRes.status === 200) : cancelData.status === true) ? 'Success' : 'Error'
-      });
-
-      return NextResponse.json(cancelData);
     }
 
     // 2. GENERATE MANIFEST
@@ -308,7 +710,7 @@ export async function POST(request: Request) {
       const baseUrl = settings.xpressbeesConfig.baseUrl || 'https://shipment.xpressbees.com/api';
 
       if (isMockToken) {
-        db.addCourierLog({
+        await db.addCourierLog({
           id: `cl-xb-manifest-gen-${Date.now()}`,
           timestamp: new Date().toISOString(),
           courier: 'XpressBees',
@@ -330,7 +732,7 @@ export async function POST(request: Request) {
       });
       const manifestData = await manifestRes.json();
 
-      db.addCourierLog({
+      await db.addCourierLog({
         id: `cl-xb-manifest-gen-${Date.now()}`,
         timestamp: new Date().toISOString(),
         courier: 'XpressBees',
@@ -355,7 +757,7 @@ export async function POST(request: Request) {
       const baseUrl = settings.xpressbeesConfig.baseUrl || 'https://shipment.xpressbees.com/api';
 
       if (isMockToken) {
-        db.addCourierLog({
+        await db.addCourierLog({
           id: `cl-xb-reverse-${Date.now()}`,
           timestamp: new Date().toISOString(),
           courier: 'XpressBees',
@@ -377,7 +779,7 @@ export async function POST(request: Request) {
       });
       const reverseData = await reverseRes.json();
 
-      db.addCourierLog({
+      await db.addCourierLog({
         id: `cl-xb-reverse-${Date.now()}`,
         timestamp: new Date().toISOString(),
         courier: 'XpressBees',
@@ -428,14 +830,14 @@ export async function POST(request: Request) {
         responsePayload: JSON.stringify({ error: `${courier} integration is currently inactive in settings.` }, null, 2),
         status: 'Error'
       };
-      db.addCourierLog(failedLog);
+      await db.addCourierLog(failedLog);
 
       return NextResponse.json({ error: `${courier} Integration is disabled.` }, { status: 400 });
     }
 
     // LIVE XPRESSBEES BOOKING
     if (courier === 'XpressBees') {
-      const order = db.getOrders().find(o => o.orderId.toLowerCase() === orderId.toLowerCase() || o.id === orderId);
+      const order = (await db.getOrders()).find(o => o.orderId.toLowerCase() === orderId.toLowerCase() || o.id === orderId);
       if (!order) {
         return NextResponse.json({ error: `Order with ID ${orderId} not found in database.` }, { status: 400 });
       }
@@ -453,7 +855,7 @@ export async function POST(request: Request) {
           responsePayload: JSON.stringify({ error: `Authentication failed: ${err.message}` }, null, 2),
           status: 'Error'
         };
-        db.addCourierLog(errorLog);
+        await db.addCourierLog(errorLog);
         return NextResponse.json({ error: `XpressBees Authentication failed: ${err.message}` }, { status: 400 });
       }
 
@@ -479,7 +881,7 @@ export async function POST(request: Request) {
           apiKeyUsed: 'MOCK_TOKEN_12345'
         };
 
-        db.addCourierLog({
+        await db.addCourierLog({
           id: `cl-success-${Date.now()}`,
           timestamp: new Date().toISOString(),
           courier: 'XpressBees',
@@ -512,7 +914,7 @@ export async function POST(request: Request) {
           });
 
           const awbGenData = await awbGenRes.json();
-          db.addCourierLog({
+          await db.addCourierLog({
             id: `cl-xb-awbgen-${Date.now()}`,
             timestamp: new Date().toISOString(),
             courier: 'XpressBees',
@@ -552,7 +954,7 @@ export async function POST(request: Request) {
             ];
           }
 
-          db.addCourierLog({
+          await db.addCourierLog({
             id: `cl-xb-awbretrieve-${Date.now()}`,
             timestamp: new Date().toISOString(),
             courier: 'XpressBees',
@@ -568,7 +970,7 @@ export async function POST(request: Request) {
 
           finalAwb = awbRetrieveData.AWBNoSeries[0];
         } catch (err: any) {
-          db.addCourierLog({
+          await db.addCourierLog({
             id: `cl-xb-awbgen-fail-${Date.now()}`,
             timestamp: new Date().toISOString(),
             courier: 'XpressBees',
@@ -666,7 +1068,7 @@ export async function POST(request: Request) {
 
         const isSuccess = bookRes.ok && (authType === 'new' ? (bookingResponseData.status === true || bookingResponseData.ReturnCode === 100 || responseText.toLowerCase().includes('success')) : bookingResponseData.status === true);
 
-        db.addCourierLog({
+        await db.addCourierLog({
           id: `cl-xb-manifest-${Date.now()}`,
           timestamp: new Date().toISOString(),
           courier: 'XpressBees',
@@ -693,7 +1095,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: true, awb: finalAwb, eta: etaString, courier: 'XpressBees', charge });
 
       } catch (err: any) {
-        db.addCourierLog({
+        await db.addCourierLog({
           id: `cl-xb-manifest-fail-${Date.now()}`,
           timestamp: new Date().toISOString(),
           courier: 'XpressBees',
@@ -706,17 +1108,198 @@ export async function POST(request: Request) {
       }
     }
 
+    if (courier === 'DTDC') {
+      const order = (await db.getOrders()).find(o => o.orderId.toLowerCase() === orderId.toLowerCase() || o.id === orderId);
+      if (!order) {
+        return NextResponse.json({ error: `Order with ID ${orderId} not found in database.` }, { status: 400 });
+      }
+
+      const isMockToken = apiKey.startsWith('MOCK') || apiKey.includes('tok_99store') || apiKey.includes('dummy');
+      
+      if (isMockToken) {
+        const randomAwbSuffix = Math.floor(100000000 + Math.random() * 900000000).toString();
+        const awb = `DTDC${randomAwbSuffix}`;
+        const etaDays = 3;
+        const etaDate = new Date();
+        etaDate.setDate(etaDate.getDate() + etaDays);
+        const etaString = etaDate.toISOString().split('T')[0];
+        const charge = 60 + (weight || order.weight || 0.5) * 30 + (paymentType === 'COD' ? 40 : 0);
+
+        await db.addCourierLog({
+          id: `cl-success-mock-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          courier: 'DTDC',
+          action: 'Generate AWB (Simulated)',
+          requestPayload: JSON.stringify(body, null, 2),
+          responsePayload: JSON.stringify({ success: true, awb, eta: etaString, charge }, null, 2),
+          status: 'Success'
+        });
+
+        return NextResponse.json({ success: true, awb, eta: etaString, courier: 'DTDC', charge });
+      }
+
+      // Live DTDC softdata booking
+      const isDemo = isDtdcStaging(apiKey);
+      const dtdcBaseUrl = isDemo ? 'https://alphademodashboardapi.shipsy.io' : 'https://pxapi.dtdc.in';
+      const bookUrl = `${dtdcBaseUrl}/api/customer/integration/consignment/softdata`;
+
+      const customerCode = settings.dtdcConfig.customerCode || 'MOCK_CUST';
+      const serviceTypeId = settings.dtdcConfig.serviceTypeId || 'B2C PRIORITY';
+      const commodityId = settings.dtdcConfig.commodityId || '2';
+
+      const payload = {
+        consignments: [
+          {
+            customer_code: customerCode,
+            service_type_id: serviceTypeId,
+            load_type: 'NON-DOCUMENT',
+            consignment_type: 'Forward',
+            dimension_unit: 'cm',
+            length: '10.0',
+            width: '10.0',
+            height: '10.0',
+            weight_unit: 'kg',
+            weight: weight ? String(weight) : String(order.weight || '0.5'),
+            declared_value: String(order.orderValue),
+            num_pieces: '1',
+            origin_details: {
+              name: settings.xpressbeesConfig.contactName || '99Store Fulfillment',
+              phone: settings.xpressbeesConfig.phone || '9999999999',
+              alternate_phone: '',
+              address_line_1: settings.xpressbeesConfig.address || '140 MG Road',
+              address_line_2: settings.xpressbeesConfig.address2 || '',
+              pincode: settings.xpressbeesConfig.pincode || '282001',
+              city: settings.xpressbeesConfig.city || 'Agra',
+              state: settings.xpressbeesConfig.state || 'Uttar Pradesh'
+            },
+            destination_details: {
+              name: order.customerName,
+              phone: order.phonePrimary,
+              alternate_phone: order.phoneSecondary || '',
+              address_line_1: order.address,
+              address_line_2: '',
+              pincode: order.pincode,
+              city: order.area || 'New Delhi',
+              state: order.state || 'Delhi'
+            },
+            customer_reference_number: order.orderId,
+            cod_collection_mode: order.paymentType === 'COD' ? 'cash' : '',
+            cod_amount: order.paymentType === 'COD' ? String(order.orderValue) : '',
+            commodity_id: commodityId,
+            description: order.productDetails || 'Fulfillment parcel',
+            reference_number: ''
+          }
+        ]
+      };
+
+      try {
+        const bookRes = await fetch(bookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'api-key': apiKey
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const responseText = await bookRes.text();
+        let bookData;
+        try {
+          bookData = JSON.parse(responseText);
+        } catch (e) {
+          bookData = { error: responseText, success: false };
+        }
+
+        const isSuccess = bookRes.ok && (
+          bookData.success === true ||
+          bookData.status === 'OK' ||
+          bookData.status === 'success' ||
+          bookData.data?.[0]?.success === true
+        );
+
+        await db.addCourierLog({
+          id: `cl-dtdc-book-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          courier: 'DTDC',
+          action: 'Create Consignment',
+          requestPayload: JSON.stringify(payload, null, 2),
+          responsePayload: JSON.stringify(bookData, null, 2),
+          status: isSuccess ? 'Success' : 'Error'
+        });
+
+        if (!isSuccess) {
+          return NextResponse.json({ error: `DTDC Booking failed: ${bookData.message || responseText}` }, { status: 400 });
+        }
+
+        const cons = bookData.data?.consignments?.[0] || bookData.consignments?.[0] || bookData.data?.[0];
+        const finalAwb = cons?.reference_number || cons?.awb || '';
+        
+        if (!finalAwb) {
+          return NextResponse.json({ error: `DTDC Booking succeeded but no AWB was allocated: ${JSON.stringify(bookData)}` }, { status: 400 });
+        }
+
+        const etaDays = 3;
+        const etaDate = new Date();
+        etaDate.setDate(etaDate.getDate() + etaDays);
+        const etaString = etaDate.toISOString().split('T')[0];
+        const charge = 60 + (weight || order.weight || 0.5) * 30 + (paymentType === 'COD' ? 40 : 0);
+
+        return NextResponse.json({ success: true, awb: finalAwb, eta: etaString, courier: 'DTDC', charge });
+      } catch (err: any) {
+        await db.addCourierLog({
+          id: `cl-dtdc-book-fail-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          courier: 'DTDC',
+          action: 'Create Consignment',
+          requestPayload: JSON.stringify(payload, null, 2),
+          responsePayload: JSON.stringify({ error: err.message || err }, null, 2),
+          status: 'Error'
+        });
+        return NextResponse.json({ error: `DTDC Booking network error: ${err.message}` }, { status: 500 });
+      }
+    }
+
+
+
     // LIVE DELHIVERY INTEGRATION
     if (courier === 'Delhivery') {
       const clientName = settings.deliveryConfig.clientName || 'SOM ENTERPRISES';
       const pickupLocation = settings.deliveryConfig.pickupLocation || 'Default Pickup Location';
 
-      const isProduction = !apiKey.startsWith('MOCK') && !apiKey.includes('test') && !apiKey.includes('staging');
+      const isMockToken = apiKey.startsWith('MOCK') || apiKey.includes('tok_99store') || apiKey.includes('dummy') || apiKey.includes('example');
+      const isProduction = !isMockToken && !apiKey.startsWith('MOCK') && !apiKey.includes('test') && !apiKey.includes('staging');
       const delhiveryBaseUrl = isProduction ? 'https://track.delhivery.com' : 'https://staging-express.delhivery.com';
 
-      const order = db.getOrders().find(o => o.orderId.toLowerCase() === orderId.toLowerCase() || o.id === orderId);
+      const order = (await db.getOrders()).find(o => o.orderId.toLowerCase() === orderId.toLowerCase() || o.id === orderId);
       if (!order) {
         return NextResponse.json({ error: `Order with ID ${orderId} not found in database.` }, { status: 400 });
+      }
+
+      if (isMockToken) {
+        const randomAwbSuffix = Math.floor(100000000 + Math.random() * 900000000).toString();
+        const awb = `99SDEL${randomAwbSuffix}`;
+        const etaDays = 3;
+        const etaDate = new Date();
+        etaDate.setDate(etaDate.getDate() + etaDays);
+        const etaString = etaDate.toISOString().split('T')[0];
+        const charge = 70 + (weight || order.weight || 0.5) * 20 + (paymentType === 'COD' ? 30 : 0);
+
+        await db.addCourierLog({
+          id: `cl-cmu-manifest-mock-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          courier: 'Delhivery',
+          action: 'Create Shipment (Simulated)',
+          requestPayload: JSON.stringify(body, null, 2),
+          responsePayload: JSON.stringify({
+            success: true,
+            packages: [{ waybill: awb }],
+            eta: etaString,
+            charge
+          }, null, 2),
+          status: 'Success'
+        });
+
+        return NextResponse.json({ success: true, awb, eta: etaString, courier: 'Delhivery', charge });
       }
 
       // Step A: Fetch Live Waybill (AWB) from Delhivery API
@@ -739,7 +1322,7 @@ export async function POST(request: Request) {
           awbResponseData = { error: responseText };
         }
 
-        db.addCourierLog({
+        await db.addCourierLog({
           id: `cl-awb-fetch-${Date.now()}`,
           timestamp: new Date().toISOString(),
           courier: 'Delhivery',
@@ -763,7 +1346,7 @@ export async function POST(request: Request) {
           }
         }
       } catch (err: any) {
-        db.addCourierLog({
+        await db.addCourierLog({
           id: `cl-awb-fetch-fail-${Date.now()}`,
           timestamp: new Date().toISOString(),
           courier: 'Delhivery',
@@ -830,7 +1413,7 @@ export async function POST(request: Request) {
         url: 'POST /api/cmu/create.json',
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
           'Authorization': `Token ${apiKey.slice(0, 6)}...`
         },
         body: `format=json&data=${JSON.stringify(shipmentsPayload)}`
@@ -843,7 +1426,7 @@ export async function POST(request: Request) {
           headers: {
             'Accept': 'application/json',
             'Authorization': `Token ${apiKey}`,
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
           },
           body: `format=json&data=${JSON.stringify(shipmentsPayload)}`
         });
@@ -855,7 +1438,7 @@ export async function POST(request: Request) {
           manifestResponseData = { error: responseText, success: false };
         }
 
-        db.addCourierLog({
+        await db.addCourierLog({
           id: `cl-cmu-manifest-${Date.now()}`,
           timestamp: new Date().toISOString(),
           courier: 'Delhivery',
@@ -874,7 +1457,7 @@ export async function POST(request: Request) {
         }
 
       } catch (err: any) {
-        db.addCourierLog({
+        await db.addCourierLog({
           id: `cl-cmu-manifest-fail-${Date.now()}`,
           timestamp: new Date().toISOString(),
           courier: 'Delhivery',
@@ -934,7 +1517,7 @@ export async function POST(request: Request) {
       responsePayload: JSON.stringify(responsePayload, null, 2),
       status: 'Success'
     };
-    db.addCourierLog(successLog);
+    await db.addCourierLog(successLog);
 
     return NextResponse.json({ success: true, awb, eta: etaString, courier, charge });
 

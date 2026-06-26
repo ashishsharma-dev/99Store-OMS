@@ -410,9 +410,21 @@ export default function DashboardLayout({
       roles: ['Super Admin', 'Tracking Team']
     },
     {
-      name: 'NDR & OFD Escalations',
+      name: 'All Shipments Menu',
+      path: '/dashboard/shipments',
+      icon: Package,
+      roles: ['Super Admin', 'Order Team', 'Packing Team', 'Tracking Team', 'Accounts Team']
+    },
+    {
+      name: 'NDR Management',
       path: '/dashboard/ndr',
       icon: AlertOctagon,
+      roles: ['Super Admin', 'Tracking Team']
+    },
+    {
+      name: 'OFD Management',
+      path: '/dashboard/ofd',
+      icon: Truck,
       roles: ['Super Admin', 'Tracking Team']
     },
     {

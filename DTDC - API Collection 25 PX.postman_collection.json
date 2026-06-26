@@ -1,0 +1,557 @@
+{
+	"info": {
+		"_postman_id": "af280c7b-4c7f-46b7-8fa8-a419aa9ab999",
+		"name": "DTDC - API Collection 25 PX",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "15314610"
+	},
+	"item": [
+		{
+			"name": "1. Pincode Search- DP",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\"orgPincode\": \"160036\",\n\"desPincode\": \"110001\"\n}"
+				},
+				"url": {
+					"raw": "http://smarttrack.ctbsplus.dtdc.com/ratecalapi/PincodeApiCall",
+					"protocol": "http",
+					"host": [
+						"smarttrack",
+						"ctbsplus",
+						"dtdc",
+						"com"
+					],
+					"path": [
+						"ratecalapi",
+						"PincodeApiCall"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "2. Test - Order Upload/Booking Single Piece",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "api-key",
+						"value": "<api-key>"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"consignments\": [\n        {\n            \"customer_code\": \"<customer_code>\", //your DTDC code\n            \"service_type_id\": \"B2C PRIORITY\", //service type for movement like Air & Surface\n            \"load_type\": \"NON-DOCUMENT\", //everything is consider NON-DOCUMENT except letters, paper etc\n            \"consignment_type\": \"Forward\", //type will be forward for normal movement and \"reverse\" for return\n            \"dimension_unit\": \"cm\", //we accept dimensions in \"cm\" only\n            \"length\": \"70.0\", \n            \"width\": \"70.0\",\n            \"height\": \"65.0\",\n            \"weight_unit\": \"kg\", //we accept weight in \"kg\" only\n            \"weight\": \"1.0\",\n            \"declared_value\": \"5982.6\", //invoice or shipment value\n            \"eway_bill\": \"\", //in case of shipment where invoice value is above 50k\n            \"invoice_number\": \"\", //optional\n            \"invoice_date\": \"\", //optional\n            \"num_pieces\": \"1\", //no of shipments or boxes\n            \"origin_details\": {\n                \"name\": \"TEST ENTERPRISES\",\n                \"phone\": \"9987456321\",\n                \"alternate_phone\": \"9987456321\",\n                \"address_line_1\": \"Upper Ground  Chandra Park  Old Palam Road  Kakrola  Delhi None\",\n                \"address_line_2\": \"\",\n                \"pincode\": \"110046\",\n                \"city\": \"New Delhi\",\n                \"state\": \"Delhi\"\n            },\n            \"destination_details\": {\n                \"name\": \"TEST \",\n                \"phone\": \"7894561230\",\n                \"alternate_phone\": \"\",\n                \"address_line_1\": \"3/658  pillayar nagar karattur Amani kondalampatti\",\n                \"address_line_2\": \"\",\n                \"pincode\": \"636010\",\n                \"city\": \"SALEM\",\n                \"state\": \"Tamil Nadu\"\n            },\n            \"return_details\": {\n                \"name\": \"test WH HO\",\n                \"phone\": \"9876543121\",\n                \"alternate_phone\": \"9557551556\",\n                \"address_line_1\": \"D-13, First Floor, Sector-3, Noida, 201301\",\n                \"address_line_2\": \"\",\n                \"pincode\": \"201301\",\n                \"city\": \"NOIDA\",\n                \"state\": \"UTTAR PRADESH\",\n                \"country\": \"India\",\n                \"email\": \"\"\n            },\n            \"customer_reference_number\": \"SO-GGN/22-23/0000121\", //your order id\n            \"cod_collection_mode\": \"\", //\"CASH\" in case of COD & blank for prepaid\n            \"cod_amount\": \"\", //collectable amount\n            \"commodity_id\": \"2\", // list attached : https://docs.google.com/spreadsheets/d/158LuKmF8mHXSQfXcSE-U_NVeUpz-O1LuNlc1ualKEeI/edit?gid=1685543408#gid=1685543408\n            \"description\": \"test order containing test product\", //optional with 250 characters limit\n            \"reference_number\": \"\" //AWB number\n        }\n    ]\n}"
+				},
+				"url": {
+					"raw": "https://alphademodashboardapi.shipsy.io/api/customer/integration/consignment/softdata",
+					"protocol": "https",
+					"host": [
+						"alphademodashboardapi",
+						"shipsy",
+						"io"
+					],
+					"path": [
+						"api",
+						"customer",
+						"integration",
+						"consignment",
+						"softdata"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "2. Test - Order Upload/Booking MPS",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "api-key",
+						"value": "<api-key>"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n   \"consignments\":[\n      {\n         \"customer_code\":\"<Customer Code>\",\n         \"service_type_id\":\"B2C PRIORITY\",\n         \"load_type\":\"NON-DOCUMENT\",\n         \"description\":\"Caddy DM48 Office Chair (Black)\",\n         \"dimension_unit\":\"cm\",\n         \"length\":\"70.0\",\n         \"width\":\"70.0\",\n         \"height\":\"65.0\",\n         \"weight_unit\":\"kg\",\n         \"weight\":\"17.0\",\n         \"declared_value\":\"5982.6\",\n         \"num_pieces\":\"1\",\n         \"origin_details\":{\n            \"name\":\"TEST ENTERPRISES\",\n            \"phone\":\"9987456321\",\n            \"alternate_phone\":\"\",\n            \"address_line_1\":\"Upper Ground  Chandra Park  Old Palam Road  Kakrola  Delhi None\",\n            \"address_line_2\":\"\",\n            \"pincode\":\"110046\",\n            \"city\":\"New Delhi\",\n            \"state\":\"Delhi\"\n         },\n         \"destination_details\":{\n            \"name\":\"TEST \",\n            \"phone\":\"7894561230\",\n            \"alternate_phone\":\"\",\n            \"address_line_1\":\"3/658  pillayar nagar karattur Amani kondalampatti\",\n            \"address_line_2\":\"\",\n            \"pincode\":\"636010\",\n            \"city\":\"SALEM\",\n            \"state\":\"Tamil Nadu\"\n         },\n         \"customer_reference_number\":\"202424-135028\",\n         \"cod_collection_mode\":\"cash\",\n         \"cod_amount\":\"5982\",\n         \"commodity_id\":\"7\",\n         \"reference_number\":\"\",\n            \"pieces_detail\": [\n                {\n                    \"description\": \"Test Product\",\n                    \"declared_value\": \"200\",\n                    \"weight\": \"0.5\",\n                    \"height\": \"5\",\n                    \"length\": \"5\",\n                    \"width\": \"5\"\n                }\n            ]\n      }\n   ]\n}"
+				},
+				"url": {
+					"raw": "https://alphademodashboardapi.shipsy.io/api/customer/integration/consignment/softdata",
+					"protocol": "https",
+					"host": [
+						"alphademodashboardapi",
+						"shipsy",
+						"io"
+					],
+					"path": [
+						"api",
+						"customer",
+						"integration",
+						"consignment",
+						"softdata"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "3. Test - label -DP",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "api-key",
+						"value": "<api-key>"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://alphademodashboardapi.shipsy.io/api/customer/integration/consignment/shippinglabel/stream?reference_number=<awb_no>&label_code=SHIP_LABEL_4X6&label_format=pdf",
+					"protocol": "https",
+					"host": [
+						"alphademodashboardapi",
+						"shipsy",
+						"io"
+					],
+					"path": [
+						"api",
+						"customer",
+						"integration",
+						"consignment",
+						"shippinglabel",
+						"stream"
+					],
+					"query": [
+						{
+							"key": "reference_number",
+							"value": "<awb_no>"
+						},
+						{
+							"key": "label_code",
+							"value": "SHIP_LABEL_4X6"
+						},
+						{
+							"key": "label_format",
+							"value": "pdf"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "4. Test - Cancellation - DP",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "api-key",
+						"value": "<API-key>"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\"AWBNo\": [\"D78326386\"],\r\n\"customerCode\":\"<customer_code>\"\r\n}"
+				},
+				"url": {
+					"raw": "https://alphademodashboardapi.shipsy.io/api/customer/integration/consignment/cancel",
+					"protocol": "https",
+					"host": [
+						"alphademodashboardapi",
+						"shipsy",
+						"io"
+					],
+					"path": [
+						"api",
+						"customer",
+						"integration",
+						"consignment",
+						"cancel"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "5. Test - Token Generation for Tracking - DP",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://dtdcstagingapi.dtdc.com/dtdc-api/api/dtdc/authenticate?username=username&password=password",
+					"protocol": "https",
+					"host": [
+						"dtdcstagingapi",
+						"dtdc",
+						"com"
+					],
+					"path": [
+						"dtdc-api",
+						"api",
+						"dtdc",
+						"authenticate"
+					],
+					"query": [
+						{
+							"key": "username",
+							"value": "username"
+						},
+						{
+							"key": "password",
+							"value": "password"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "5. Test -  Tracking - DP",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-Access-Token",
+						"value": "<x-access-token>"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Cookie",
+						"value": "JSESSIONID=F4159004C8C6CC8313495CC9E9A533F8"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"trkType\": \"cnno\",\n  \"strcnno\": \"<awb_number>\",\n  \"addtnlDtl\": \"Y\"\n}"
+				},
+				"url": {
+					"raw": "https://dtdcstagingapi.dtdc.com/dtdc-tracking-api/dtdc-api/rest/JSONCnTrk/getTrackDetails",
+					"protocol": "https",
+					"host": [
+						"dtdcstagingapi",
+						"dtdc",
+						"com"
+					],
+					"path": [
+						"dtdc-tracking-api",
+						"dtdc-api",
+						"rest",
+						"JSONCnTrk",
+						"getTrackDetails"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Live - Order Upload/Booking Single Piece",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "api-key",
+						"value": "<api-key>"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"consignments\": [\n        {\n            \"customer_code\": \"<customer_code>\",\n            \"service_type_id\": \"B2C PRIORITY\",\n            \"load_type\": \"NON-DOCUMENT\",\n            \"description\": \"Caddy DM48 Office Chair (Black)\",\n            \"dimension_unit\": \"cm\",\n            \"length\": \"70.0\",\n            \"width\": \"70.0\",\n            \"height\": \"65.0\",\n            \"weight_unit\": \"kg\",\n            \"weight\": \"17.0\",\n            \"declared_value\": \"5982.6\",\n            \"num_pieces\": \"1\",\n            \"origin_details\": {\n                \"name\": \"TEST ENTERPRISES\",\n                \"phone\": \"9876543211\",\n                \"alternate_phone\": \"\",\n                \"address_line_1\": \"test address\",\n                \"address_line_2\": \"\",\n                \"pincode\": \"110046\",\n                \"city\": \"New Delhi\",\n                \"state\": \"Delhi\",\n                \"latitude\": \"28.6692\",\n                \"longitude\": \"77.4538\"\n            },\n            \"destination_details\": {\n                \"name\": \"TEST \",\n                \"phone\": \"9876543211\",\n                \"alternate_phone\": \"\",\n                \"address_line_1\": \"test address\",\n                \"address_line_2\": \"\",\n                \"pincode\": \"636010\",\n                \"city\": \"SALEM\",\n                \"state\": \"Tamil Nadu\",\n                \"latitude\": \"28.6692\",\n                \"longitude\": \"77.4538\"\n            },\n            \"customer_reference_number\": \"202424-135028\",\n            \"cod_collection_mode\": \"cash\",\n            \"cod_amount\": \"5982\",\n            \"commodity_id\": \"7\",\n            \"reference_number\": \"\"\n        }\n    ]\n}"
+				},
+				"url": {
+					"raw": "https://pxapi.dtdc.in/api/customer/integration/consignment/softdata",
+					"protocol": "https",
+					"host": [
+						"pxapi",
+						"dtdc",
+						"in"
+					],
+					"path": [
+						"api",
+						"customer",
+						"integration",
+						"consignment",
+						"softdata"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Live - Order Upload/Booking MPS",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "api-key",
+						"value": "<api-key>"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n   \"consignments\":[\n      {\n         \"customer_code\":\"<Customer Code>\",\n         \"service_type_id\":\"B2C PRIORITY\",\n         \"load_type\":\"NON-DOCUMENT\",\n         \"description\":\"Caddy DM48 Office Chair (Black)\",\n         \"dimension_unit\":\"cm\",\n         \"length\":\"70.0\",\n         \"width\":\"70.0\",\n         \"height\":\"65.0\",\n         \"weight_unit\":\"kg\",\n         \"weight\":\"17.0\",\n         \"declared_value\":\"5982.6\",\n         \"num_pieces\":\"1\",\n         \"origin_details\":{\n            \"name\":\"TEST ENTERPRISES\",\n            \"phone\":\"9987456321\",\n            \"alternate_phone\":\"\",\n            \"address_line_1\":\"Upper Ground  Chandra Park  Old Palam Road  Kakrola  Delhi None\",\n            \"address_line_2\":\"\",\n            \"pincode\":\"110046\",\n            \"city\":\"New Delhi\",\n            \"state\":\"Delhi\"\n         },\n         \"destination_details\":{\n            \"name\":\"TEST \",\n            \"phone\":\"7894561230\",\n            \"alternate_phone\":\"\",\n            \"address_line_1\":\"3/658  pillayar nagar karattur Amani kondalampatti\",\n            \"address_line_2\":\"\",\n            \"pincode\":\"636010\",\n            \"city\":\"SALEM\",\n            \"state\":\"Tamil Nadu\"\n         },\n         \"customer_reference_number\":\"202424-135028\",\n         \"cod_collection_mode\":\"cash\",\n         \"cod_amount\":\"5982\",\n         \"commodity_id\":\"7\",\n         \"reference_number\":\"\",\n            \"pieces_detail\": [\n                {\n                    \"description\": \"Test Product\",\n                    \"declared_value\": \"200\",\n                    \"weight\": \"0.5\",\n                    \"height\": \"5\",\n                    \"length\": \"5\",\n                    \"width\": \"5\"\n                }\n            ]\n      }\n   ]\n}"
+				},
+				"url": {
+					"raw": "https://pxapi.dtdc.in/api/customer/integration/consignment/softdata",
+					"protocol": "https",
+					"host": [
+						"pxapi",
+						"dtdc",
+						"in"
+					],
+					"path": [
+						"api",
+						"customer",
+						"integration",
+						"consignment",
+						"softdata"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Live - label - DP",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "api-key",
+						"value": "<api-key>"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://pxapi.dtdc.in/api/customer/integration/consignment/shippinglabel/stream?reference_number=<awb_no>&label_code=SHIP_LABEL_4X6&label_format=pdf",
+					"protocol": "https",
+					"host": [
+						"pxapi",
+						"dtdc",
+						"in"
+					],
+					"path": [
+						"api",
+						"customer",
+						"integration",
+						"consignment",
+						"shippinglabel",
+						"stream"
+					],
+					"query": [
+						{
+							"key": "reference_number",
+							"value": "<awb_no>"
+						},
+						{
+							"key": "label_code",
+							"value": "SHIP_LABEL_4X6"
+						},
+						{
+							"key": "label_format",
+							"value": "pdf"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Live - Cancellation - DP",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "api-key",
+						"value": "<api-key>"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\"AWBNo\": [\"I51697909\"],\r\n\"customerCode\":\"<customer_code>\"\r\n}  "
+				},
+				"url": {
+					"raw": "http://pxapi.dtdc.in/api/customer/integration/consignment/cancel",
+					"protocol": "http",
+					"host": [
+						"pxapi",
+						"dtdc",
+						"in"
+					],
+					"path": [
+						"api",
+						"customer",
+						"integration",
+						"consignment",
+						"cancel"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Live - Token Generation for Tracking - DP",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://blktracksvc.dtdc.com/dtdc-api/api/dtdc/authenticate?username=username&password=password",
+					"protocol": "https",
+					"host": [
+						"blktracksvc",
+						"dtdc",
+						"com"
+					],
+					"path": [
+						"dtdc-api",
+						"api",
+						"dtdc",
+						"authenticate"
+					],
+					"query": [
+						{
+							"key": "username",
+							"value": "username"
+						},
+						{
+							"key": "password",
+							"value": "password"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Live - Tracking - JSON - DP",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "x-access-token",
+						"value": "<X-Access-Token>"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"trkType\": \"cnno\",\n  \"strcnno\": \"D84170623\",\n  \"addtnlDtl\": \"Y\"\n}"
+				},
+				"url": {
+					"raw": "https://blktracksvc.dtdc.com/dtdc-api/rest/JSONCnTrk/getTrackDetails",
+					"protocol": "https",
+					"host": [
+						"blktracksvc",
+						"dtdc",
+						"com"
+					],
+					"path": [
+						"dtdc-api",
+						"rest",
+						"JSONCnTrk",
+						"getTrackDetails"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Live - Tracking - XML - DP",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://blktracksvc.dtdc.com/dtdc-api/rest/XMLCnTrk/getDetails?strcnno=<awb-number>&TrkType=cnno&addtnlDtl=Y&apikey=<x-access-token>",
+					"protocol": "https",
+					"host": [
+						"blktracksvc",
+						"dtdc",
+						"com"
+					],
+					"path": [
+						"dtdc-api",
+						"rest",
+						"XMLCnTrk",
+						"getDetails"
+					],
+					"query": [
+						{
+							"key": "strcnno",
+							"value": "<awb-number>"
+						},
+						{
+							"key": "TrkType",
+							"value": "cnno"
+						},
+						{
+							"key": "addtnlDtl",
+							"value": "Y"
+						},
+						{
+							"key": "apikey",
+							"value": "<x-access-token>"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

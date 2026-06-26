@@ -13,7 +13,7 @@ export async function POST(request: Request) {
       );
     }
 
-    db.markMessagesAsRead(userId, senderId);
+    await db.markMessagesAsRead(userId, senderId);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

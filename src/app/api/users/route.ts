@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { User, UserRole } from '@/lib/types';
+import { hashPassword } from '@/lib/auth';
 
 export async function GET() {
   try {
-    const users = db.getUsers();
+    const users = await db.getUsers();
     return NextResponse.json({ success: true, users });
   } catch (error: any) {
     return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
@@ -14,13 +15,13 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { username, name, role, isActive } = body;
+    const { username, name, role, isActive, phone, password } = body;
 
-    if (!username || !name || !role) {
-      return NextResponse.json({ error: 'Missing username, name or role.' }, { status: 400 });
+    if (!username || !name || !role || !phone || !password) {
+      return NextResponse.json({ error: 'Missing required fields (username, name, role, phone, password).' }, { status: 400 });
     }
 
-    const existingUser = db.getUserByUsername(username);
+    const existingUser = await db.getUserByUsername(username);
     if (existingUser) {
       return NextResponse.json({ error: `Username "${username}" is already taken.` }, { status: 400 });
     }
@@ -29,12 +30,14 @@ export async function POST(request: Request) {
       id: `usr-${Date.now()}`,
       username: username.toLowerCase().trim(),
       name,
+      phone: phone.trim(),
+      password: hashPassword(password),
       role: role as UserRole,
       isActive: isActive !== false,
       createdAt: new Date().toISOString()
     };
 
-    db.saveUser(newUser);
+    await db.saveUser(newUser);
     return NextResponse.json({ success: true, user: newUser });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to create user' }, { status: 500 });
@@ -44,13 +47,13 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
-    const { id, name, role, isActive } = body;
+    const { id, name, role, isActive, phone, password } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'User ID is required.' }, { status: 400 });
     }
 
-    const user = db.getUserById(id);
+    const user = await db.getUserById(id);
     if (!user) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });
     }
@@ -58,8 +61,12 @@ export async function PATCH(request: Request) {
     if (name) user.name = name;
     if (role) user.role = role as UserRole;
     if (isActive !== undefined) user.isActive = isActive;
+    if (phone) user.phone = phone.trim();
+    if (password && password.trim() !== '') {
+      user.password = hashPassword(password);
+    }
 
-    db.saveUser(user);
+    await db.saveUser(user);
     return NextResponse.json({ success: true, user });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to update user' }, { status: 500 });
@@ -79,7 +86,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'The primary Super Admin user account cannot be deleted.' }, { status: 400 });
     }
 
-    const deleted = db.deleteUser(id);
+    const deleted = await db.deleteUser(id);
     if (!deleted) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });
     }

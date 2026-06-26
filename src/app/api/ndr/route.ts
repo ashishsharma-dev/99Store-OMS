@@ -6,7 +6,7 @@ import { getXpressBeesToken } from '@/lib/xpressbees';
 
 export async function GET() {
   try {
-    const records = db.getNdrRecords();
+    const records = await db.getNdrRecords();
     // Sort so most recent NDRs are at the top
     records.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return NextResponse.json({ success: true, records });
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required NDR update fields.' }, { status: 400 });
     }
 
-    const record = db.getNdrRecordById(id);
+    const record = await db.getNdrRecordById(id);
     if (!record) {
       return NextResponse.json({ error: 'NDR record not found.' }, { status: 404 });
     }
@@ -44,13 +44,13 @@ export async function POST(request: Request) {
       remarks: actionRemarks || `NDR status changed from ${previousStatus} to ${status} by ${updatedBy}.`
     });
 
-    db.saveNdrRecord(record);
+    await db.saveNdrRecord(record);
 
     // Dynamic closed-loop workflow logic:
     // If a re-attempt is scheduled, we also update the main Order status back to "Dispatched"
     // to simulate logistics re-attempting delivery.
     if (status === 'Re-attempt Scheduled') {
-      const order = db.getOrderByOrderId(record.orderId);
+      const order = await db.getOrderByOrderId(record.orderId);
       if (order) {
         order.status = 'Dispatched';
         order.updatedAt = now;
@@ -60,11 +60,11 @@ export async function POST(request: Request) {
           updatedBy,
           remarks: `Delivery re-attempt scheduled for ${reattemptDate}. NDR Escalation closed.`
         });
-        db.saveOrder(order);
+        await db.saveOrder(order);
 
         // XpressBees Escalation integration call if live
         if (order.courier === 'XpressBees' && order.awb) {
-          const settings = db.getSettings();
+          const settings = await db.getSettings();
           const email = settings.xpressbeesConfig.email;
           const password = settings.xpressbeesConfig.password;
           const baseUrl = settings.xpressbeesConfig.baseUrl || 'https://shipment.xpressbees.com/api';
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
               });
               const ndrResponseData = await ndrRes.json();
 
-              db.addCourierLog({
+              await db.addCourierLog({
                 id: `cl-ndr-action-${Date.now()}`,
                 timestamp: new Date().toISOString(),
                 courier: 'XpressBees',
@@ -126,7 +126,7 @@ export async function POST(request: Request) {
               });
             } catch (err: any) {
               console.error('Failed to resolve NDR live with XpressBees:', err);
-              db.addCourierLog({
+              await db.addCourierLog({
                 id: `cl-ndr-action-fail-${Date.now()}`,
                 timestamp: new Date().toISOString(),
                 courier: 'XpressBees',
@@ -138,7 +138,7 @@ export async function POST(request: Request) {
             }
           } else {
             // Simulated log
-            db.addCourierLog({
+            await db.addCourierLog({
               id: `cl-ndr-action-mock-${Date.now()}`,
               timestamp: new Date().toISOString(),
               courier: 'XpressBees',
@@ -165,7 +165,7 @@ export async function POST(request: Request) {
         }).catch(err => console.error('Failed to trigger background direct WhatsApp:', err));
       }
     } else if (status === 'Returned to Origin') {
-      const order = db.getOrderByOrderId(record.orderId);
+      const order = await db.getOrderByOrderId(record.orderId);
       if (order) {
         order.status = 'Return';
         order.updatedAt = now;
@@ -175,7 +175,7 @@ export async function POST(request: Request) {
           updatedBy,
           remarks: `NDR Escalation marked as Return to Origin (RTO) by ${updatedBy}. Package returning.`
         });
-        db.saveOrder(order);
+        await db.saveOrder(order);
       }
     }
 

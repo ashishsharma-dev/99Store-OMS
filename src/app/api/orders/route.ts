@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
 
-    let orders = db.getOrders();
+    let orders = await db.getOrders();
 
     // 1. Global search by Name, Phone, Order ID, AWB, Address
     if (search) {
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
 
     const stateAndArea = state && area ? { state, area } : { state: 'State Fetch Pending', area: 'Area Fetch Pending' };
 
-    const orders = db.getOrders();
+    const orders = await db.getOrders();
     
     // Auto-generate new unique sequential Order ID
     let maxNum = 1000;
@@ -132,7 +132,7 @@ export async function POST(request: Request) {
     const nextOrderId = `99S-${maxNum + 1}`;
     const nextId = `ord-${maxNum + 1}`;
 
-    const settings = db.getSettings();
+    const settings = await db.getSettings();
     let assignedCourier: 'DTDC' | 'XpressBees' | 'Delhivery' | 'Aggregator' | undefined = undefined;
 
     // Apply auto courier routing engine if enabled
@@ -146,7 +146,11 @@ export async function POST(request: Request) {
       }
     }
 
+    const parsedValue = parseFloat(orderValue);
+    const parsedPaidAmount = body.partiallyPaidAmount ? parseFloat(body.partiallyPaidAmount) : 0;
+    const finalPayableAmount = parsedValue - parsedPaidAmount;
     const now = new Date().toISOString();
+
     const newOrder: Order = {
       id: nextId,
       orderId: nextOrderId,
@@ -160,7 +164,7 @@ export async function POST(request: Request) {
       area: stateAndArea.area,
       productDetails,
       paymentType,
-      orderValue: parseFloat(orderValue),
+      orderValue: parsedValue,
       weight: parseFloat(weight),
       createdBy,
       isVip: !!isVip,
@@ -168,6 +172,8 @@ export async function POST(request: Request) {
       courier: assignedCourier,
       createdAt: now,
       updatedAt: now,
+      partiallyPaidAmount: parsedPaidAmount,
+      finalPayableAmount: finalPayableAmount,
       history: [
         {
           status: 'Created',
@@ -179,7 +185,7 @@ export async function POST(request: Request) {
     };
 
     // Save order in database
-    db.saveOrder(newOrder);
+    await db.saveOrder(newOrder);
 
     // Trigger real WhatsApp in background directly, bypassing loopback network dependencies
     triggerWhatsAppNotification({

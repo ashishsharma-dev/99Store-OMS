@@ -9,6 +9,8 @@ export const mockUsers: User[] = [
     isActive: true,
     lastLoginIp: '127.0.0.1',
     createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    phone: '9999999999',
+    password: '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9' // admin123
   },
   {
     id: 'usr-2',
@@ -18,6 +20,8 @@ export const mockUsers: User[] = [
     isActive: true,
     lastLoginIp: '127.0.0.1',
     createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+    phone: '9999999999',
+    password: 'b621ec544b845350195c1b6e5a3c1b01265634409df15c1c4aa1e93a88e72eb9' // order123
   },
   {
     id: 'usr-3',
@@ -27,6 +31,8 @@ export const mockUsers: User[] = [
     isActive: true,
     lastLoginIp: '192.168.1.10',
     createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+    phone: '9999999999',
+    password: '991439961443957d513bb02e4da72a8c6e10f0ebb1a07ac7b8b9b3fb42006b0c' // packing123
   },
   {
     id: 'usr-4',
@@ -36,6 +42,8 @@ export const mockUsers: User[] = [
     isActive: true,
     lastLoginIp: '192.168.1.11',
     createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+    phone: '9999999999',
+    password: 'bc321463451204a196d7dff38ff4d79a230f82e804263e7f3801a21ed9840f5c' // tracking123
   },
   {
     id: 'usr-5',
@@ -45,10 +53,13 @@ export const mockUsers: User[] = [
     isActive: true,
     lastLoginIp: '127.0.0.1',
     createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    phone: '9999999999',
+    password: '3730f9f9069024dccfefaf0c79ac46208e3256ddb38f46e5c5556069083e9930' // accounts123
   }
 ];
 
 export const mockSettings: SystemSettings = {
+  otpWhatsappNumber: '9999999999',
   ipWhitelist: ['127.0.0.1', '::1', '192.168.1.10', '192.168.1.11'],
   isIpWhitelistEnabled: false, // Turned off by default to make local testing seamless, but can toggle in settings
   autoCourierEnabled: true,
@@ -57,8 +68,13 @@ export const mockSettings: SystemSettings = {
   deliveryActive: true,
   aggregatorActive: true,
   dtdcConfig: {
-    apiKey: 'dtdc_live_sec_99store_8a9238bc',
+    apiKey: 'f4ae602554b4a185d21695991885f0',
     priority: 1,
+    customerCode: 'GL018',
+    serviceTypeId: 'PRIORITY',
+    commodityId: '2',
+    username: 'GL018_trk_json',
+    password: 'chwzf'
   },
   xpressbeesConfig: {
     apiKey: 'xb_live_key_99store_cd3e82ab',

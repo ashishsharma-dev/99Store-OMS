@@ -1,81 +1,36 @@
-import fs from 'fs';
-import path from 'path';
+import { getDatabase } from './mongodb';
 import { User, Order, NdrRecord, SystemSettings, WhatsAppLog, CourierApiLog, Message } from './types';
 import { mockUsers, mockSettings, mockOrders, mockNdrs, mockWhatsAppLogs, mockCourierLogs, mockMessages } from './mockData';
 
-interface DbState {
-  users: User[];
-  orders: Order[];
-  ndr: NdrRecord[];
-  whatsappLogs: WhatsAppLog[];
-  courierLogs: CourierApiLog[];
-  settings: SystemSettings;
-  messages: Message[];
+// Helper to escape regex characters
+function escapeRegExp(string: string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
-
-// Store the DB in the project's root folder under a "data" directory
-const DATA_DIR = path.join(process.cwd(), 'data');
-const DB_FILE = path.join(DATA_DIR, 'db.json');
-
-// Helper to ensure data directory exists and DB file is initialized
-function initDbFile(): string {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-
-  if (!fs.existsSync(DB_FILE)) {
-    const initialState: DbState = {
-      users: mockUsers,
-      orders: mockOrders,
-      ndr: mockNdrs,
-      whatsappLogs: mockWhatsAppLogs,
-      courierLogs: mockCourierLogs,
-      settings: mockSettings,
-      messages: mockMessages,
-    };
-    fs.writeFileSync(DB_FILE, JSON.stringify(initialState, null, 2), 'utf-8');
-  }
-  return DB_FILE;
-}
-
-// Thread-safe read state from the file database
-export function getDb(): DbState {
-  const filePath = initDbFile();
-  const rawData = fs.readFileSync(filePath, 'utf-8');
-  try {
-    return JSON.parse(rawData) as DbState;
-  } catch (err) {
-    console.error('Failed to parse database file, resetting to mock data:', err);
-    const defaultState: DbState = {
-      users: mockUsers,
-      orders: mockOrders,
-      ndr: mockNdrs,
-      whatsappLogs: mockWhatsAppLogs,
-      courierLogs: mockCourierLogs,
-      settings: mockSettings,
-      messages: mockMessages,
-    };
-    saveDb(defaultState);
-    return defaultState;
-  }
-}
-
-// Atomic thread-safe write to database file
-export function saveDb(state: DbState): void {
-  const filePath = initDbFile();
-  const tempPath = `${filePath}.tmp`;
-  
-  // Write to temporary file first, then rename atomically
-  fs.writeFileSync(tempPath, JSON.stringify(state, null, 2), 'utf-8');
-  fs.renameSync(tempPath, filePath);
-}
-
-// --- DB OPERATION ADAPTERS ---
 
 export const db = {
   // Reset the database to mock data
-  reset: (): DbState => {
-    const defaultState: DbState = {
+  reset: async (): Promise<any> => {
+    const database = await getDatabase();
+    
+    // Clear all collections
+    await database.collection('users').deleteMany({});
+    await database.collection('orders').deleteMany({});
+    await database.collection('ndr').deleteMany({});
+    await database.collection('whatsappLogs').deleteMany({});
+    await database.collection('courierLogs').deleteMany({});
+    await database.collection('settings').deleteMany({});
+    await database.collection('messages').deleteMany({});
+
+    // Seed mock data
+    if (mockUsers.length > 0) await database.collection('users').insertMany(mockUsers);
+    if (mockOrders.length > 0) await database.collection('orders').insertMany(mockOrders);
+    if (mockNdrs.length > 0) await database.collection('ndr').insertMany(mockNdrs);
+    if (mockWhatsAppLogs.length > 0) await database.collection('whatsappLogs').insertMany(mockWhatsAppLogs);
+    if (mockCourierLogs.length > 0) await database.collection('courierLogs').insertMany(mockCourierLogs);
+    await database.collection('settings').insertOne({ ...mockSettings, key: 'system-settings' });
+    if (mockMessages.length > 0) await database.collection('messages').insertMany(mockMessages);
+
+    return {
       users: mockUsers,
       orders: mockOrders,
       ndr: mockNdrs,
@@ -84,144 +39,214 @@ export const db = {
       settings: mockSettings,
       messages: mockMessages,
     };
-    saveDb(defaultState);
-    return defaultState;
   },
 
   // Users Operations
-  getUsers: (): User[] => getDb().users,
-  getUserById: (id: string): User | undefined => getDb().users.find(u => u.id === id),
-  getUserByUsername: (username: string): User | undefined => getDb().users.find(u => u.username.toLowerCase() === username.toLowerCase()),
-  saveUser: (user: User): User => {
-    const state = getDb();
-    const index = state.users.findIndex(u => u.id === user.id);
-    if (index >= 0) {
-      state.users[index] = user;
-    } else {
-      state.users.push(user);
-    }
-    saveDb(state);
+  getUsers: async (): Promise<User[]> => {
+    const database = await getDatabase();
+    const result = await database.collection('users').find({}).toArray();
+    return result.map(u => {
+      const { _id, ...rest } = u as any;
+      return rest as User;
+    });
+  },
+  getUserById: async (id: string): Promise<User | undefined> => {
+    const database = await getDatabase();
+    const result = await database.collection('users').findOne({ id });
+    if (!result) return undefined;
+    const { _id, ...rest } = result as any;
+    return rest as User;
+  },
+  getUserByUsername: async (username: string): Promise<User | undefined> => {
+    const database = await getDatabase();
+    const result = await database.collection('users').findOne({
+      username: { $regex: new RegExp('^' + escapeRegExp(username) + '$', 'i') }
+    });
+    if (!result) return undefined;
+    const { _id, ...rest } = result as any;
+    return rest as User;
+  },
+  saveUser: async (user: User): Promise<User> => {
+    const database = await getDatabase();
+    const { ...userDoc } = user as any;
+    await database.collection('users').replaceOne({ id: user.id }, userDoc, { upsert: true });
     return user;
   },
-  deleteUser: (id: string): boolean => {
-    const state = getDb();
-    const lenBefore = state.users.length;
-    state.users = state.users.filter(u => u.id !== id);
-    saveDb(state);
-    return state.users.length < lenBefore;
+  deleteUser: async (id: string): Promise<boolean> => {
+    const database = await getDatabase();
+    const result = await database.collection('users').deleteOne({ id });
+    return (result.deletedCount ?? 0) > 0;
   },
 
   // Orders Operations
-  getOrders: (): Order[] => getDb().orders,
-  getOrderById: (id: string): Order | undefined => getDb().orders.find(o => o.id === id),
-  getOrderByOrderId: (orderId: string): Order | undefined => getDb().orders.find(o => o.orderId.toLowerCase() === orderId.toLowerCase()),
-  saveOrder: (order: Order): Order => {
-    const state = getDb();
-    const index = state.orders.findIndex(o => o.id === order.id);
-    if (index >= 0) {
-      state.orders[index] = order;
-    } else {
-      state.orders.push(order);
-    }
-    saveDb(state);
+  getOrders: async (): Promise<Order[]> => {
+    const database = await getDatabase();
+    const result = await database.collection('orders').find({}).toArray();
+    return result.map(o => {
+      const { _id, ...rest } = o as any;
+      return rest as Order;
+    });
+  },
+  getOrderById: async (id: string): Promise<Order | undefined> => {
+    const database = await getDatabase();
+    const result = await database.collection('orders').findOne({ id });
+    if (!result) return undefined;
+    const { _id, ...rest } = result as any;
+    return rest as Order;
+  },
+  getOrderByOrderId: async (orderId: string): Promise<Order | undefined> => {
+    const database = await getDatabase();
+    const result = await database.collection('orders').findOne({
+      orderId: { $regex: new RegExp('^' + escapeRegExp(orderId) + '$', 'i') }
+    });
+    if (!result) return undefined;
+    const { _id, ...rest } = result as any;
+    return rest as Order;
+  },
+  saveOrder: async (order: Order): Promise<Order> => {
+    const database = await getDatabase();
+    const { ...orderDoc } = order as any;
+    await database.collection('orders').replaceOne({ id: order.id }, orderDoc, { upsert: true });
     return order;
   },
-  deleteOrder: (id: string): boolean => {
-    const state = getDb();
-    const lenBefore = state.orders.length;
-    state.orders = state.orders.filter(o => o.id !== id);
-    saveDb(state);
-    return state.orders.length < lenBefore;
+  deleteOrder: async (id: string): Promise<boolean> => {
+    const database = await getDatabase();
+    const result = await database.collection('orders').deleteOne({ id });
+    return (result.deletedCount ?? 0) > 0;
   },
 
   // NDR Operations
-  getNdrRecords: (): NdrRecord[] => getDb().ndr,
-  getNdrRecordById: (id: string): NdrRecord | undefined => getDb().ndr.find(n => n.id === id),
-  getNdrRecordByOrderId: (orderId: string): NdrRecord | undefined => getDb().ndr.find(n => n.orderId.toLowerCase() === orderId.toLowerCase()),
-  saveNdrRecord: (record: NdrRecord): NdrRecord => {
-    const state = getDb();
-    const index = state.ndr.findIndex(n => n.id === record.id);
-    if (index >= 0) {
-      state.ndr[index] = record;
-    } else {
-      state.ndr.push(record);
-    }
-    saveDb(state);
+  getNdrRecords: async (): Promise<NdrRecord[]> => {
+    const database = await getDatabase();
+    const result = await database.collection('ndr').find({}).toArray();
+    return result.map(n => {
+      const { _id, ...rest } = n as any;
+      return rest as NdrRecord;
+    });
+  },
+  getNdrRecordById: async (id: string): Promise<NdrRecord | undefined> => {
+    const database = await getDatabase();
+    const result = await database.collection('ndr').findOne({ id });
+    if (!result) return undefined;
+    const { _id, ...rest } = result as any;
+    return rest as NdrRecord;
+  },
+  getNdrRecordByOrderId: async (orderId: string): Promise<NdrRecord | undefined> => {
+    const database = await getDatabase();
+    const result = await database.collection('ndr').findOne({
+      orderId: { $regex: new RegExp('^' + escapeRegExp(orderId) + '$', 'i') }
+    });
+    if (!result) return undefined;
+    const { _id, ...rest } = result as any;
+    return rest as NdrRecord;
+  },
+  saveNdrRecord: async (record: NdrRecord): Promise<NdrRecord> => {
+    const database = await getDatabase();
+    const { ...recordDoc } = record as any;
+    await database.collection('ndr').replaceOne({ id: record.id }, recordDoc, { upsert: true });
     return record;
   },
 
   // WhatsApp Logs
-  getWhatsAppLogs: (): WhatsAppLog[] => getDb().whatsappLogs,
-  addWhatsAppLog: (log: WhatsAppLog): void => {
-    const state = getDb();
-    state.whatsappLogs.unshift(log); // Add at the top (most recent)
-    // Keep max 500 logs to prevent file size bloat
-    if (state.whatsappLogs.length > 500) {
-      state.whatsappLogs = state.whatsappLogs.slice(0, 500);
+  getWhatsAppLogs: async (): Promise<WhatsAppLog[]> => {
+    const database = await getDatabase();
+    const result = await database.collection('whatsappLogs').find({}).sort({ timestamp: -1 }).limit(500).toArray();
+    return result.map(l => {
+      const { _id, ...rest } = l as any;
+      return rest as WhatsAppLog;
+    });
+  },
+  addWhatsAppLog: async (log: WhatsAppLog): Promise<void> => {
+    const database = await getDatabase();
+    const { ...logDoc } = log as any;
+    await database.collection('whatsappLogs').insertOne(logDoc);
+    
+    // Maintain max 500 logs to prevent bloat
+    const count = await database.collection('whatsappLogs').countDocuments();
+    if (count > 500) {
+      const oldestDocs = await database.collection('whatsappLogs')
+        .find({})
+        .sort({ timestamp: 1 })
+        .limit(count - 500)
+        .toArray();
+      const oldestIds = oldestDocs.map(d => d._id);
+      await database.collection('whatsappLogs').deleteMany({ _id: { $in: oldestIds } });
     }
-    saveDb(state);
   },
 
   // Courier Logs
-  getCourierLogs: (): CourierApiLog[] => getDb().courierLogs,
-  addCourierLog: (log: CourierApiLog): void => {
-    const state = getDb();
-    state.courierLogs.unshift(log);
-    if (state.courierLogs.length > 500) {
-      state.courierLogs = state.courierLogs.slice(0, 500);
+  getCourierLogs: async (): Promise<CourierApiLog[]> => {
+    const database = await getDatabase();
+    const result = await database.collection('courierLogs').find({}).sort({ timestamp: -1 }).limit(500).toArray();
+    return result.map(l => {
+      const { _id, ...rest } = l as any;
+      return rest as CourierApiLog;
+    });
+  },
+  addCourierLog: async (log: CourierApiLog): Promise<void> => {
+    const database = await getDatabase();
+    const { ...logDoc } = log as any;
+    await database.collection('courierLogs').insertOne(logDoc);
+
+    const count = await database.collection('courierLogs').countDocuments();
+    if (count > 500) {
+      const oldestDocs = await database.collection('courierLogs')
+        .find({})
+        .sort({ timestamp: 1 })
+        .limit(count - 500)
+        .toArray();
+      const oldestIds = oldestDocs.map(d => d._id);
+      await database.collection('courierLogs').deleteMany({ _id: { $in: oldestIds } });
     }
-    saveDb(state);
   },
 
   // Settings Operations
-  getSettings: (): SystemSettings => getDb().settings,
-  saveSettings: (settings: SystemSettings): SystemSettings => {
-    const state = getDb();
-    state.settings = settings;
-    saveDb(state);
+  getSettings: async (): Promise<SystemSettings> => {
+    const database = await getDatabase();
+    const result = await database.collection('settings').findOne({ key: 'system-settings' });
+    if (!result) {
+      // Seed default settings if not exists
+      await database.collection('settings').insertOne({ ...mockSettings, key: 'system-settings' });
+      return mockSettings;
+    }
+    const { _id, key, ...rest } = result as any;
+    return rest as SystemSettings;
+  },
+  saveSettings: async (settings: SystemSettings): Promise<SystemSettings> => {
+    const database = await getDatabase();
+    const { ...settingsDoc } = settings as any;
+    await database.collection('settings').replaceOne({ key: 'system-settings' }, { ...settingsDoc, key: 'system-settings' }, { upsert: true });
     return settings;
   },
 
   // Messages Operations
-  getMessages: (): Message[] => getDb().messages || [],
-  saveMessage: (msg: Message): Message => {
-    const state = getDb();
-    if (!state.messages) {
-      state.messages = [];
-    }
-    const index = state.messages.findIndex(m => m.id === msg.id);
-    if (index >= 0) {
-      state.messages[index] = msg;
-    } else {
-      state.messages.push(msg);
-    }
-    saveDb(state);
+  getMessages: async (): Promise<Message[]> => {
+    const database = await getDatabase();
+    const result = await database.collection('messages').find({}).toArray();
+    return result.map(m => {
+      const { _id, ...rest } = m as any;
+      return rest as Message;
+    });
+  },
+  saveMessage: async (msg: Message): Promise<Message> => {
+    const database = await getDatabase();
+    const { ...msgDoc } = msg as any;
+    await database.collection('messages').replaceOne({ id: msg.id }, msgDoc, { upsert: true });
     return msg;
   },
-  markMessagesAsRead: (userId: string, senderIdOrAll: string): void => {
-    const state = getDb();
-    if (!state.messages) return;
+  markMessagesAsRead: async (userId: string, senderIdOrAll: string): Promise<void> => {
+    const database = await getDatabase();
     
-    let updated = false;
-    state.messages.forEach(msg => {
-      // For broadcast messages
-      if (senderIdOrAll === 'all' && msg.isBroadcast) {
-        if (!msg.isReadBy.includes(userId)) {
-          msg.isReadBy.push(userId);
-          updated = true;
-        }
-      } 
-      // For direct messages from a specific sender to the current user
-      else if (msg.senderId === senderIdOrAll && msg.recipientId === userId) {
-        if (!msg.isReadBy.includes(userId)) {
-          msg.isReadBy.push(userId);
-          updated = true;
-        }
-      }
-    });
-    
-    if (updated) {
-      saveDb(state);
+    if (senderIdOrAll === 'all') {
+      await database.collection('messages').updateMany(
+        { isBroadcast: true, isReadBy: { $ne: userId } },
+        { $push: { isReadBy: userId } } as any
+      );
+    } else {
+      await database.collection('messages').updateMany(
+        { senderId: senderIdOrAll, recipientId: userId, isReadBy: { $ne: userId } },
+        { $push: { isReadBy: userId } } as any
+      );
     }
   }
 };

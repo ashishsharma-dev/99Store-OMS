@@ -26,6 +26,8 @@ export default function UserAccounts() {
   // Form fields
   const [username, setUsername] = useState('');
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [role, setRole] = useState<UserRole>('Order Team');
   const [isActive, setIsActive] = useState(true);
   
@@ -55,7 +57,7 @@ export default function UserAccounts() {
     e.preventDefault();
     setFormError('');
 
-    if (!username.trim() || !name.trim() || !role) {
+    if (!username.trim() || !name.trim() || !phone.trim() || !password.trim() || !role) {
       setFormError('Please enter all required fields.');
       return;
     }
@@ -65,7 +67,7 @@ export default function UserAccounts() {
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, name, role, isActive })
+        body: JSON.stringify({ username, name, phone, password, role, isActive })
       });
       const data = await res.json();
       setFormLoading(false);
@@ -88,6 +90,8 @@ export default function UserAccounts() {
     setName(user.name);
     setRole(user.role);
     setIsActive(user.isActive);
+    setPhone(user.phone || '');
+    setPassword('');
     setFormError('');
     setShowEditModal(true);
   };
@@ -96,12 +100,17 @@ export default function UserAccounts() {
     e.preventDefault();
     if (!selectedUser) return;
 
+    if (!name.trim() || !phone.trim()) {
+      setFormError('Name and Phone are required.');
+      return;
+    }
+
     setFormLoading(true);
     try {
       const res = await fetch('/api/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: selectedUser.id, name, role, isActive })
+        body: JSON.stringify({ id: selectedUser.id, name, phone, password, role, isActive })
       });
       const data = await res.json();
       setFormLoading(false);
@@ -139,6 +148,8 @@ export default function UserAccounts() {
   const resetForm = () => {
     setUsername('');
     setName('');
+    setPhone('');
+    setPassword('');
     setRole('Order Team');
     setIsActive(true);
     setFormError('');
@@ -177,6 +188,7 @@ export default function UserAccounts() {
               <tr>
                 <th>Username</th>
                 <th>Full Name</th>
+                <th>Phone (WhatsApp)</th>
                 <th>Assigned Role</th>
                 <th>Status</th>
                 <th>Last Login IP</th>
@@ -188,6 +200,7 @@ export default function UserAccounts() {
                 <tr key={u.id}>
                   <td style={{ fontWeight: 700, fontFamily: 'monospace' }}>{u.username}</td>
                   <td style={{ fontWeight: 500 }}>{u.name}</td>
+                  <td style={{ fontFamily: 'monospace' }}>{u.phone || 'N/A'}</td>
                   <td>
                     <span className="premium-badge status-created" style={{ fontSize: '11px' }}>
                       {u.role}
@@ -282,6 +295,32 @@ export default function UserAccounts() {
               </div>
 
               <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '4px', textTransform: 'uppercase' }}>Phone (WhatsApp) *</label>
+                <input
+                  type="text"
+                  className="premium-input"
+                  placeholder="e.g. 9999999999"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  disabled={formLoading}
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '4px', textTransform: 'uppercase' }}>Password *</label>
+                <input
+                  type="password"
+                  className="premium-input"
+                  placeholder="Enter login password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={formLoading}
+                  required
+                />
+              </div>
+
+              <div>
                 <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '4px', textTransform: 'uppercase' }}>Assigned System Role *</label>
                 <select
                   className="premium-input"
@@ -346,6 +385,31 @@ export default function UserAccounts() {
                   onChange={(e) => setName(e.target.value)}
                   disabled={formLoading}
                   required
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '4px', textTransform: 'uppercase' }}>Phone (WhatsApp) *</label>
+                <input
+                  type="text"
+                  className="premium-input"
+                  placeholder="e.g. 9999999999"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  disabled={formLoading}
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '4px', textTransform: 'uppercase' }}>Password (Leave blank to keep current)</label>
+                <input
+                  type="password"
+                  className="premium-input"
+                  placeholder="Enter new password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={formLoading}
                 />
               </div>
 

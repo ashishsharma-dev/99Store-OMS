@@ -41,6 +41,7 @@ export default function Orders() {
   const [productDetails, setProductDetails] = useState('');
   const [paymentType, setPaymentType] = useState<'COD' | 'Paid'>('Paid');
   const [orderValue, setOrderValue] = useState('');
+  const [partiallyPaidAmount, setPartiallyPaidAmount] = useState('');
   const [weight, setWeight] = useState('');
   const [internalRemarks, setInternalRemarks] = useState('');
   const [isVip, setIsVip] = useState(false);
@@ -148,7 +149,8 @@ export default function Orders() {
           weight: parseFloat(weight),
           internalRemarks,
           isVip,
-          createdBy: currentUser?.username || 'admin'
+          createdBy: currentUser?.username || 'admin',
+          partiallyPaidAmount: partiallyPaidAmount ? parseFloat(partiallyPaidAmount) : 0
         })
       });
 
@@ -182,6 +184,7 @@ export default function Orders() {
     setProductDetails('');
     setPaymentType('Paid');
     setOrderValue('');
+    setPartiallyPaidAmount('');
     setWeight('');
     setInternalRemarks('');
     setIsVip(false);
@@ -191,6 +194,25 @@ export default function Orders() {
   const openOrderDetail = (order: Order) => {
     setSelectedOrder(order);
     setShowDetailModal(true);
+  };
+
+  const handleCloneOrder = (order: Order) => {
+    setCustomerName(order.customerName);
+    setPhonePrimary(order.phonePrimary);
+    setPhoneSecondary(order.phoneSecondary || '');
+    setPhoneTertiary(order.phoneTertiary || '');
+    setAddress(order.address);
+    setPincode(order.pincode);
+    setState(order.state);
+    setArea(order.area);
+    setProductDetails(order.productDetails);
+    setPaymentType(order.paymentType);
+    setOrderValue((order.orderValue || 0).toString());
+    setPartiallyPaidAmount((order.partiallyPaidAmount || 0).toString());
+    setWeight((order.weight || 0).toString());
+    setInternalRemarks(order.internalRemarks || '');
+    setIsVip(order.isVip);
+    setShowAddModal(true);
   };
 
   const handleExportCsv = () => {
@@ -350,14 +372,25 @@ export default function Orders() {
               <tbody>
                 {orders.map((o) => {
                   const isOrderPaid = o.paymentType === 'Paid';
+                  const isPartiallyPaid = o.partiallyPaidAmount !== undefined && o.partiallyPaidAmount > 0;
+
+                  let borderLeftStyle = 'none';
+                  let bgStyle = 'transparent';
+
+                  if (isPartiallyPaid) {
+                    borderLeftStyle = '3px solid #10B981';
+                    bgStyle = 'rgba(16,185,129,0.08)';
+                  } else if (isOrderPaid) {
+                    borderLeftStyle = '3px solid var(--color-paid)';
+                    bgStyle = 'rgba(16,185,129,0.01)';
+                  }
+
                   return (
                     <tr 
                       key={o.id}
                       style={{
-                        // 🟢 Paid Orders Highlight
-                        borderLeft: isOrderPaid ? '3px solid var(--color-paid)' : 'none',
-                        // Subtle highlight
-                        backgroundColor: isOrderPaid ? 'rgba(16,185,129,0.01)' : 'transparent'
+                        borderLeft: borderLeftStyle,
+                        backgroundColor: bgStyle
                       }}
                     >
                       <td>
@@ -423,14 +456,23 @@ export default function Orders() {
                         )}
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <button
-                          onClick={() => openOrderDetail(o)}
-                          className="premium-btn premium-btn-secondary"
-                          style={{ padding: '6px 10px', fontSize: '12px' }}
-                        >
-                          <Eye size={12} />
-                          <span>View Detail</span>
-                        </button>
+                        <div style={{ display: 'inline-flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={() => handleCloneOrder(o)}
+                            className="premium-btn premium-btn-secondary"
+                            style={{ padding: '6px 10px', fontSize: '12px', borderColor: '#3B82F6', color: '#3B82F6' }}
+                          >
+                            Clone
+                          </button>
+                          <button
+                            onClick={() => openOrderDetail(o)}
+                            className="premium-btn premium-btn-secondary"
+                            style={{ padding: '6px 10px', fontSize: '12px' }}
+                          >
+                            <Eye size={12} />
+                            <span>View Detail</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -563,6 +605,23 @@ export default function Orders() {
                   </div>
                 </div>
 
+                <div className="premium-grid-2" style={{ marginBottom: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '4px', textTransform: 'uppercase' }}>Partially Paid Amount (INR)</label>
+                    <input type="number" className="premium-input" placeholder="0" value={partiallyPaidAmount} onChange={(e) => setPartiallyPaidAmount(e.target.value)} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '4px', textTransform: 'uppercase' }}>Final Payable Amount (Autocalculated)</label>
+                    <input 
+                      type="text" 
+                      className="premium-input" 
+                      style={{ backgroundColor: '#111113', color: '#10B981', fontWeight: 'bold' }} 
+                      value={`₹${(parseFloat(orderValue || '0') - parseFloat(partiallyPaidAmount || '0')).toFixed(2)}`} 
+                      disabled 
+                    />
+                  </div>
+                </div>
+
                 <div style={{ marginBottom: '12px' }}>
                   <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '4px', textTransform: 'uppercase' }}>Internal Fulfillment Remarks</label>
                   <textarea className="premium-input" placeholder="e.g. Handle with care, fragile item..." style={{ minHeight: '60px', resize: 'vertical' }} value={internalRemarks} onChange={(e) => setInternalRemarks(e.target.value)} />
@@ -633,9 +692,21 @@ export default function Orders() {
                   </span>
                 </div>
                 <div>
-                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Order Value</span>
+                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Total Order Value</span>
                   <span style={{ fontWeight: 'bold' }}>₹{selectedOrder.orderValue}</span>
                 </div>
+                {selectedOrder.partiallyPaidAmount !== undefined && selectedOrder.partiallyPaidAmount > 0 && (
+                  <>
+                    <div>
+                      <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Partially Paid Amount</span>
+                      <span style={{ color: '#10B981', fontWeight: 600 }}>₹{selectedOrder.partiallyPaidAmount}</span>
+                    </div>
+                    <div>
+                      <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Final Payable Balance</span>
+                      <span style={{ color: '#10B981', fontWeight: 'bold' }}>₹{selectedOrder.finalPayableAmount || (selectedOrder.orderValue - selectedOrder.partiallyPaidAmount)}</span>
+                    </div>
+                  </>
+                )}
                 <div>
                   <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Fulfillment Courier</span>
                   <span>{selectedOrder.courier || 'Unassigned'}</span>

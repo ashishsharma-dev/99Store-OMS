@@ -13,6 +13,10 @@ export interface User {
   isActive: boolean;
   lastLoginIp?: string;
   createdAt: string;
+  phone?: string;
+  password?: string;
+  tempOtp?: string;
+  tempOtpExpiry?: string;
 }
 
 export type OrderStatus =
@@ -21,6 +25,7 @@ export type OrderStatus =
   | 'Courier Selected'
   | 'Label Generated'
   | 'Dispatched'
+  | 'Call Placed Notification'
   | 'OFD' // Out for Delivery
   | 'Delivered'
   | 'Undelivered'
@@ -66,6 +71,15 @@ export interface Order {
   updatedAt: string;
   
   history: OrderHistory[];
+
+  // Additional requirement fields
+  partiallyPaidAmount?: number;
+  finalPayableAmount?: number;
+  assignedTo?: string;
+  feNumber?: string;
+  inNdrWorkingSheet?: boolean;
+  ndrAction?: 'Arranged' | 'Arranged for Tomorrow' | 'Future Delivery';
+  futureDeliveryDate?: string;
 }
 
 export interface NdrRecord {
@@ -108,6 +122,7 @@ export interface WhatsAppLog {
 }
 
 export interface SystemSettings {
+  otpWhatsappNumber?: string;
   ipWhitelist: string[];
   isIpWhitelistEnabled: boolean;
   autoCourierEnabled: boolean;
@@ -118,6 +133,11 @@ export interface SystemSettings {
   dtdcConfig: {
     apiKey: string;
     priority: number;
+    customerCode?: string;
+    serviceTypeId?: string;
+    commodityId?: string;
+    username?: string;
+    password?: string;
   };
   xpressbeesConfig: {
     apiKey: string;

@@ -4,9 +4,9 @@ import { SystemSettings } from '@/lib/types';
 
 export async function GET() {
   try {
-    const settings = db.getSettings();
-    const whatsappLogs = db.getWhatsAppLogs();
-    const courierLogs = db.getCourierLogs();
+    const settings = await db.getSettings();
+    const whatsappLogs = await db.getWhatsAppLogs();
+    const courierLogs = await db.getCourierLogs();
 
     return NextResponse.json({ 
       success: true, 
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
     // Check if it is a request to reset the database
     if (body.resetDb === true) {
-      const resetState = db.reset();
+      const resetState = await db.reset();
       return NextResponse.json({ 
         success: true, 
         message: 'System database successfully reset back to seed mock records.',
@@ -33,10 +33,11 @@ export async function POST(request: Request) {
       });
     }
 
-    const settings = db.getSettings();
+    const settings = await db.getSettings();
 
     // Dynamically map incoming body fields onto settings
     const updatedSettings: SystemSettings = {
+      otpWhatsappNumber: typeof body.otpWhatsappNumber === 'string' ? body.otpWhatsappNumber.trim() : settings.otpWhatsappNumber,
       ipWhitelist: Array.isArray(body.ipWhitelist) ? body.ipWhitelist.map((ip: string) => ip.trim()) : settings.ipWhitelist,
       isIpWhitelistEnabled: typeof body.isIpWhitelistEnabled === 'boolean' ? body.isIpWhitelistEnabled : settings.isIpWhitelistEnabled,
       autoCourierEnabled: typeof body.autoCourierEnabled === 'boolean' ? body.autoCourierEnabled : settings.autoCourierEnabled,
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
       deliveryConfig: body.deliveryConfig ? { ...settings.deliveryConfig, ...body.deliveryConfig } : settings.deliveryConfig,
     };
 
-    db.saveSettings(updatedSettings);
+    await db.saveSettings(updatedSettings);
 
     return NextResponse.json({ success: true, settings: updatedSettings });
   } catch (error: any) {

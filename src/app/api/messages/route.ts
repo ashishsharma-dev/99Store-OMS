@@ -11,7 +11,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'User ID is required.' }, { status: 400 });
     }
 
-    const messages = db.getMessages();
+    const messages = await db.getMessages();
 
     // Filter messages: Broadcasts, OR messages sent by/to this user
     const filteredMessages = messages.filter(
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     }
 
     // Resolve sender
-    const sender = db.getUserById(senderId);
+    const sender = await db.getUserById(senderId);
     if (!sender) {
       return NextResponse.json({ error: 'Sender user not found.' }, { status: 400 });
     }
@@ -73,15 +73,15 @@ export async function POST(request: Request) {
 
       // If this is a new alert banner, clear the banner status on all older messages
       if (resolvedIsAlertBanner) {
-        const allMessages = db.getMessages();
+        const allMessages = await db.getMessages();
         let changed = false;
-        allMessages.forEach((msg) => {
+        for (const msg of allMessages) {
           if (msg.isAlertBanner) {
             msg.isAlertBanner = false;
             changed = true;
-            db.saveMessage(msg);
+            await db.saveMessage(msg);
           }
-        });
+        }
       }
     } else {
       if (!recipientId || recipientId === 'all') {
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
-      const recipient = db.getUserById(recipientId);
+      const recipient = await db.getUserById(recipientId);
       if (!recipient) {
         return NextResponse.json({ error: 'Recipient user not found.' }, { status: 400 });
       }
@@ -114,7 +114,7 @@ export async function POST(request: Request) {
       isAlertBanner: resolvedIsAlertBanner,
     };
 
-    db.saveMessage(newMessage);
+    await db.saveMessage(newMessage);
 
     return NextResponse.json({ success: true, message: newMessage });
   } catch (error: any) {

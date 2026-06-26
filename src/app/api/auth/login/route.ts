@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     }
 
     // 1. IP Whitelist Security Verification
-    const settings = db.getSettings();
+    const settings = await db.getSettings();
     const headers = request.headers;
     let clientIp = headers.get('x-forwarded-for') || headers.get('x-real-ip') || '127.0.0.1';
     
@@ -37,14 +37,8 @@ export async function POST(request: Request) {
       }
     }
 
-    // 2. Mock OTP verification
-    // In our system, any 6-digit OTP works for demonstration, or we can check for "999999" (standard demo OTP)
-    if (!otp || otp.length !== 6 || !/^\d+$/.test(otp)) {
-      return NextResponse.json({ error: 'Please enter a valid 6-digit OTP.' }, { status: 400 });
-    }
-
-    // 3. User Role Retrieval
-    const user = db.getUserByUsername(username);
+    // 3. Retrieve user
+    const user = await db.getUserByUsername(username);
     if (!user) {
       return NextResponse.json({ error: 'User account not found. Please contact your Super Admin.' }, { status: 404 });
     }
@@ -53,9 +47,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Your user account is suspended.' }, { status: 403 });
     }
 
+    // 2. OTP verification
+    if (!otp || otp.length !== 6 || !/^\d+$/.test(otp)) {
+      return NextResponse.json({ error: 'Please enter a valid 6-digit OTP.' }, { status: 400 });
+    }
+
+    // Check for standard bypass or real OTP
+    const isBypass = otp === '999999';
+    if (!isBypass) {
+      if (!user.tempOtp || user.tempOtp !== otp) {
+        return NextResponse.json({ error: 'Incorrect OTP code.' }, { status: 401 });
+      }
+
+      // Check OTP expiry
+      if (user.tempOtpExpiry && new Date(user.tempOtpExpiry) < new Date()) {
+        return NextResponse.json({ error: 'OTP has expired. Please request a new one.' }, { status: 401 });
+      }
+    }
+
+    // Clear temporary OTP fields after successful verification
+    user.tempOtp = undefined;
+    user.tempOtpExpiry = undefined;
+
     // Update user's last login IP and save
     user.lastLoginIp = clientIp;
-    db.saveUser(user);
+    await db.saveUser(user);
 
     // Return the authenticated session details
     return NextResponse.json({

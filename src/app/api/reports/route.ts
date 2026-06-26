@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     const payment = searchParams.get('payment');
     const vip = searchParams.get('vip');
 
-    let orders = db.getOrders();
+    let orders = await db.getOrders();
 
     // Apply the same filters as the main search listing if provided
     if (status && status !== 'all') {

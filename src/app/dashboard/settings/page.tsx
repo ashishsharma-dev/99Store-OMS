@@ -24,6 +24,7 @@ export default function IntegrationsSettings() {
   const [activeConsoleTab, setActiveConsoleTab] = useState<'whatsapp' | 'courier'>('whatsapp');
   
   // Settings Form states
+  const [otpWhatsappNumber, setOtpWhatsappNumber] = useState('');
   const [ipInput, setIpInput] = useState('');
   const [isIpEnabled, setIsIpEnabled] = useState(false);
   const [autoCourier, setAutoCourier] = useState(true);
@@ -64,6 +65,13 @@ export default function IntegrationsSettings() {
   const [dlvClientName, setDlvClientName] = useState('');
   const [dlvPickupLocation, setDlvPickupLocation] = useState('');
 
+  // DTDC Extra fields
+  const [dtdcCustomerCode, setDtdcCustomerCode] = useState('');
+  const [dtdcServiceType, setDtdcServiceType] = useState('B2C PRIORITY');
+  const [dtdcCommodityId, setDtdcCommodityId] = useState('2');
+  const [dtdcUsername, setDtdcUsername] = useState('');
+  const [dtdcPassword, setDtdcPassword] = useState('');
+
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
@@ -81,6 +89,7 @@ export default function IntegrationsSettings() {
       if (settingsRes.ok && settingsData.settings) {
         const s: SystemSettings = settingsData.settings;
         setSettings(s);
+        setOtpWhatsappNumber(s.otpWhatsappNumber || '');
         setIpInput(s.ipWhitelist.join(', '));
         setIsIpEnabled(s.isIpWhitelistEnabled);
         setAutoCourier(s.autoCourierEnabled);
@@ -89,6 +98,11 @@ export default function IntegrationsSettings() {
         setDlvActive(s.deliveryActive);
         setAggActive(s.aggregatorActive);
         setDtdcKey(s.dtdcConfig.apiKey);
+        setDtdcCustomerCode(s.dtdcConfig.customerCode || '');
+        setDtdcServiceType(s.dtdcConfig.serviceTypeId || 'B2C PRIORITY');
+        setDtdcCommodityId(s.dtdcConfig.commodityId || '2');
+        setDtdcUsername(s.dtdcConfig.username || '');
+        setDtdcPassword(s.dtdcConfig.password || '');
         setXpressKey(s.xpressbeesConfig.apiKey || '');
         setXpressEmail(s.xpressbeesConfig.email || '');
         setXpressPassword(s.xpressbeesConfig.password || '');
@@ -159,6 +173,7 @@ export default function IntegrationsSettings() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          otpWhatsappNumber,
           ipWhitelist: ipList,
           isIpWhitelistEnabled: isIpEnabled,
           autoCourierEnabled: autoCourier,
@@ -166,7 +181,14 @@ export default function IntegrationsSettings() {
           xpressbeesActive: xpressActive,
           deliveryActive: dlvActive,
           aggregatorActive: aggActive,
-          dtdcConfig: { apiKey: dtdcKey },
+          dtdcConfig: { 
+            apiKey: dtdcKey,
+            customerCode: dtdcCustomerCode,
+            serviceTypeId: dtdcServiceType,
+            commodityId: dtdcCommodityId,
+            username: dtdcUsername,
+            password: dtdcPassword
+          },
           xpressbeesConfig: {
             apiKey: xpressKey,
             email: xpressEmail,
@@ -264,6 +286,30 @@ export default function IntegrationsSettings() {
         {/* Left Side: Configurations Forms */}
         <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
+          {/* Card 0: Global Login OTP Configuration */}
+          <div className="premium-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <h3 style={{ fontSize: '15px', color: '#FAFAFA', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Shield size={16} style={{ color: '#E11D48' }} />
+              <span>Global Login OTP Routing</span>
+            </h3>
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '6px', textTransform: 'uppercase' }}>
+                Recipient WhatsApp Phone Number
+              </label>
+              <input
+                type="text"
+                className="premium-input"
+                placeholder="e.g. 8439762192"
+                style={{ fontFamily: 'monospace' }}
+                value={otpWhatsappNumber}
+                onChange={(e) => setOtpWhatsappNumber(e.target.value)}
+              />
+              <span style={{ fontSize: '11px', color: '#737373', display: 'block', marginTop: '4px' }}>
+                If configured, all user verification OTPs are routed to this single WhatsApp number. If left blank, OTPs route to the user's individually configured phone number.
+              </span>
+            </div>
+          </div>
+
           {/* Card 1: IP Whitelist firewall */}
           <div className="premium-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <h3 style={{ fontSize: '15px', color: '#FAFAFA', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -324,15 +370,39 @@ export default function IntegrationsSettings() {
             {/* Courier Toggles */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {/* DTDC */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                   <label htmlFor="dtdc_active" style={{ fontSize: '13px', fontWeight: 600, color: '#FAFAFA', display: 'flex', gap: '6px', alignItems: 'center' }}>
                     <input type="checkbox" id="dtdc_active" checked={dtdcActive} onChange={(e) => setDtdcActive(e.target.checked)} />
                     <span>DTDC Integration API</span>
                   </label>
                   <span style={{ fontSize: '11px', color: 'var(--color-paid)' }}>Priority 1 (&lt;1kg)</span>
                 </div>
-                <input type="text" className="premium-input" placeholder="DTDC Security Token" value={dtdcKey} onChange={(e) => setDtdcKey(e.target.value)} disabled={!dtdcActive} style={{ fontFamily: 'monospace' }} />
+                
+                {dtdcActive && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '20px', borderLeft: '1px solid var(--border-focus)', marginTop: '4px' }}>
+                    <div style={{ fontSize: '11px', color: '#8A8A8A', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>API Credentials</div>
+                    <input type="text" className="premium-input" placeholder="DTDC api-key (Security Token)" value={dtdcKey} onChange={(e) => setDtdcKey(e.target.value)} style={{ fontFamily: 'monospace' }} />
+                    <input type="text" className="premium-input" placeholder="DTDC Customer Code" value={dtdcCustomerCode} onChange={(e) => setDtdcCustomerCode(e.target.value)} />
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '10px', color: '#737373', marginBottom: '4px' }}>Service Type ID</label>
+                        <input type="text" className="premium-input" placeholder="e.g. B2C PRIORITY" value={dtdcServiceType} onChange={(e) => setDtdcServiceType(e.target.value)} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '10px', color: '#737373', marginBottom: '4px' }}>Commodity ID</label>
+                        <input type="text" className="premium-input" placeholder="e.g. 2" value={dtdcCommodityId} onChange={(e) => setDtdcCommodityId(e.target.value)} />
+                      </div>
+                    </div>
+
+                    <div style={{ fontSize: '11px', color: '#8A8A8A', fontWeight: 'bold', textTransform: 'uppercase', marginTop: '6px', marginBottom: '2px' }}>Tracking API Credentials</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <input type="text" className="premium-input" placeholder="Tracking Username" value={dtdcUsername} onChange={(e) => setDtdcUsername(e.target.value)} />
+                      <input type="password" className="premium-input" placeholder="Tracking Password" value={dtdcPassword} onChange={(e) => setDtdcPassword(e.target.value)} />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* XpressBees */}
