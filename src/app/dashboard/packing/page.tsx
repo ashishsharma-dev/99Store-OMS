@@ -33,6 +33,10 @@ export default function Packing() {
   const [processingOrderId, setProcessingOrderId] = useState<string | null>(null);
   const [bulkProcessing, setBulkProcessing] = useState(false);
 
+  // Module 4: Bulk Logistics header dropdown filters
+  const [courierFilter, setCourierFilter] = useState<string>('all');
+  const [contactBindingFilter, setContactBindingFilter] = useState<string>('Primary');
+
   useEffect(() => {
     const session = localStorage.getItem('99store_user');
     if (session) {
@@ -75,11 +79,17 @@ export default function Packing() {
     );
   };
 
+  const filteredOrders = orders.filter(o => {
+    if (courierFilter === 'all') return true;
+    const c = courierOverrides[o.id] || o.courier || 'DTDC';
+    return c.toLowerCase().includes(courierFilter.toLowerCase());
+  });
+
   const handleSelectAll = () => {
-    if (selectedIds.length === orders.length) {
+    if (selectedIds.length === filteredOrders.length && filteredOrders.length > 0) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(orders.map(o => o.id));
+      setSelectedIds(filteredOrders.map(o => o.id));
     }
   };
 
@@ -251,16 +261,48 @@ export default function Packing() {
         </button>
       </div>
 
-      {/* Queue Counter Dashboard banner */}
-      <div className="premium-card" style={{ padding: '16px 24px', display: 'flex', gap: '24px', alignItems: 'center', backgroundColor: '#0F0F11', borderStyle: 'dashed' }}>
+      {/* Queue Counter Dashboard banner & Module 4 Bulk Header Filters */}
+      <div className="premium-card" style={{ padding: '16px 24px', display: 'flex', gap: '24px', alignItems: 'center', backgroundColor: '#0F0F11', borderStyle: 'dashed', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Package size={20} style={{ color: '#3B82F6' }} />
           <span style={{ fontSize: '14px', fontWeight: 600, color: '#FAFAFA' }}>
             Packing Department Load:
           </span>
         </div>
-        <div style={{ fontSize: '14px', color: '#8A8A8A', flex: 1 }}>
+        <div style={{ fontSize: '14px', color: '#8A8A8A', flex: 1, minWidth: '240px' }}>
           <strong>{orders.filter(o => o.status === 'Created').length}</strong> New Orders | <strong>{orders.filter(o => o.status === 'Packing').length}</strong> Currently Packing | <strong>{orders.filter(o => o.status === 'Label Generated').length}</strong> Ready to Dispatch
+        </div>
+
+        {/* Module 4: Header Dropdown Filters */}
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div>
+            <span style={{ fontSize: '10px', color: '#737373', display: 'block', textTransform: 'uppercase', marginBottom: '2px' }}>Courier Partner Filter</span>
+            <select
+              className="premium-input"
+              style={{ padding: '4px 8px', fontSize: '12px', borderColor: '#3B82F6' }}
+              value={courierFilter}
+              onChange={(e) => setCourierFilter(e.target.value)}
+            >
+              <option value="all">All Carrier Partners</option>
+              <option value="DTDC">DTDC Express</option>
+              <option value="XpressBees">XpressBees Logistics</option>
+              <option value="Delhivery">Delhivery Express</option>
+              <option value="Aggregator">Aggregator API</option>
+            </select>
+          </div>
+          <div>
+            <span style={{ fontSize: '10px', color: '#737373', display: 'block', textTransform: 'uppercase', marginBottom: '2px' }}>Pickup Contact Binding</span>
+            <select
+              className="premium-input"
+              style={{ padding: '4px 8px', fontSize: '12px', borderColor: '#F59E0B' }}
+              value={contactBindingFilter}
+              onChange={(e) => setContactBindingFilter(e.target.value)}
+            >
+              <option value="Primary">Primary Store Contact</option>
+              <option value="Secondary">Secondary Fulfillment Hub</option>
+              <option value="Tertiary">CUSTOMER_NUMBER (Masked Coordination)</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -268,7 +310,7 @@ export default function Packing() {
       {selectedIds.length > 0 && (
         <div className="premium-card animate-fade-in" style={{ padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#111113', borderColor: '#3B82F6' }}>
           <span style={{ fontSize: '13.5px', color: '#FAFAFA', fontWeight: 600 }}>
-            Selected {selectedIds.length} of {orders.length} orders
+            Selected {selectedIds.length} of {filteredOrders.length} orders
           </span>
 
           <div style={{ display: 'flex', gap: '10px' }}>
@@ -302,10 +344,13 @@ export default function Packing() {
 
       {/* Main Packing Table */}
       {loading ? (
-        <div style={{ color: '#737373', fontSize: '14px' }}>Retrieving packing tasks...</div>
-      ) : orders.length === 0 ? (
+        <div className="premium-card loading-overlay" style={{ minHeight: '200px' }}>
+          <span className="spinner spinner-lg spinner-accent" />
+          <span>Retrieving packaging queue...</span>
+        </div>
+      ) : filteredOrders.length === 0 ? (
         <div className="premium-card" style={{ textAlign: 'center', padding: '48px', color: '#737373' }}>
-          No packages pending in the packaging queue. Good job! All orders are dispatched.
+          No packages pending in the packaging queue for this selection. Good job! All orders are dispatched.
         </div>
       ) : (
         <div className="premium-table-container">
@@ -315,7 +360,7 @@ export default function Packing() {
                 <th style={{ width: '40px', paddingLeft: '16px' }}>
                   <input 
                     type="checkbox" 
-                    checked={selectedIds.length === orders.length && orders.length > 0} 
+                    checked={selectedIds.length === filteredOrders.length && filteredOrders.length > 0} 
                     onChange={handleSelectAll}
                     style={{ cursor: 'pointer', width: '16px', height: '16px' }}
                   />
@@ -329,7 +374,7 @@ export default function Packing() {
               </tr>
             </thead>
             <tbody>
-              {orders.map((o) => {
+              {filteredOrders.map((o) => {
                 const isProcessing = processingOrderId === o.id || bulkProcessing;
                 const activeCourier = courierOverrides[o.id] || o.courier || 'DTDC';
                 const hasMultiplePhones = o.phoneSecondary || o.phoneTertiary;
@@ -383,7 +428,8 @@ export default function Packing() {
                             disabled={isProcessing}
                           >
                             <option value="DTDC">DTDC (Priority 1)</option>
-                            <option value="XpressBees">XpressBees (Priority 2)</option>
+                            <option value="XpressBees Air">XpressBees Air</option>
+                            <option value="XpressBees Surface">XpressBees Surface</option>
                             <option value="Delhivery">Delhivery (Priority 3)</option>
                             <option value="Aggregator">Aggregator API</option>
                           </select>
@@ -404,12 +450,12 @@ export default function Packing() {
                             >
                               <option value={o.phonePrimary}>{o.phonePrimary} (Prim)</option>
                               {o.phoneSecondary && <option value={o.phoneSecondary}>{o.phoneSecondary} (Sec)</option>}
-                              {o.phoneTertiary && <option value={o.phoneTertiary}>{o.phoneTertiary} (Tert)</option>}
+                              {o.phoneTertiary && <option value={o.phoneTertiary}>CUSTOMER_NUMBER (Tert)</option>}
                             </select>
                           </div>
                         ) : (
                           <span style={{ fontSize: '11px', color: '#8A8A8A', fontFamily: 'monospace' }}>
-                            {activePhone}
+                            {activePhone === o.phoneTertiary ? 'CUSTOMER_NUMBER' : activePhone}
                           </span>
                         )}
                       </div>
@@ -426,11 +472,11 @@ export default function Packing() {
                           <button
                             onClick={() => handleGenerateLabel(o)}
                             className="premium-btn premium-btn-primary animate-fade-in"
-                            style={{ padding: '6px 12px', fontSize: '12px' }}
+                            style={{ padding: '6px 12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                             disabled={isProcessing}
                           >
-                            <Tag size={12} />
-                            <span>{isProcessing ? 'Generating AWB...' : 'Generate AWB'}</span>
+                            {isProcessing ? <span className="spinner spinner-sm" /> : <Tag size={12} />}
+                            <span>{isProcessing ? 'Generating...' : 'Generate AWB'}</span>
                           </button>
                         )}
 
@@ -443,7 +489,7 @@ export default function Packing() {
                                 setShowPrintLabel(true);
                               }}
                               className="premium-btn premium-btn-secondary animate-fade-in"
-                              style={{ padding: '6px 12px', fontSize: '12px' }}
+                              style={{ padding: '6px 12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                               disabled={isProcessing}
                             >
                               <Printer size={12} />
@@ -453,10 +499,10 @@ export default function Packing() {
                             <button
                               onClick={() => handleDispatch(o)}
                               className="premium-btn premium-btn-primary animate-fade-in"
-                              style={{ padding: '6px 12px', fontSize: '12px', backgroundColor: '#10B981', borderColor: '#10B981' }}
+                              style={{ padding: '6px 12px', fontSize: '12px', backgroundColor: '#10B981', borderColor: '#10B981', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                               disabled={isProcessing}
                             >
-                              <Send size={12} />
+                              {isProcessing ? <span className="spinner spinner-sm" /> : <Send size={12} />}
                               <span>Dispatch</span>
                             </button>
                           </>

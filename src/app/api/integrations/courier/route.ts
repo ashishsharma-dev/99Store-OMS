@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { CourierApiLog } from '@/lib/types';
-import { getXpressBeesToken } from '@/lib/xpressbees';
+import { getXpressBeesToken, resolveXpressBeesConfig } from '@/lib/xpressbees';
 import { syncOrderStatus } from '@/lib/courierSync';
 
 function isDtdcStaging(apiKey?: string, username?: string): boolean {
@@ -44,9 +44,10 @@ export async function GET(request: Request) {
       }
 
       if (action === 'track') {
-        const token = await getXpressBeesToken(settings.xpressbeesConfig);
+        const xbConfig = resolveXpressBeesConfig(settings.xpressbeesConfig);
+        const token = await getXpressBeesToken(xbConfig);
         const isMockToken = token === 'MOCK_TOKEN_12345';
-        const baseUrl = settings.xpressbeesConfig.baseUrl || 'https://shipment.xpressbees.com/api';
+        const baseUrl = xbConfig.baseUrl || 'https://shipment.xpressbees.com/api';
 
         if (isMockToken) {
           // Simulated tracking response matching unified Delhivery/XpressBees format
@@ -111,24 +112,30 @@ export async function GET(request: Request) {
         }
 
         // Live API call
-        const authType = settings.xpressbeesConfig.authType || 'new';
+        const authType = xbConfig.authType || 'new';
         let res;
         let data;
         let reqPayloadStr = '';
 
         if (authType === 'new') {
-          const trackUrl = settings.xpressbeesConfig.trackBulkUrl || 'https://apishipmenttracking.xbees.in/GetCurrentShipmentStatus';
+          const trackUrl = xbConfig.trackBulkUrl || 'https://apishipmenttracking.xbees.in/GetCurrentShipmentStatus';
           reqPayloadStr = `POST ${trackUrl} body: { awb: ${waybill} }`;
           res = await fetch(trackUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${token}`,
-              'XBKey': settings.xpressbeesConfig.xbKey || ''
+              'Token': token,
+              'token': token,
+              'TokenNumber': token,
+              'XBKey': xbConfig.xbKey || '',
+              'xb-key': xbConfig.xbKey || ''
             },
             body: JSON.stringify({
               awb: waybill,
-              awbs: [waybill]
+              awbs: [waybill],
+              TokenNumber: token,
+              Token: token
             })
           });
           data = await res.json();
@@ -282,20 +289,22 @@ export async function GET(request: Request) {
           ? 'https://dtdcstagingapi.dtdc.com/dtdc-tracking-api/dtdc-api/rest/JSONCnTrk/getTrackDetails'
           : 'https://blktracksvc.dtdc.com/dtdc-api/rest/JSONCnTrk/getTrackDetails';
 
-        let accessToken = '';
-        let authResponseText = '';
-        try {
-          const authRes = await fetch(`${trackAuthUrl}?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
-            method: 'GET'
-          });
-          authResponseText = await authRes.text();
-          accessToken = authRes.headers.get('X-Access-Token') || authRes.headers.get('x-access-token') || authResponseText.trim();
+        let accessToken = settings.dtdcConfig.accessToken || '';
+        if (!accessToken) {
+          let authResponseText = '';
           try {
-            const authJson = JSON.parse(authResponseText);
-            accessToken = authJson.token || authJson.accessToken || authJson.xAccessToken || accessToken;
-          } catch(e) {}
-        } catch (authErr: any) {
-          return NextResponse.json({ error: `DTDC Tracking Auth failed: ${authErr.message}` }, { status: 500 });
+            const authRes = await fetch(`${trackAuthUrl}?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
+              method: 'GET'
+            });
+            authResponseText = await authRes.text();
+            accessToken = authRes.headers.get('X-Access-Token') || authRes.headers.get('x-access-token') || authResponseText.trim();
+            try {
+              const authJson = JSON.parse(authResponseText);
+              accessToken = authJson.token || authJson.accessToken || authJson.xAccessToken || accessToken;
+            } catch(e) {}
+          } catch (authErr: any) {
+            return NextResponse.json({ error: `DTDC Tracking Auth failed: ${authErr.message}` }, { status: 500 });
+          }
         }
 
         // Make tracking API request using token
@@ -405,6 +414,13 @@ export async function GET(request: Request) {
           }
 
           const blob = await labelRes.blob();
+
+          const order = (await db.getOrders()).find(o => o.awb === waybill || o.dtdc_reference_number === waybill);
+          if (order) {
+            order.label_generated = true;
+            await db.saveOrder(order);
+          }
+
           return new Response(blob, {
             headers: {
               'Content-Type': 'application/pdf',
@@ -572,9 +588,10 @@ export async function POST(request: Request) {
       const isDtdc = courier === 'DTDC' || waybill.startsWith('DTDC');
 
       if (isXpressBees) {
-        let token = await getXpressBeesToken(settings.xpressbeesConfig);
+        const xbConfig = resolveXpressBeesConfig(settings.xpressbeesConfig);
+        let token = await getXpressBeesToken(xbConfig);
         const isMockToken = token === 'MOCK_TOKEN_12345';
-        const baseUrl = settings.xpressbeesConfig.baseUrl || 'https://shipment.xpressbees.com/api';
+        const baseUrl = xbConfig.baseUrl || 'https://shipment.xpressbees.com/api';
 
         if (isMockToken) {
           await db.addCourierLog({
@@ -589,8 +606,8 @@ export async function POST(request: Request) {
           return NextResponse.json({ success: true, message: 'Cancellation simulated successfully.' });
         }
 
-        const authType = settings.xpressbeesConfig.authType || 'new';
-        const cancelUrl = settings.xpressbeesConfig.cancelUrl || 'https://clientshipupdatesapi.xbees.in/forwardcancellation';
+        const authType = xbConfig.authType || 'new';
+        const cancelUrl = xbConfig.cancelUrl || 'https://clientshipupdatesapi.xbees.in/forwardcancellation';
         const targetCancelUrl = authType === 'new' ? cancelUrl : `${baseUrl}/shipments2/cancel`;
 
         const cancelRes = await fetch(targetCancelUrl, {
@@ -598,9 +615,13 @@ export async function POST(request: Request) {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
-            'XBKey': settings.xpressbeesConfig.xbKey || ''
+            'Token': token,
+            'token': token,
+            'TokenNumber': token,
+            'XBKey': xbConfig.xbKey || '',
+            'xb-key': xbConfig.xbKey || ''
           },
-          body: JSON.stringify({ awb: waybill, awb_number: waybill })
+          body: JSON.stringify({ awb: waybill, awb_number: waybill, TokenNumber: token, Token: token })
         });
         const cancelData = await cancelRes.json();
 
@@ -672,6 +693,21 @@ export async function POST(request: Request) {
             (cancelData.data?.[0] && cancelData.data[0].success !== false)
           );
 
+          if (isCancelSuccess) {
+            const order = (await db.getOrders()).find(o => o.awb === waybill || o.dtdc_reference_number === waybill);
+            if (order) {
+              order.cancelled = true;
+              order.status = 'Return';
+              order.history.push({
+                status: 'Return',
+                timestamp: new Date().toISOString(),
+                updatedBy: 'DTDC API',
+                remarks: 'Consignment successfully cancelled via DTDC API.'
+              });
+              await db.saveOrder(order);
+            }
+          }
+
           await db.addCourierLog({
             id: `cl-dtdc-cancel-${Date.now()}`,
             timestamp: new Date().toISOString(),
@@ -705,9 +741,10 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Missing awbs array for manifest generation.' }, { status: 400 });
       }
 
-      const token = await getXpressBeesToken(settings.xpressbeesConfig);
+      const xbConfig = resolveXpressBeesConfig(settings.xpressbeesConfig);
+      const token = await getXpressBeesToken(xbConfig);
       const isMockToken = token === 'MOCK_TOKEN_12345';
-      const baseUrl = settings.xpressbeesConfig.baseUrl || 'https://shipment.xpressbees.com/api';
+      const baseUrl = xbConfig.baseUrl || 'https://shipment.xpressbees.com/api';
 
       if (isMockToken) {
         await db.addCourierLog({
@@ -726,9 +763,14 @@ export async function POST(request: Request) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Token': token,
+          'token': token,
+          'TokenNumber': token,
+          'XBKey': xbConfig.xbKey || '',
+          'xb-key': xbConfig.xbKey || ''
         },
-        body: JSON.stringify({ awbs: waybills })
+        body: JSON.stringify({ awbs: waybills, TokenNumber: token, Token: token })
       });
       const manifestData = await manifestRes.json();
 
@@ -752,9 +794,10 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Missing reverse shipment payload.' }, { status: 400 });
       }
 
-      const token = await getXpressBeesToken(settings.xpressbeesConfig);
+      const xbConfig = resolveXpressBeesConfig(settings.xpressbeesConfig);
+      const token = await getXpressBeesToken(xbConfig);
       const isMockToken = token === 'MOCK_TOKEN_12345';
-      const baseUrl = settings.xpressbeesConfig.baseUrl || 'https://shipment.xpressbees.com/api';
+      const baseUrl = xbConfig.baseUrl || 'https://shipment.xpressbees.com/api';
 
       if (isMockToken) {
         await db.addCourierLog({
@@ -773,9 +816,14 @@ export async function POST(request: Request) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Token': token,
+          'token': token,
+          'TokenNumber': token,
+          'XBKey': xbConfig.xbKey || '',
+          'xb-key': xbConfig.xbKey || ''
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ ...payload, TokenNumber: token, Token: token })
       });
       const reverseData = await reverseRes.json();
 
@@ -793,11 +841,15 @@ export async function POST(request: Request) {
     }
 
     // 4. BOOK SHIPMENT (FORWARD)
-    const { orderId, courier, weight, paymentType, codAmount, customerName, pincode } = body;
+    const { orderId, courier: rawCourier, weight, paymentType, codAmount, customerName, pincode } = body;
 
-    if (!orderId || !courier) {
+    if (!orderId || !rawCourier) {
       return NextResponse.json({ error: 'Missing orderId or courier selection.' }, { status: 400 });
     }
+
+    const isXpressBeesBooking = rawCourier.toLowerCase().includes('xpressbees');
+    const courier = isXpressBeesBooking ? 'XpressBees' : rawCourier;
+    const requestedMode = body.accountOverride || body.mode || (rawCourier.toLowerCase().includes('surface') ? 'Surface' : (rawCourier.toLowerCase().includes('air') ? 'Air' : undefined));
 
     let isCourierActive = false;
     let apiKey = 'MOCK_KEY';
@@ -837,6 +889,7 @@ export async function POST(request: Request) {
 
     // LIVE XPRESSBEES BOOKING
     if (courier === 'XpressBees') {
+      const xbConfig = resolveXpressBeesConfig(settings.xpressbeesConfig, requestedMode);
       const order = (await db.getOrders()).find(o => o.orderId.toLowerCase() === orderId.toLowerCase() || o.id === orderId);
       if (!order) {
         return NextResponse.json({ error: `Order with ID ${orderId} not found in database.` }, { status: 400 });
@@ -844,7 +897,7 @@ export async function POST(request: Request) {
 
       let token = 'MOCK_TOKEN_12345';
       try {
-        token = await getXpressBeesToken(settings.xpressbeesConfig);
+        token = await getXpressBeesToken(xbConfig);
       } catch (err: any) {
         const errorLog: CourierApiLog = {
           id: `cl-fail-${Date.now()}`,
@@ -860,7 +913,7 @@ export async function POST(request: Request) {
       }
 
       const isMockToken = token === 'MOCK_TOKEN_12345';
-      const baseUrl = settings.xpressbeesConfig.baseUrl || 'https://shipment.xpressbees.com/api';
+      const baseUrl = xbConfig.baseUrl || 'https://shipment.xpressbees.com/api';
 
       if (isMockToken) {
         // Fallback simulation
@@ -891,25 +944,39 @@ export async function POST(request: Request) {
           status: 'Success'
         });
 
+        order.awb = awb;
+        order.courier = 'XpressBees';
+        order.eta = etaString;
+        order.updatedAt = new Date().toISOString();
+        await db.saveOrder(order);
+
         return NextResponse.json({ success: true, awb, eta: etaString, courier: 'XpressBees', charge });
       }
 
       let finalAwb = '';
-      const authType = settings.xpressbeesConfig.authType || 'new';
+      const authType = xbConfig.authType || 'new';
 
       if (authType === 'new') {
         try {
           // Step 1: Generate AWB series batch ID
-          const awbGenRes = await fetch(settings.xpressbeesConfig.awbGenUrl || 'https://xbclientapi.xbees.in/POSTShipmentService.svc/AWBNumberSeriesGeneration', {
+          const awbGenUrl = xbConfig.awbGenUrl || 'https://xbclientapi.xbees.in/POSTShipmentService.svc/AWBNumberSeriesGeneration';
+          const awbGenRes = await fetch(awbGenUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'XBKey': settings.xpressbeesConfig.xbKey || ''
+              'Authorization': `Bearer ${token}`,
+              'Token': token,
+              'token': token,
+              'TokenNumber': token,
+              'XBKey': xbConfig.xbKey || '',
+              'xb-key': xbConfig.xbKey || ''
             },
             body: JSON.stringify({
               BusinessUnit: "ECOM",
               ServiceType: "FORWARD",
-              DeliveryType: order.paymentType === 'COD' ? 'COD' : 'PREPAID'
+              DeliveryType: order.paymentType === 'COD' ? 'COD' : 'PREPAID',
+              TokenNumber: token,
+              Token: token
             })
           });
 
@@ -931,16 +998,24 @@ export async function POST(request: Request) {
           const batchId = awbGenData.BatchID;
 
           // Step 2: Retrieve the generated AWB numbers from batch ID
-          const awbRetrieveRes = await fetch(settings.xpressbeesConfig.awbRetrieveUrl || 'https://xbclientapi.xbees.in/TrackingService.svc/GetAWBNumberGeneratedSeries', {
+          const awbRetrieveUrl = xbConfig.awbRetrieveUrl || 'https://xbclientapi.xbees.in/TrackingService.svc/GetAWBNumberGeneratedSeries';
+          const awbRetrieveRes = await fetch(awbRetrieveUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'XBKey': settings.xpressbeesConfig.xbKey || ''
+              'Authorization': `Bearer ${token}`,
+              'Token': token,
+              'token': token,
+              'TokenNumber': token,
+              'XBKey': xbConfig.xbKey || '',
+              'xb-key': xbConfig.xbKey || ''
             },
             body: JSON.stringify({
               BusinessUnit: "ECOM",
               ServiceType: "FORWARD",
-              BatchID: batchId
+              BatchID: batchId,
+              TokenNumber: token,
+              Token: token
             })
           });
 
@@ -985,8 +1060,8 @@ export async function POST(request: Request) {
 
       // Step 3: Manifest/Book shipment
       const weightInGrams = Math.round(Number(weight || order.weight || 0.5) * 1000);
-      const serviceType = settings.xpressbeesConfig.serviceType || 'NDD';
-      const vendorCode = settings.xpressbeesConfig.vendorCode || 'VEND001';
+      const serviceType = xbConfig.serviceType || 'NDD';
+      const vendorCode = xbConfig.vendorCode || 'VEND001';
 
       const bookingPayload: any = {
         order_number: order.orderId,
@@ -1014,14 +1089,14 @@ export async function POST(request: Request) {
         },
         pickup: {
           vendor_code: vendorCode,
-          warehouse_name: settings.xpressbeesConfig.warehouseName || 'Main Warehouse',
-          name: settings.xpressbeesConfig.contactName || 'Warehouse Manager',
-          address: settings.xpressbeesConfig.address || '140 MG Road',
-          address_2: settings.xpressbeesConfig.address2 || 'Near Metro Station',
-          city: settings.xpressbeesConfig.city || 'Agra',
-          state: settings.xpressbeesConfig.state || 'Uttar Pradesh',
-          pincode: settings.xpressbeesConfig.pincode || '282001',
-          phone: settings.xpressbeesConfig.phone || '9999999999'
+          warehouse_name: xbConfig.warehouseName || 'Main Warehouse',
+          name: xbConfig.contactName || 'Warehouse Manager',
+          address: xbConfig.address || '140 MG Road',
+          address_2: xbConfig.address2 || 'Near Metro Station',
+          city: xbConfig.city || 'Agra',
+          state: xbConfig.state || 'Uttar Pradesh',
+          pincode: xbConfig.pincode || '282001',
+          phone: xbConfig.phone || '9999999999'
         },
         order_items: [
           {
@@ -1038,11 +1113,13 @@ export async function POST(request: Request) {
       if (authType === 'new') {
         bookingPayload.awb_number = finalAwb;
         bookingPayload.awb = finalAwb;
+        bookingPayload.TokenNumber = token;
+        bookingPayload.Token = token;
       }
 
       let bookingResponseData: any = null;
       try {
-        const manifestUrl = settings.xpressbeesConfig.manifestUrl || 'https://apishipmentmanifestation.xbees.in/shipmentmanifestation/forward';
+        const manifestUrl = xbConfig.manifestUrl || 'https://apishipmentmanifestation.xbees.in/shipmentmanifestation/forward';
         const targetUrl = authType === 'new' ? manifestUrl : `${baseUrl}/shipments2`;
 
         const bookRes = await fetch(targetUrl, {
@@ -1053,8 +1130,8 @@ export async function POST(request: Request) {
             'Token': token,
             'token': token,
             'TokenNumber': token,
-            'XBKey': settings.xpressbeesConfig.xbKey || '',
-            'xb-key': settings.xpressbeesConfig.xbKey || ''
+            'XBKey': xbConfig.xbKey || '',
+            'xb-key': xbConfig.xbKey || ''
           },
           body: JSON.stringify(bookingPayload)
         });
@@ -1091,6 +1168,12 @@ export async function POST(request: Request) {
         etaDate.setDate(etaDate.getDate() + etaDays);
         const etaString = etaDate.toISOString().split('T')[0];
         const charge = 55 + (weight || order.weight) * 25 + (paymentType === 'COD' ? 35 : 0);
+
+        order.awb = finalAwb;
+        order.courier = 'XpressBees';
+        order.eta = etaString;
+        order.updatedAt = new Date().toISOString();
+        await db.saveOrder(order);
 
         return NextResponse.json({ success: true, awb: finalAwb, eta: etaString, courier: 'XpressBees', charge });
 
@@ -1163,14 +1246,14 @@ export async function POST(request: Request) {
             declared_value: String(order.orderValue),
             num_pieces: '1',
             origin_details: {
-              name: settings.xpressbeesConfig.contactName || '99Store Fulfillment',
-              phone: settings.xpressbeesConfig.phone || '9999999999',
+              name: settings.dtdcConfig.contactName || settings.xpressbeesConfig.contactName || 'Vishnu Singh Sikarwar',
+              phone: settings.dtdcConfig.phone || settings.xpressbeesConfig.phone || '8057023592',
               alternate_phone: '',
-              address_line_1: settings.xpressbeesConfig.address || '140 MG Road',
-              address_line_2: settings.xpressbeesConfig.address2 || '',
-              pincode: settings.xpressbeesConfig.pincode || '282001',
-              city: settings.xpressbeesConfig.city || 'Agra',
-              state: settings.xpressbeesConfig.state || 'Uttar Pradesh'
+              address_line_1: settings.dtdcConfig.address || settings.xpressbeesConfig.address || 'J.K. NAGAR, NANDLALPUR HATHRAS ROAD KUBERPUR',
+              address_line_2: settings.dtdcConfig.address2 || settings.xpressbeesConfig.address2 || 'Kuberpur',
+              pincode: settings.dtdcConfig.pincode || settings.xpressbeesConfig.pincode || '282006',
+              city: settings.dtdcConfig.city || settings.xpressbeesConfig.city || 'Agra',
+              state: settings.dtdcConfig.state || settings.xpressbeesConfig.state || 'Uttar Pradesh'
             },
             destination_details: {
               name: order.customerName,
@@ -1232,11 +1315,20 @@ export async function POST(request: Request) {
         }
 
         const cons = bookData.data?.consignments?.[0] || bookData.consignments?.[0] || bookData.data?.[0];
-        const finalAwb = cons?.reference_number || cons?.awb || '';
+        const finalAwb = cons?.courier_partner_reference_number || cons?.reference_number || cons?.awb || '';
         
         if (!finalAwb) {
           return NextResponse.json({ error: `DTDC Booking succeeded but no AWB was allocated: ${JSON.stringify(bookData)}` }, { status: 400 });
         }
+
+        order.awb = finalAwb;
+        order.dtdc_reference_number = finalAwb;
+        order.current_status = 'Softdata Uploaded';
+        order.current_status_code = 'BOOKED';
+        order.last_tracking_update = new Date().toISOString();
+        order.label_generated = false;
+        order.cancelled = false;
+        await db.saveOrder(order);
 
         const etaDays = 3;
         const etaDate = new Date();

@@ -115,7 +115,16 @@ export async function PATCH(
       }
     }
 
-    // B. Record updates in Order History
+    // B. Record updates in Order History & Audited Temporal Remarks System
+    if (remarks && remarks.trim() !== '') {
+      if (!order.temporal_remarks) order.temporal_remarks = [];
+      order.temporal_remarks.push({
+        remark_text: remarks,
+        created_at: now,
+        author_user_id: updatedBy || 'system'
+      });
+    }
+
     order.history.push({
       status: order.status,
       timestamp: now,
@@ -176,5 +185,48 @@ export async function PATCH(
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to update order.' }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const { searchParams } = new URL(request.url);
+    const deletedBy = searchParams.get('deletedBy') || 'user';
+    const userRole = searchParams.get('role') || '';
+
+    const order = await db.getOrderById(id);
+    if (!order) {
+      return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
+    }
+
+    // Role Permission Checks
+    if (userRole !== 'Super Admin' && userRole !== 'Order Team') {
+      return NextResponse.json({ error: `Role '${userRole}' is not authorized to delete orders.` }, { status: 403 });
+    }
+
+    if (userRole === 'Order Team' && order.status !== 'Created') {
+      return NextResponse.json({ error: `Order Team can only delete orders in Created status.` }, { status: 403 });
+    }
+
+    // Execute Soft Delete
+    const now = new Date().toISOString();
+    order.isDeleted = true;
+    order.deletedAt = now;
+    order.deletedBy = deletedBy;
+    order.history.push({
+      status: order.status,
+      timestamp: now,
+      updatedBy: deletedBy,
+      remarks: `Order marked as deleted by ${deletedBy} (${userRole}).`
+    });
+
+    await db.saveOrder(order);
+    return NextResponse.json({ success: true, message: `Order ${order.orderId} deleted successfully.` });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to delete order.' }, { status: 500 });
   }
 }

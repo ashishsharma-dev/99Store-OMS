@@ -278,10 +278,15 @@ export default function Login() {
               <button
                 type="submit"
                 className="premium-btn premium-btn-primary"
-                style={{ width: '100%', padding: '12px' }}
+                style={{ width: '100%', padding: '12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                 disabled={loading}
               >
-                {loading ? 'Requesting OTP...' : 'Send Login OTP'}
+                {loading ? (
+                  <>
+                    <span className="spinner spinner-sm" />
+                    <span>Requesting OTP...</span>
+                  </>
+                ) : 'Send Login OTP'}
               </button>
             </form>
           ) : (
@@ -348,10 +353,15 @@ export default function Login() {
               <button
                 type="submit"
                 className="premium-btn premium-btn-primary"
-                style={{ width: '100%', padding: '12px' }}
+                style={{ width: '100%', padding: '12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                 disabled={loading}
               >
-                {loading ? 'Authenticating...' : 'Verify & Login'}
+                {loading ? (
+                  <>
+                    <span className="spinner spinner-sm" />
+                    <span>Authenticating...</span>
+                  </>
+                ) : 'Verify & Login'}
               </button>
             </form>
           )}

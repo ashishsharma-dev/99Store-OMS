@@ -6,7 +6,8 @@ import { getXpressBeesToken } from '@/lib/xpressbees';
 
 export async function GET() {
   try {
-    const records = await db.getNdrRecords();
+    let records = await db.getNdrRecords();
+    records = records.filter(r => !r.isDeleted);
     // Sort so most recent NDRs are at the top
     records.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return NextResponse.json({ success: true, records });
@@ -18,9 +19,9 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { id, status, reattemptDate, internalNotes, actionRemarks, updatedBy } = body;
+    const { id, status, reattemptDate, internalNotes, actionRemarks, updatedBy, addRemarkOnly } = body;
 
-    if (!id || !status || !updatedBy) {
+    if (!id || (!status && !addRemarkOnly) || !updatedBy) {
       return NextResponse.json({ error: 'Missing required NDR update fields.' }, { status: 400 });
     }
 
@@ -32,14 +33,23 @@ export async function POST(request: Request) {
     const previousStatus = record.status;
     const now = new Date().toISOString();
 
-    record.status = status;
+    if (status) record.status = status;
     record.updatedAt = now;
     if (reattemptDate) record.reattemptDate = reattemptDate;
     if (internalNotes) record.internalNotes = internalNotes;
 
+    if (actionRemarks && actionRemarks.trim() !== '') {
+      if (!record.temporal_remarks) record.temporal_remarks = [];
+      record.temporal_remarks.push({
+        remark_text: actionRemarks,
+        created_at: now,
+        author_user_id: updatedBy
+      });
+    }
+
     // Append to NDR history
     record.history.push({
-      action: `Status Update: ${status}`,
+      action: addRemarkOnly ? 'User Remark Added' : `Status Update: ${status}`,
       timestamp: now,
       remarks: actionRemarks || `NDR status changed from ${previousStatus} to ${status} by ${updatedBy}.`
     });
@@ -183,5 +193,44 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to update NDR record.' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const body = await request.json();
+    const { id, ids, deletedBy, role } = body;
+    const targetIds = ids || (id ? [id] : []);
+
+    if (!targetIds || targetIds.length === 0) {
+      return NextResponse.json({ error: 'No NDR IDs provided for deletion.' }, { status: 400 });
+    }
+
+    if (role !== 'Super Admin' && role !== 'Tracking Team') {
+      return NextResponse.json({ error: `Role '${role}' is not authorized to delete NDR records.` }, { status: 403 });
+    }
+
+    let deletedCount = 0;
+    const now = new Date().toISOString();
+
+    for (const recordId of targetIds) {
+      const rec = await db.getNdrRecordById(recordId);
+      if (rec && !rec.isDeleted) {
+        rec.isDeleted = true;
+        rec.deletedAt = now;
+        rec.deletedBy = deletedBy || 'user';
+        rec.history.push({
+          action: 'NDR Record Deleted',
+          timestamp: now,
+          remarks: `NDR Record deleted by ${deletedBy} (${role}).`
+        });
+        await db.saveNdrRecord(rec);
+        deletedCount++;
+      }
+    }
+
+    return NextResponse.json({ success: true, message: `${deletedCount} NDR record(s) deleted successfully.`, deletedCount });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to delete NDR record.' }, { status: 500 });
   }
 }

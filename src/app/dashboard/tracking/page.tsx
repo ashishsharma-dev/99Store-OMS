@@ -46,7 +46,7 @@ export default function Tracking() {
   const [liveTrackingError, setLiveTrackingError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (selectedOrder && (selectedOrder.courier === 'Delhivery' || selectedOrder.courier === 'XpressBees') && selectedOrder.awb) {
+    if (selectedOrder && (selectedOrder.courier === 'Delhivery' || selectedOrder.courier === 'XpressBees' || selectedOrder.courier === 'DTDC') && selectedOrder.awb) {
       fetchLiveTracking(selectedOrder.awb, selectedOrder.courier);
     } else {
       setLiveTrackingData(null);
@@ -201,8 +201,9 @@ export default function Tracking() {
           onClick={handleBulkSync} 
           className="premium-btn premium-btn-secondary"
           disabled={syncLoading}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
         >
-          <RefreshCcw size={14} className={syncLoading ? 'animate-spin' : ''} />
+          {syncLoading ? <span className="spinner spinner-sm" /> : <RefreshCcw size={14} />}
           <span>{syncLoading ? 'Syncing...' : 'Sync Tracking API'}</span>
         </button>
       </div>
@@ -232,7 +233,10 @@ export default function Tracking() {
             </h3>
 
             {loading ? (
-              <span style={{ fontSize: '13px', color: '#737373' }}>Refreshing shipments feeds...</span>
+              <div className="loading-overlay" style={{ padding: '20px 0' }}>
+                <span className="spinner spinner-accent" />
+                <span>Refreshing shipments feeds...</span>
+              </div>
             ) : filteredOrders.length === 0 ? (
               <span style={{ fontSize: '13px', color: '#737373' }}>No active dispatches found.</span>
             ) : (
@@ -430,7 +434,10 @@ export default function Tracking() {
                     <span>{selectedOrder.courier} Real-Time API Scans</span>
                   </h4>
                   {liveTrackingLoading ? (
-                    <div style={{ fontSize: '12px', color: '#737373' }}>Contacting {selectedOrder.courier} live servers...</div>
+                    <div style={{ fontSize: '12px', color: '#737373', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="spinner spinner-sm spinner-accent" />
+                      <span>Contacting {selectedOrder.courier} live servers...</span>
+                    </div>
                   ) : liveTrackingError ? (
                     <div style={{ fontSize: '11.5px', color: '#EF6868', backgroundColor: 'rgba(239, 104, 104, 0.05)', padding: '8px 10px', borderRadius: '4px' }}>
                       ℹ️ {liveTrackingError}

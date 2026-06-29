@@ -1,12 +1,12 @@
-// In-memory cache variables for XpressBees token
-let cachedToken: string | null = null;
-let tokenExpiresAt: number = 0;
+// In-memory cache map for XpressBees tokens per email account
+const tokenCache: Record<string, { token: string; expiresAt: number }> = {};
 
 /**
  * Retrieves a cached XpressBees JWT login token or fetches a new one if expired.
- * Tokens are cached for 12 hours.
+ * Tokens are cached for 12 hours per account email.
  */
-export async function getXpressBeesToken(config: any): Promise<string> {
+export async function getXpressBeesToken(rawConfig: any): Promise<string> {
+  const config = resolveXpressBeesConfig(rawConfig);
   const baseUrl = config.baseUrl || 'https://shipment.xpressbees.com/api';
   const email = config.email;
   const password = config.password;
@@ -21,8 +21,8 @@ export async function getXpressBeesToken(config: any): Promise<string> {
 
   // Check if token exists in cache and hasn't expired yet
   const now = Date.now();
-  if (cachedToken && now < tokenExpiresAt) {
-    return cachedToken;
+  if (tokenCache[email] && now < tokenCache[email].expiresAt) {
+    return tokenCache[email].token;
   }
 
   try {
@@ -42,21 +42,48 @@ export async function getXpressBeesToken(config: any): Promise<string> {
     }
 
     const data = await res.json();
-    const token = data.token || data.data || (data.data && data.data.token);
+    let token: string | undefined;
+    if (typeof data.token === 'string' && data.token) token = data.token;
+    else if (typeof data.Token === 'string' && data.Token) token = data.Token;
+    else if (typeof data.TokenNumber === 'string' && data.TokenNumber) token = data.TokenNumber;
+    else if (typeof data.data === 'string' && data.data) token = data.data;
+    else if (data.data && typeof data.data.token === 'string' && data.data.token) token = data.data.token;
+    else if (data.data && typeof data.data.Token === 'string' && data.data.Token) token = data.data.Token;
+    else if (data.data && typeof data.data.TokenNumber === 'string' && data.data.TokenNumber) token = data.data.TokenNumber;
 
-    if (!token) {
-      throw new Error(`XpressBees Login returned error or missing token: ${JSON.stringify(data)}`);
+    if (!token || typeof token !== 'string') {
+      throw new Error(`XpressBees Login returned error or missing token string: ${JSON.stringify(data)}`);
     }
 
     // Cache the token for 12 hours (conservatively within the 24h validity window)
-    cachedToken = token;
-    tokenExpiresAt = Date.now() + 12 * 60 * 60 * 1000;
+    tokenCache[email] = {
+      token,
+      expiresAt: Date.now() + 12 * 60 * 60 * 1000
+    };
 
     return token;
   } catch (err: any) {
-    // Clear cache on error to force retry on next request
-    cachedToken = null;
-    tokenExpiresAt = 0;
+    delete tokenCache[email];
     throw new Error(`Failed to fetch token from XpressBees: ${err.message}`);
   }
+}
+
+/**
+ * Resolves active XpressBees credentials (Air vs Surface) based on requested account mode or system defaults.
+ */
+export function resolveXpressBeesConfig(xbConfig: any, accountOverride?: string) {
+  if (!xbConfig) return {};
+  const mode = (accountOverride || xbConfig.activeAccount || 'Air').toLowerCase();
+  const isSurface = mode.includes('surface') || mode.includes('sfc');
+  
+  const selectedSubAccount = isSurface ? xbConfig.surfaceAccount : xbConfig.airAccount;
+  
+  return {
+    ...xbConfig,
+    email: selectedSubAccount?.email || xbConfig.email,
+    password: selectedSubAccount?.password || xbConfig.password,
+    secretKey: selectedSubAccount?.secretKey || xbConfig.secretKey,
+    xbKey: selectedSubAccount?.xbKey || xbConfig.xbKey,
+    activeAccount: isSurface ? 'Surface' : 'Air'
+  };
 }

@@ -20,6 +20,7 @@ export const db = {
     await database.collection('courierLogs').deleteMany({});
     await database.collection('settings').deleteMany({});
     await database.collection('messages').deleteMany({});
+    await database.collection('tracking_events').deleteMany({});
 
     // Seed mock data
     if (mockUsers.length > 0) await database.collection('users').insertMany(mockUsers);
@@ -248,5 +249,15 @@ export const db = {
         { $push: { isReadBy: userId } } as any
       );
     }
+  },
+
+  // Tracking Events Operations
+  getTrackingEvents: async (shipment: string): Promise<any[]> => {
+    const database = await getDatabase();
+    return await database.collection('tracking_events').find({ shipment }).toArray();
+  },
+  addTrackingEvent: async (event: any): Promise<void> => {
+    const database = await getDatabase();
+    await database.collection('tracking_events').insertOne(event);
   }
 };

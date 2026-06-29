@@ -74,13 +74,36 @@ export const mockSettings: SystemSettings = {
     serviceTypeId: 'PRIORITY',
     commodityId: '2',
     username: 'GL018_trk_json',
-    password: 'chwzf'
+    password: 'chwzf',
+    accessToken: 'GL018_trk_json:bd45addb4aa09ea88364227a4f7b951b',
+    contactName: 'Vishnu Singh Sikarwar',
+    phone: '8057023592',
+    address: 'J.K. NAGAR, NANDLALPUR HATHRAS ROAD KUBERPUR',
+    address2: 'Kuberpur',
+    pincode: '282006',
+    city: 'Agra',
+    state: 'Uttar Pradesh'
   },
   xpressbeesConfig: {
-    apiKey: 'xb_live_key_99store_cd3e82ab',
+    apiKey: 'JnueT39994Dyats',
     priority: 2,
+    activeAccount: 'Air',
     email: 'admin@shivayair.com',
     password: 'Xpress@1234567',
+    secretKey: 'd0277ffa8e293bf04578ee8f63337fe71ac41f854e296fb95b5975ed5aa4a802',
+    xbKey: 'JnueT39994Dyats',
+    airAccount: {
+      email: 'admin@shivayair.com',
+      password: 'Xpress@1234567',
+      secretKey: 'd0277ffa8e293bf04578ee8f63337fe71ac41f854e296fb95b5975ed5aa4a802',
+      xbKey: 'JnueT39994Dyats'
+    },
+    surfaceAccount: {
+      email: 'admin@shivaysfc.com',
+      password: 'Xpress@1234567',
+      secretKey: 'bd17bf9b688a57768f36c1d5a33af0f1d88ef88dcb950c3e0374715f30c8ba23',
+      xbKey: 'JnueT39995Dyats'
+    },
     baseUrl: 'https://shipment.xpressbees.com/api',
     warehouseName: 'Main Warehouse',
     contactName: 'Warehouse Manager',
@@ -90,8 +113,6 @@ export const mockSettings: SystemSettings = {
     state: 'Uttar Pradesh',
     pincode: '282001',
     phone: '9999999999',
-    secretKey: 'd0277ffa8e293bf04578ee8f63337fe71ac41f854e296fb95b5975ed5aa4a802',
-    xbKey: 'JnueT39994Dyats',
     vendorCode: 'VEND001',
     serviceType: 'NDD',
     authType: 'new',

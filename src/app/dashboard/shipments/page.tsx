@@ -176,7 +176,10 @@ export default function AllShipments() {
 
       {/* Grid listing */}
       {loading ? (
-        <div style={{ color: '#737373', fontSize: '14px' }}>Querying shipments list...</div>
+        <div className="premium-card loading-overlay" style={{ minHeight: '220px' }}>
+          <span className="spinner spinner-lg spinner-accent" />
+          <span>Querying shipments database...</span>
+        </div>
       ) : orders.length === 0 ? (
         <div className="premium-card" style={{ textAlign: 'center', padding: '48px', color: '#737373' }}>
           No shipments found matching search criteria.

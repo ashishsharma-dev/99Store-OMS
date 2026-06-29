@@ -20,8 +20,9 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '50');
 
     let orders = await db.getOrders();
+    orders = orders.filter(o => !o.isDeleted);
 
-    // 1. Global search by Name, Phone, Order ID, AWB, Address
+    // 1. Global search by Name, Phone, Order ID, AWB, Address, Pincode
     if (search) {
       orders = orders.filter(o => 
         o.customerName.toLowerCase().includes(search) ||
@@ -29,6 +30,7 @@ export async function GET(request: Request) {
         o.phonePrimary.includes(search) ||
         (o.phoneSecondary && o.phoneSecondary.includes(search)) ||
         (o.phoneTertiary && o.phoneTertiary.includes(search)) ||
+        (o.pincode && o.pincode.includes(search)) ||
         (o.awb && o.awb.toLowerCase().includes(search)) ||
         o.address.toLowerCase().includes(search)
       );
@@ -111,10 +113,13 @@ export async function POST(request: Request) {
       createdBy
     } = body;
 
-    // Validation
-    if (!customerName || !phonePrimary || !address || !pincode || !productDetails || !paymentType || !orderValue || !weight || !createdBy) {
+    // Validation (Module 2: weight is fixed to 0.2)
+    if (!customerName || !phonePrimary || !address || !pincode || !productDetails || !paymentType || !orderValue || !createdBy) {
       return NextResponse.json({ error: 'Missing required order fields.' }, { status: 400 });
     }
+
+    // Module 2: Fixed Order Weight Calibration (hardcoded default to 0.2)
+    const finalWeight = 0.2;
 
     const stateAndArea = state && area ? { state, area } : { state: 'State Fetch Pending', area: 'Area Fetch Pending' };
 
@@ -137,9 +142,9 @@ export async function POST(request: Request) {
 
     // Apply auto courier routing engine if enabled
     if (settings.autoCourierEnabled) {
-      if (weight < 1) {
+      if (finalWeight < 1) {
         assignedCourier = 'DTDC';
-      } else if (weight >= 1 && weight < 2) {
+      } else if (finalWeight >= 1 && finalWeight < 2) {
         assignedCourier = 'XpressBees';
       } else {
         assignedCourier = 'Delhivery';
@@ -157,7 +162,7 @@ export async function POST(request: Request) {
       customerName,
       phonePrimary,
       phoneSecondary: phoneSecondary || undefined,
-      phoneTertiary: phoneTertiary || undefined,
+      phoneTertiary: phoneTertiary || phonePrimary, // Default to primary if not distinct
       address,
       pincode,
       state: stateAndArea.state,
@@ -165,7 +170,7 @@ export async function POST(request: Request) {
       productDetails,
       paymentType,
       orderValue: parsedValue,
-      weight: parseFloat(weight),
+      weight: finalWeight,
       createdBy,
       isVip: !!isVip,
       status: 'Created',
@@ -204,5 +209,50 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to create order.' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const body = await request.json();
+    const { orderIds, deletedBy, role } = body;
+
+    if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
+      return NextResponse.json({ error: 'No order IDs provided for bulk deletion.' }, { status: 400 });
+    }
+
+    let deletedCount = 0;
+    let skippedCount = 0;
+    const now = new Date().toISOString();
+
+    for (const id of orderIds) {
+      const order = await db.getOrderById(id);
+      if (order && !order.isDeleted) {
+        if (role === 'Super Admin' || (role === 'Order Team' && order.status === 'Created')) {
+          order.isDeleted = true;
+          order.deletedAt = now;
+          order.deletedBy = deletedBy || 'user';
+          order.history.push({
+            status: order.status,
+            timestamp: now,
+            updatedBy: deletedBy || 'user',
+            remarks: `Bulk deleted by ${deletedBy} (${role}).`
+          });
+          await db.saveOrder(order);
+          deletedCount++;
+        } else {
+          skippedCount++;
+        }
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Bulk deletion complete: ${deletedCount} deleted, ${skippedCount} skipped due to role restrictions.`,
+      deletedCount,
+      skippedCount
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to execute bulk deletion.' }, { status: 500 });
   }
 }

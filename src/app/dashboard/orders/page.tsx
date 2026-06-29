@@ -14,7 +14,11 @@ import {
   Eye,
   Info,
   Printer,
-  Barcode
+  Barcode,
+  Send,
+  Copy,
+  MessageSquare,
+  Trash2
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
 
@@ -42,7 +46,7 @@ export default function Orders() {
   const [paymentType, setPaymentType] = useState<'COD' | 'Paid'>('Paid');
   const [orderValue, setOrderValue] = useState('');
   const [partiallyPaidAmount, setPartiallyPaidAmount] = useState('');
-  const [weight, setWeight] = useState('');
+  const [weight, setWeight] = useState('0.2');
   const [internalRemarks, setInternalRemarks] = useState('');
   const [isVip, setIsVip] = useState(false);
   
@@ -50,6 +54,21 @@ export default function Orders() {
   const [pincodeSuccess, setPincodeSuccess] = useState(false);
   const [formError, setFormError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
+
+  // Module 1: On-Demand WhatsApp Tracking
+  const handleOnDemandWhatsAppTrack = async (orderId: string) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}/whatsapp-track`, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        alert('On-Demand WhatsApp Tracking alert successfully dispatched to customer!');
+      } else {
+        alert(data.error || 'Failed to send WhatsApp update.');
+      }
+    } catch (err) {
+      alert('Failed to connect to WhatsApp dispatch API.');
+    }
+  };
 
   // Filters State
   const [search, setSearch] = useState('');
@@ -59,22 +78,120 @@ export default function Orders() {
   const [sortField, setSortField] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
-  // Current session user
+  // Selection & Deletion States
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+
+  const handleSelectOrder = (id: string) => {
+    setSelectedOrderIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllOrders = () => {
+    if (selectedOrderIds.length === orders.length) {
+      setSelectedOrderIds([]);
+    } else {
+      setSelectedOrderIds(orders.map(o => o.id));
+    }
+  };
+
+  const handleDeleteOrder = async (order: Order) => {
+    if (!currentUser) return;
+    if (currentUser.role !== 'Super Admin' && currentUser.role !== 'Order Team') {
+      alert(`Role '${currentUser.role}' is not authorized to delete orders.`);
+      return;
+    }
+    if (currentUser.role === 'Order Team' && order.status !== 'Created') {
+      alert(`Order Team members can only delete orders in Created status.`);
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to delete Order #${order.orderId}? This action requires role authorization.`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/orders/${order.id}?deletedBy=${currentUser.username}&role=${currentUser.role}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        fetchOrdersList();
+      } else {
+        alert(data.error || 'Failed to delete order.');
+      }
+    } catch (err) {
+      alert('Network error deleting order.');
+    }
+  };
+
+  const handleBulkDeleteOrders = async () => {
+    if (!currentUser || selectedOrderIds.length === 0) return;
+    if (currentUser.role !== 'Super Admin' && currentUser.role !== 'Order Team') {
+      alert(`Role '${currentUser.role}' is not authorized to bulk delete orders.`);
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to delete ${selectedOrderIds.length} selected orders?`)) {
+      return;
+    }
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderIds: selectedOrderIds,
+          deletedBy: currentUser.username,
+          role: currentUser.role
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSelectedOrderIds([]);
+        fetchOrdersList();
+      } else {
+        alert(data.error || 'Failed bulk deletion.');
+      }
+    } catch (err) {
+      alert('Network error executing bulk deletion.');
+    }
+  };
+
+  // Current session user and default contact variables from settings
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [defaultPrimaryPhone, setDefaultPrimaryPhone] = useState('+91 9876543210');
+  const [defaultSecondaryPhone, setDefaultSecondaryPhone] = useState('+91 9123456789');
 
   useEffect(() => {
     const session = localStorage.getItem('99store_user');
     if (session) {
       setCurrentUser(JSON.parse(session));
     }
+
+    // Fetch prefilled primary and secondary contact variables from settings
+    const fetchSettingsContacts = async () => {
+      try {
+        const res = await fetch('/api/settings');
+        const data = await res.json();
+        if (res.ok && data.settings) {
+          const prim = data.settings.primaryContactNumbers?.[0] || '+91 9876543210';
+          const sec = data.settings.secondaryContactNumbers?.[0] || '+91 9123456789';
+          setDefaultPrimaryPhone(prim);
+          setDefaultSecondaryPhone(sec);
+          setPhonePrimary(prim);
+          setPhoneSecondary(sec);
+        }
+      } catch (err) {
+        console.error('Failed to fetch settings contact variables:', err);
+      }
+    };
+    fetchSettingsContacts();
   }, []);
 
   useEffect(() => {
     fetchOrdersList();
-  }, [search, statusFilter, paymentFilter, vipFilter, sortField, sortOrder, page]);
+  }, [search, statusFilter, paymentFilter, vipFilter, sortField, sortOrder, page, limit]);
 
   // Autofetch State/Area via Pincode API when 6 digits are typed
   useEffect(() => {
@@ -105,7 +222,7 @@ export default function Orders() {
   const fetchOrdersList = async () => {
     setLoading(true);
     try {
-      const url = `/api/orders?page=${page}&limit=50&search=${encodeURIComponent(search)}&status=${statusFilter}&payment=${paymentFilter}&vip=${vipFilter}&sortField=${sortField}&sortOrder=${sortOrder}`;
+      const url = `/api/orders?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}&status=${statusFilter}&payment=${paymentFilter}&vip=${vipFilter}&sortField=${sortField}&sortOrder=${sortOrder}`;
       const res = await fetch(url);
       const data = await res.json();
       if (res.ok && data.orders) {
@@ -174,8 +291,8 @@ export default function Orders() {
 
   const resetForm = () => {
     setCustomerName('');
-    setPhonePrimary('');
-    setPhoneSecondary('');
+    setPhonePrimary(defaultPrimaryPhone);
+    setPhoneSecondary(defaultSecondaryPhone);
     setPhoneTertiary('');
     setAddress('');
     setPincode('');
@@ -185,7 +302,7 @@ export default function Orders() {
     setPaymentType('Paid');
     setOrderValue('');
     setPartiallyPaidAmount('');
-    setWeight('');
+    setWeight('0.2');
     setInternalRemarks('');
     setIsVip(false);
     setFormError('');
@@ -324,7 +441,7 @@ export default function Orders() {
           {/* Sort By Field */}
           <select
             className="premium-input"
-            style={{ width: 'auto', minWidth: '140px', padding: '6px 12px', marginLeft: 'auto' }}
+            style={{ width: 'auto', minWidth: '140px', padding: '6px 12px' }}
             value={sortField}
             onChange={(e) => setSortField(e.target.value)}
           >
@@ -348,25 +465,51 @@ export default function Orders() {
 
       {/* Main Table Listing */}
       {loading ? (
-        <div style={{ color: '#737373', fontSize: '14px', padding: '20px 0' }}>Retrieving order lists...</div>
+        <div className="premium-card loading-overlay" style={{ minHeight: '220px' }}>
+          <span className="spinner spinner-lg spinner-accent" />
+          <span>Retrieving order records...</span>
+        </div>
       ) : orders.length === 0 ? (
         <div className="premium-card" style={{ textAlign: 'center', padding: '48px', color: '#737373' }}>
           No records match the active query. Try broadening your filter selections or search terms.
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div className="premium-table-container">
-            <table className="premium-table">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', minWidth: 0 }}>
+          {selectedOrderIds.length > 0 && (
+            <div style={{ padding: '12px 16px', backgroundColor: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '13px', color: '#F87171', fontWeight: 500 }}>
+                {selectedOrderIds.length} order(s) selected for bulk action
+              </span>
+              <button
+                onClick={handleBulkDeleteOrders}
+                className="premium-btn premium-btn-danger"
+                style={{ padding: '6px 12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Trash2 size={14} />
+                <span>Delete Selected ({selectedOrderIds.length})</span>
+              </button>
+            </div>
+          )}
+          <div className="premium-table-container" style={{ width: '100%', maxWidth: '100%', minWidth: 0, maxHeight: 'calc(100vh - 280px)', overflowX: 'auto', overflowY: 'auto' }}>
+            <table className="premium-table" style={{ minWidth: '1420px', tableLayout: 'auto' }}>
               <thead>
                 <tr>
-                  <th>Order ID</th>
-                  <th>Customer Details</th>
-                  <th>Products</th>
-                  <th>Payment Type</th>
-                  <th>Order Value</th>
-                  <th>Status</th>
-                  <th>Tracking</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
+                  <th style={{ width: '40px', padding: '0 8px' }}>
+                    <input
+                      type="checkbox"
+                      checked={orders.length > 0 && selectedOrderIds.length === orders.length}
+                      onChange={handleSelectAllOrders}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  </th>
+                  <th style={{ minWidth: '120px' }}>Order ID</th>
+                  <th style={{ minWidth: '210px' }}>Customer Details</th>
+                  <th style={{ minWidth: '230px' }}>Products</th>
+                  <th style={{ minWidth: '120px' }}>Payment Type</th>
+                  <th style={{ minWidth: '110px' }}>Order Value</th>
+                  <th style={{ minWidth: '130px' }}>Status</th>
+                  <th style={{ minWidth: '160px' }}>Tracking</th>
+                  <th style={{ textAlign: 'right', minWidth: '210px', whiteSpace: 'nowrap' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -393,6 +536,14 @@ export default function Orders() {
                         backgroundColor: bgStyle
                       }}
                     >
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={selectedOrderIds.includes(o.id)}
+                          onChange={() => handleSelectOrder(o.id)}
+                          style={{ cursor: 'pointer' }}
+                        />
+                      </td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span style={{ fontWeight: 700, fontFamily: 'monospace' }}>{o.orderId}</span>
@@ -442,35 +593,54 @@ export default function Orders() {
                                 fontSize: '11px',
                                 padding: 0,
                                 cursor: 'pointer',
-                                textDecoration: 'underline',
-                                display: 'block',
-                                marginTop: '2px',
-                                textAlign: 'left'
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                marginTop: '2px'
                               }}
+                              title="Print Shipping Label"
                             >
-                              Print Label
+                              <Printer size={12} />
+                              <span>Label</span>
                             </button>
                           </div>
                         ) : (
                           <span style={{ fontSize: '11px', color: '#55555A' }}>AWB Pending</span>
                         )}
                       </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', gap: '8px', justifyContent: 'flex-end' }}>
+                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', gap: '6px', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={() => handleOnDemandWhatsAppTrack(o.id)}
+                            className="premium-btn premium-btn-secondary"
+                            style={{ padding: '6px 8px', fontSize: '12px', borderColor: 'rgba(16, 185, 129, 0.4)', color: '#10B981', backgroundColor: 'rgba(16, 185, 129, 0.08)' }}
+                            title="Send On-Demand WhatsApp Alert"
+                          >
+                            <MessageSquare size={14} />
+                          </button>
                           <button
                             onClick={() => handleCloneOrder(o)}
                             className="premium-btn premium-btn-secondary"
-                            style={{ padding: '6px 10px', fontSize: '12px', borderColor: '#3B82F6', color: '#3B82F6' }}
+                            style={{ padding: '6px 8px', fontSize: '12px', borderColor: 'rgba(59, 130, 246, 0.4)', color: '#3B82F6', backgroundColor: 'rgba(59, 130, 246, 0.08)' }}
+                            title="Clone Order Information"
                           >
-                            Clone
+                            <Copy size={14} />
                           </button>
                           <button
                             onClick={() => openOrderDetail(o)}
                             className="premium-btn premium-btn-secondary"
-                            style={{ padding: '6px 10px', fontSize: '12px' }}
+                            style={{ padding: '6px 8px', fontSize: '12px' }}
+                            title="View Full Order Details"
                           >
-                            <Eye size={12} />
-                            <span>View Detail</span>
+                            <Eye size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteOrder(o)}
+                            className="premium-btn premium-btn-danger"
+                            style={{ padding: '6px 8px', fontSize: '12px', backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: '#EF4444', color: '#EF4444' }}
+                            title="Delete Order (Role Restricted)"
+                          >
+                            <Trash2 size={14} />
                           </button>
                         </div>
                       </td>
@@ -482,10 +652,30 @@ export default function Orders() {
           </div>
 
           {/* Custom Pagination Footer */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '13px', color: '#737373' }}>
-              Showing {orders.length} of {totalCount} records (Page {page} of {totalPages})
-            </span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '13px', color: '#737373' }}>
+                Showing {orders.length} of {totalCount} records (Page {page} of {totalPages})
+              </span>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '12px', color: '#737373' }}>Per page:</span>
+                <select
+                  className="premium-input"
+                  style={{ width: 'auto', padding: '4px 8px', fontSize: '12px', height: '32px' }}
+                  value={limit}
+                  onChange={(e) => {
+                    setLimit(parseInt(e.target.value));
+                    setPage(1);
+                  }}
+                >
+                  <option value={10}>10 entries</option>
+                  <option value={30}>30 entries</option>
+                  <option value={50}>50 entries</option>
+                  <option value={100}>100 entries</option>
+                </select>
+              </div>
+            </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
@@ -537,14 +727,20 @@ export default function Orders() {
                     <input type="text" className="premium-input" placeholder="Aditya Birla" value={customerName} onChange={(e) => setCustomerName(e.target.value)} required />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '4px', textTransform: 'uppercase' }}>Primary Phone *</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <label style={{ fontSize: '11px', color: '#737373', textTransform: 'uppercase' }}>Primary Phone *</label>
+                      <span style={{ fontSize: '10px', color: '#10B981', fontWeight: 600 }}>Prefilled (Admin Variable)</span>
+                    </div>
                     <input type="tel" className="premium-input" placeholder="9876543210" value={phonePrimary} onChange={(e) => setPhonePrimary(e.target.value.replace(/\D/g, ''))} required />
                   </div>
                 </div>
 
                 <div className="premium-grid-2" style={{ marginBottom: '12px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '4px', textTransform: 'uppercase' }}>Secondary Phone</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <label style={{ fontSize: '11px', color: '#737373', textTransform: 'uppercase' }}>Secondary Phone</label>
+                      <span style={{ fontSize: '10px', color: '#3B82F6', fontWeight: 600 }}>Prefilled (Admin Variable)</span>
+                    </div>
                     <input type="tel" className="premium-input" placeholder="9876543211" value={phoneSecondary} onChange={(e) => setPhoneSecondary(e.target.value.replace(/\D/g, ''))} />
                   </div>
                   <div>

@@ -86,7 +86,11 @@ export async function syncOrderStatus(
 ): Promise<{ updated: boolean; order?: Order; error?: string }> {
   try {
     const orders = await db.getOrders();
-    const order = orders.find(o => o.awb && o.awb.trim().toLowerCase() === waybill.trim().toLowerCase());
+    const order = orders.find(
+      o =>
+        (o.awb && o.awb.trim().toLowerCase() === waybill.trim().toLowerCase()) ||
+        (o.dtdc_reference_number && o.dtdc_reference_number.trim().toLowerCase() === waybill.trim().toLowerCase())
+    );
 
     if (!order) {
       return { updated: false, error: `Order with AWB ${waybill} not found.` };

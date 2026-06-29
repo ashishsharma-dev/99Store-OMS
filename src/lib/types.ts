@@ -33,6 +33,12 @@ export type OrderStatus =
   | 'RDC' // Return Delivery Center
   | 'NDR'; // Non-Delivery Report
 
+export interface TemporalRemark {
+  remark_text: string;
+  created_at: string;
+  author_user_id: string;
+}
+
 export interface OrderHistory {
   status: OrderStatus;
   timestamp: string;
@@ -61,6 +67,7 @@ export interface Order {
   createdBy: string; // username
   handledBy?: string; // username
   internalRemarks?: string;
+  temporal_remarks?: TemporalRemark[];
   isVip: boolean;
   
   status: OrderStatus;
@@ -80,6 +87,17 @@ export interface Order {
   inNdrWorkingSheet?: boolean;
   ndrAction?: 'Arranged' | 'Arranged for Tomorrow' | 'Future Delivery';
   futureDeliveryDate?: string;
+
+  // DTDC fields
+  dtdc_reference_number?: string;
+  current_status?: string;
+  current_status_code?: string;
+  last_tracking_update?: string;
+  label_generated?: boolean;
+  cancelled?: boolean;
+  isDeleted?: boolean;
+  deletedAt?: string;
+  deletedBy?: string;
 }
 
 export interface NdrRecord {
@@ -93,6 +111,7 @@ export interface NdrRecord {
   status: 'Pending' | 'Re-attempt Scheduled' | 'Returned to Origin';
   reattemptDate?: string;
   internalNotes: string;
+  temporal_remarks?: TemporalRemark[];
   history: {
     action: string;
     timestamp: string;
@@ -100,6 +119,9 @@ export interface NdrRecord {
   }[];
   createdAt: string;
   updatedAt: string;
+  isDeleted?: boolean;
+  deletedAt?: string;
+  deletedBy?: string;
 }
 
 export interface CourierApiLog {
@@ -122,6 +144,8 @@ export interface WhatsAppLog {
 }
 
 export interface SystemSettings {
+  primaryContactNumbers?: string[];
+  secondaryContactNumbers?: string[];
   otpWhatsappNumber?: string;
   ipWhitelist: string[];
   isIpWhitelistEnabled: boolean;
@@ -138,12 +162,35 @@ export interface SystemSettings {
     commodityId?: string;
     username?: string;
     password?: string;
+    accessToken?: string;
+    contactName?: string;
+    phone?: string;
+    address?: string;
+    address2?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
   };
   xpressbeesConfig: {
     apiKey: string;
     priority: number;
     email?: string;
     password?: string;
+    secretKey?: string;
+    xbKey?: string;
+    activeAccount?: 'Air' | 'Surface';
+    airAccount?: {
+      email: string;
+      password: string;
+      secretKey: string;
+      xbKey: string;
+    };
+    surfaceAccount?: {
+      email: string;
+      password: string;
+      secretKey: string;
+      xbKey: string;
+    };
     baseUrl?: string;
     warehouseName?: string;
     contactName?: string;
@@ -153,8 +200,6 @@ export interface SystemSettings {
     state?: string;
     pincode?: string;
     phone?: string;
-    secretKey?: string;
-    xbKey?: string;
     vendorCode?: string;
     serviceType?: string;
     authType?: string;

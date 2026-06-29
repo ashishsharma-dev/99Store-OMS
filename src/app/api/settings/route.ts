@@ -33,10 +33,28 @@ export async function POST(request: Request) {
       });
     }
 
+    // Module 5: Role-Based Hierarchy for Contact Configurations (RBAC Check)
+    const userRole = request.headers.get('x-user-role') || body.userRole || '';
+    const isUpdatingContacts = body.primaryContactNumbers !== undefined || body.secondaryContactNumbers !== undefined;
+    const isAdmin = userRole === 'Super Admin' || userRole === 'Admin' || userRole.toLowerCase().includes('admin');
+
+    if (isUpdatingContacts && !isAdmin) {
+      return NextResponse.json(
+        { error: '403 Forbidden: Only Admin session roles can edit global contact configurations.' },
+        { status: 403 }
+      );
+    }
+
     const settings = await db.getSettings();
 
     // Dynamically map incoming body fields onto settings
     const updatedSettings: SystemSettings = {
+      primaryContactNumbers: Array.isArray(body.primaryContactNumbers) 
+        ? body.primaryContactNumbers.map((n: string) => n.trim()) 
+        : (settings.primaryContactNumbers || ['+91 9876543210', '+91 9876543211']),
+      secondaryContactNumbers: Array.isArray(body.secondaryContactNumbers) 
+        ? body.secondaryContactNumbers.map((n: string) => n.trim()) 
+        : (settings.secondaryContactNumbers || ['+91 9123456789', '+91 9123456780']),
       otpWhatsappNumber: typeof body.otpWhatsappNumber === 'string' ? body.otpWhatsappNumber.trim() : settings.otpWhatsappNumber,
       ipWhitelist: Array.isArray(body.ipWhitelist) ? body.ipWhitelist.map((ip: string) => ip.trim()) : settings.ipWhitelist,
       isIpWhitelistEnabled: typeof body.isIpWhitelistEnabled === 'boolean' ? body.isIpWhitelistEnabled : settings.isIpWhitelistEnabled,

@@ -2,23 +2,26 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { 
-  BarChart3, 
-  Package, 
-  Tag, 
-  Truck, 
-  AlertOctagon, 
-  Users, 
-  Settings, 
-  LogOut, 
-  Menu, 
-  X, 
+import {
+  BarChart3,
+  Package,
+  Tag,
+  Truck,
+  AlertOctagon,
+  Users,
+  Settings,
+  LogOut,
+  Menu,
+  X,
   ShieldAlert,
   User as UserIcon,
   MessageSquare,
   Send,
   ArrowLeft,
-  Megaphone
+  Megaphone,
+  Bell,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { User, UserRole, Message } from '@/lib/types';
 
@@ -76,6 +79,17 @@ export default function DashboardLayout({
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeBanner, setActiveBanner] = useState<{ id: string; content: string; senderName: string } | null>(null);
 
+  // Collapsible Sidebar state
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  const toggleSidebarCollapse = () => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('99store_sidebar_collapsed', String(next));
+      return next;
+    });
+  };
+
   // Mini chat states
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [miniActiveRecipientId, setMiniActiveRecipientId] = useState<string | null>(null);
@@ -83,6 +97,11 @@ export default function DashboardLayout({
   const [layoutMessages, setLayoutMessages] = useState<Message[]>([]);
   const [layoutUsers, setLayoutUsers] = useState<User[]>([]);
   const [toasts, setToasts] = useState<{ id: string; senderId: string; senderName: string; role: string; content: string }[]>([]);
+
+  // Module 8: Real-Time SSE Notification Architecture states
+  const [streamEvents, setStreamEvents] = useState<{ id: string; title: string; message: string; timestamp: string; type: string }[]>([]);
+  const [isNotificationDrawerOpen, setIsNotificationDrawerOpen] = useState(false);
+  const [streamUnreadCount, setStreamUnreadCount] = useState(0);
 
   const knownIdsRef = useRef<Set<string>>(new Set());
   const isFirstFetchRef = useRef(true);
@@ -97,12 +116,38 @@ export default function DashboardLayout({
       setUser(JSON.parse(storedUser));
     }
 
+    const savedCollapse = localStorage.getItem('99store_sidebar_collapsed');
+    if (savedCollapse === 'true') {
+      setIsSidebarCollapsed(true);
+    }
+
     if (typeof window !== 'undefined' && 'Notification' in window) {
       if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
         Notification.requestPermission();
       }
     }
   }, [router]);
+
+  // Module 8: SSE Real-Time Stream Event Listener
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const eventSource = new EventSource('/api/notifications/stream');
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        setStreamEvents((prev) => [data, ...prev].slice(0, 50));
+        setStreamUnreadCount((prev) => prev + 1);
+        playAudioFeedback('receive');
+      } catch (err) {
+        console.error('Failed to parse SSE notification message:', err);
+      }
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, []);
 
   // Load user list
   useEffect(() => {
@@ -135,7 +180,7 @@ export default function DashboardLayout({
         if (data.success && data.messages) {
           const msgs: Message[] = data.messages;
           setLayoutMessages(msgs);
-          
+
           // Calculate unread count
           let count = 0;
           msgs.forEach((m) => {
@@ -158,7 +203,7 @@ export default function DashboardLayout({
             msgs.forEach((m) => {
               if (!knownIdsRef.current.has(m.id)) {
                 knownIdsRef.current.add(m.id);
-                
+
                 // Only alert if the message is from someone else AND user is not on messages page
                 if (m.senderId !== user.id && pathname !== '/dashboard/messages') {
                   const senderUser = layoutUsers.find(lu => lu.id === m.senderId);
@@ -171,14 +216,14 @@ export default function DashboardLayout({
                     role: senderRole,
                     content: m.content
                   };
-                  
+
                   setToasts((prev) => [...prev, newToast]);
                   hasNewIncoming = true;
 
                   // Trigger HTML5 desktop notification if window is hidden
                   if (document.hidden && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-                    const title = m.isBroadcast 
-                      ? `Broadcast from ${m.senderName}` 
+                    const title = m.isBroadcast
+                      ? `Broadcast from ${m.senderName}`
                       : `New message from ${m.senderName}`;
                     try {
                       const notification = new Notification(title, {
@@ -232,7 +277,7 @@ export default function DashboardLayout({
   // Mark thread as read inside mini-chat tray
   useEffect(() => {
     if (!user || !isChatOpen || !miniActiveRecipientId || layoutMessages.length === 0) return;
-    
+
     const markAsRead = async () => {
       const unreadInThread = layoutMessages.filter(
         (m) =>
@@ -514,7 +559,7 @@ export default function DashboardLayout({
 
       {/* 2. Left Desktop Sidebar */}
       <aside style={{
-        width: '260px',
+        width: isSidebarCollapsed ? '72px' : '260px',
         backgroundColor: '#0F0F11',
         borderRight: '1px solid #1C1C21',
         display: 'flex',
@@ -524,24 +569,71 @@ export default function DashboardLayout({
         bottom: 0,
         left: 0,
         zIndex: 999,
-        padding: '24px 16px'
+        padding: isSidebarCollapsed ? '24px 8px' : '24px 16px',
+        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
       }} className="desktop-sidebar">
         {/* Brand */}
         <div style={{
-          marginBottom: '32px',
-          paddingLeft: '8px'
+          marginBottom: '28px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
+          paddingLeft: isSidebarCollapsed ? '0' : '8px',
+          gap: '8px'
         }}>
-          <h2 style={{
-            fontFamily: 'Outfit',
-            fontSize: '20px',
-            fontWeight: 800,
-            letterSpacing: '0.05em',
-            textTransform: 'uppercase',
-            color: '#FAFAFA'
-          }}>
-            99Store
-          </h2>
-          <span style={{ fontSize: '10px', color: '#737373', letterSpacing: '0.15em' }}>OMS SOFTWARE</span>
+          {!isSidebarCollapsed ? (
+            <div>
+              <h2 style={{
+                fontFamily: 'Outfit',
+                fontSize: '20px',
+                fontWeight: 800,
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                color: '#FAFAFA',
+                margin: 0
+              }}>
+                99Store
+              </h2>
+              <span style={{ fontSize: '10px', color: '#737373', letterSpacing: '0.15em' }}>OMS SOFTWARE</span>
+            </div>
+          ) : (
+            <div style={{
+              fontFamily: 'Outfit',
+              fontSize: '15px',
+              fontWeight: 800,
+              color: '#3B82F6',
+              backgroundColor: 'rgba(59, 130, 246, 0.12)',
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }} title="99Store OMS Software">
+              99
+            </div>
+          )}
+
+          <button
+            onClick={toggleSidebarCollapse}
+            style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid #2A2A30',
+              color: '#A1A1AA',
+              borderRadius: '6px',
+              width: '28px',
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              marginTop: isSidebarCollapsed ? '8px' : '0'
+            }}
+            title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            {isSidebarCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+          </button>
         </div>
 
         {/* Sidebar Nav */}
@@ -556,14 +648,16 @@ export default function DashboardLayout({
                 key={item.path}
                 onClick={() => router.push(item.path)}
                 disabled={!hasAccess}
+                title={isSidebarCollapsed ? item.name : undefined}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '12px',
+                  justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
+                  gap: isSidebarCollapsed ? '0' : '12px',
                   width: '100%',
-                  padding: '10px 12px',
+                  padding: isSidebarCollapsed ? '10px 0' : '10px 12px',
                   borderRadius: '6px',
-                  backgroundColor: isActive ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
+                  backgroundColor: isActive ? 'rgba(255, 255, 255, 0.06)' : 'transparent',
                   color: isActive ? '#FFFFFF' : hasAccess ? '#A1A1AA' : '#3F3F46',
                   border: 'none',
                   textAlign: 'left',
@@ -571,27 +665,49 @@ export default function DashboardLayout({
                   fontSize: '13.5px',
                   fontWeight: isActive ? 600 : 400,
                   transition: 'all 0.15s ease',
-                  opacity: hasAccess ? 1 : 0.4
+                  opacity: hasAccess ? 1 : 0.4,
+                  position: 'relative'
                 }}
               >
-                <Icon size={16} />
-                <span style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>{item.name}</span>
-                  {item.path === '/dashboard/messages' && unreadCount > 0 && (
-                    <span style={{
-                      backgroundColor: '#EF4444',
-                      color: '#FFFFFF',
-                      fontSize: '10px',
-                      fontWeight: 700,
-                      padding: '2px 6px',
-                      borderRadius: '10px',
-                      lineHeight: 1
-                    }}>
-                      {unreadCount}
-                    </span>
-                  )}
-                </span>
-                {!hasAccess && <ShieldAlert size={12} style={{ color: '#E11D48' }} />}
+                <Icon size={18} />
+                {!isSidebarCollapsed && (
+                  <span style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>{item.name}</span>
+                    {item.path === '/dashboard/messages' && unreadCount > 0 && (
+                      <span style={{
+                        backgroundColor: '#EF4444',
+                        color: '#FFFFFF',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        padding: '2px 6px',
+                        borderRadius: '10px',
+                        lineHeight: 1
+                      }}>
+                        {unreadCount}
+                      </span>
+                    )}
+                  </span>
+                )}
+                {isSidebarCollapsed && item.path === '/dashboard/messages' && unreadCount > 0 && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '4px',
+                    right: '10px',
+                    backgroundColor: '#EF4444',
+                    color: '#FFFFFF',
+                    fontSize: '9px',
+                    fontWeight: 700,
+                    width: '14px',
+                    height: '14px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    {unreadCount}
+                  </span>
+                )}
+                {!hasAccess && !isSidebarCollapsed && <ShieldAlert size={12} style={{ color: '#E11D48' }} />}
               </button>
             );
           })}
@@ -603,9 +719,10 @@ export default function DashboardLayout({
           paddingTop: '16px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px'
+          gap: '12px',
+          alignItems: isSidebarCollapsed ? 'center' : 'stretch'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingLeft: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: isSidebarCollapsed ? 'center' : 'flex-start', paddingLeft: isSidebarCollapsed ? '0' : '4px' }}>
             <div style={{
               width: '32px',
               height: '32px',
@@ -615,37 +732,49 @@ export default function DashboardLayout({
               alignItems: 'center',
               justifyContent: 'center',
               color: '#FAFAFA'
-            }}>
+            }} title={isSidebarCollapsed ? `${user.name} (${user.role})` : undefined}>
               <UserIcon size={14} />
             </div>
-            <div style={{ overflow: 'hidden' }}>
-              <p style={{ fontSize: '12px', fontWeight: 600, color: '#FAFAFA', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                {user.name}
-              </p>
-              <p style={{ fontSize: '10px', color: '#737373', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-                {user.role}
-              </p>
-            </div>
+            {!isSidebarCollapsed && (
+              <div style={{ overflow: 'hidden' }}>
+                <p style={{ fontSize: '12px', fontWeight: 600, color: '#FAFAFA', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                  {user.name}
+                </p>
+                <p style={{ fontSize: '10px', color: '#737373', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                  {user.role}
+                </p>
+              </div>
+            )}
           </div>
 
           <button
             onClick={handleLogout}
             className="premium-btn premium-btn-secondary"
-            style={{ width: '100%', padding: '8px 12px', fontSize: '12.5px' }}
+            style={{
+              width: '100%',
+              padding: isSidebarCollapsed ? '8px' : '8px 12px',
+              fontSize: '12.5px',
+              justifyContent: 'center'
+            }}
+            title="Logout Terminal"
           >
             <LogOut size={14} />
-            <span>Logout Terminal</span>
+            {!isSidebarCollapsed && <span>Logout Terminal</span>}
           </button>
         </div>
       </aside>
 
       <div style={{
         flex: 1,
-        paddingLeft: '260px', // Matches sidebar width
-        paddingTop: '36px', // Matches review bar height
+        minWidth: 0,
+        width: '100%',
+        paddingLeft: isSidebarCollapsed ? '72px' : '260px',
+        paddingTop: '36px',
         minHeight: '100vh',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        overflowX: 'hidden',
+        transition: 'padding-left 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
       }} className="main-viewport">
         {/* Global Urgent Announcement Alert Banner */}
         {activeBanner && (
@@ -720,12 +849,121 @@ export default function DashboardLayout({
           </button>
         </header>
 
+        {/* Desktop Header Navigation & Notification Bar */}
+        <div style={{
+          height: '52px',
+          borderBottom: '1px solid #1C1C21',
+          padding: '0 32px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          backgroundColor: '#0F0F11',
+          zIndex: 900
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '13px', color: '#737373' }}>Console /</span>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#FAFAFA' }}>{currentNav?.name || 'Overview'}</span>
+          </div>
+
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {/* Notification Bell Icon */}
+            <button
+              onClick={() => {
+                setIsNotificationDrawerOpen(!isNotificationDrawerOpen);
+                setStreamUnreadCount(0);
+              }}
+              style={{
+                position: 'relative',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid #2A2A30',
+                borderRadius: '8px',
+                padding: '8px',
+                color: '#FAFAFA',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.15s ease'
+              }}
+              title="Real-Time System Event Pane"
+            >
+              <Bell size={18} />
+              {streamUnreadCount > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-4px',
+                  backgroundColor: '#3B82F6',
+                  color: '#FFFFFF',
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  width: '18px',
+                  height: '18px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 8px rgba(59, 130, 246, 0.6)'
+                }}>
+                  {streamUnreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* Notification Event Stream Drawer Pane */}
+            {isNotificationDrawerOpen && (
+              <div style={{
+                position: 'absolute',
+                top: '44px',
+                right: 0,
+                width: '360px',
+                maxHeight: '480px',
+                backgroundColor: '#161619',
+                border: '1px solid #2A2A30',
+                borderRadius: '12px',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.8)',
+                zIndex: 1000,
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden'
+              }} className="animate-fade-in">
+                <div style={{ padding: '14px 16px', borderBottom: '1px solid #2A2A30', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#0F0F11' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Bell size={16} style={{ color: '#3B82F6' }} />
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: '#FAFAFA' }}>Real-Time Stream Feed</span>
+                  </div>
+                  <button onClick={() => setIsNotificationDrawerOpen(false)} style={{ background: 'none', border: 'none', color: '#737373', cursor: 'pointer' }}>
+                    <X size={16} />
+                  </button>
+                </div>
+                <div style={{ overflowY: 'auto', flex: 1, padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {streamEvents.length === 0 ? (
+                    <div style={{ padding: '30px', textAlign: 'center', color: '#737373', fontSize: '13px' }}>Listening for live system events...</div>
+                  ) : (
+                    streamEvents.map((evt) => (
+                      <div key={evt.id} style={{ padding: '10px 12px', backgroundColor: '#1A1A1E', borderRadius: '8px', borderLeft: '3px solid #3B82F6' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#FAFAFA' }}>{evt.title}</span>
+                          <span style={{ fontSize: '10px', color: '#737373' }}>{new Date(evt.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                        </div>
+                        <p style={{ fontSize: '12px', color: '#A1A1AA', margin: 0 }}>{evt.message}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* 4. Auth Checker / View Render Panel */}
         <main style={{
           flex: 1,
           padding: '40px',
           maxWidth: '1440px',
           width: '100%',
+          minWidth: 0,
+          boxSizing: 'border-box',
           margin: '0 auto'
         }}>
           {isAuthorized ? (

@@ -1,0 +1,138 @@
+
+Software Requirement Document (SRS)
+Project: Order Management Software (OMS) – 99Store
+Brand: 99StoreTheme: Black & White (Premium Minimal UI)Platform: Web-based software (Desktop + Mobile Responsive)Login: OTP-based + IP Whitelist Security
+
+1. User Roles
+Super Admin
+Create/manage users
+Assign permissions
+Access all modules
+Manage APIs, reports & settings
+User Roles:
+User 1: Order TeamUser 2: Packing TeamUser 3: Tracking TeamUser 4: Accounts Team
+Role-based access required.
+
+2. Order Creation Module
+Manual order entry with:
+Customer Details:
+Name
+Primary / Secondary / Third Phone Number
+Address
+Pincode
+State & Area (Auto fetch via API)
+Order Details:
+Product details
+Payment Type (COD/Paid)
+Order value
+Weight/Shipping details
+Order created by
+Handled by
+Internal remarks
+VIP tag
+Visual indicators:
+🟢 Paid Orders → Green Highlight⭐ VIP Orders → VIP Mark
+
+3. Order Workflow
+Order Created
+↓
+Packing Department
+↓
+Courier Selection
+↓
+Label Generation
+↓
+Dispatch
+↓
+Tracking
+↓
+Delivered / Return / NDR
+
+4. Courier & Shipping Integration
+Courier Priority:
+DTDC
+XpressBees
+Delhivery
+Aggregator APIs
+Features:
+Auto courier selection
+Shipping label generation
+AWB generation
+Estimated delivery display
+Status updates via courier API
+
+5. WhatsApp Automation
+Notifications via WhatsApp API:
+Primary Number:
+Dispatch
+OFD
+Delivered
+Return/RDC updates
+Logistics communication
+Secondary Number:
+Tracking updates
+OFD
+Delivery status
+Return updates
+Messages should auto-fill order details, AWB & tracking info.
+
+6. Tracking Module
+Auto status updates:
+Dispatched
+OFD
+Delivered
+Undelivered
+Return
+RDC
+NDR
+Tracking page should show:
+AWB
+Courier
+Current status
+ETA
+Remarks
+
+7. OFD & NDR Management
+Need:
+OFD remarks
+Multiple courier contact numbers
+Re-attempt management
+NDR reasons
+Internal notes
+Recent OFD cases should appear at top.
+Filters required.
+
+8. Search & Filters
+Global search by:
+Name
+Phone number
+Order ID
+AWB
+Address
+VIP status
+Need sorting, filters & pagination (50 records/page).
+
+9. Dashboard & Reports
+Dashboard should show:
+Total Orders
+Pending Packing
+Dispatched
+Delivered
+Returns
+NDR
+Paid/COD Orders
+Courier performance
+Export to Excel/CSV.
+
+10. Required Integrations
+WhatsApp API
+DTDC API
+XpressBees API
+Delhivery API
+Courier Aggregator API
+Pincode API (State/Area autofetch)
+
+Final Objective
+Develop a multi-user Order Management System for 99Store to streamline:
+Order → Packing → Courier → Dispatch → Tracking → Delivery → Returns → Reports
+with automation, courier integrations, and WhatsApp communication.

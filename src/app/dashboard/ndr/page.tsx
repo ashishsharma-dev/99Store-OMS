@@ -13,7 +13,11 @@ import {
   User,
   ChevronRight,
   Eye,
-  Settings
+  Settings,
+  PlusCircle,
+  UserCheck,
+  MessageSquare,
+  Trash2
 } from 'lucide-react';
 import { NdrRecord, Order, User as DbUser } from '@/lib/types';
 
@@ -47,6 +51,54 @@ export default function NdrManagement() {
   const [showReassignModal, setShowReassignModal] = useState(false);
   const [selectedOrderForReassign, setSelectedOrderForReassign] = useState<Order | null>(null);
   const [reassignHandler, setReassignHandler] = useState('');
+
+  // Modules 6 & 7: Audited Temporal Remarks Timeline Modal state
+  const [showTimelineModal, setShowTimelineModal] = useState(false);
+  const [timelineNdr, setTimelineNdr] = useState<NdrRecord | null>(null);
+
+  // Dedicated Add User Remark modal state
+  const [showAddRemarkModal, setShowAddRemarkModal] = useState(false);
+  const [selectedNdrForRemark, setSelectedNdrForRemark] = useState<NdrRecord | null>(null);
+  const [newRemarkInput, setNewRemarkInput] = useState('');
+
+  const handleAddRemarkSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const target = selectedNdrForRemark || timelineNdr;
+    if (!target || !newRemarkInput.trim()) return;
+    setFormLoading(true);
+    try {
+      const res = await fetch('/api/ndr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: target.id,
+          addRemarkOnly: true,
+          actionRemarks: newRemarkInput,
+          updatedBy: currentUser?.username || 'user'
+        })
+      });
+      setFormLoading(false);
+      if (res.ok) {
+        setShowAddRemarkModal(false);
+        setNewRemarkInput('');
+        fetchData();
+        if (showTimelineModal) {
+          // Refresh timeline modal data
+          const updatedRecordsRes = await fetch('/api/ndr');
+          const data = await updatedRecordsRes.json();
+          if (updatedRecordsRes.ok && data.records) {
+            const updated = data.records.find((r: any) => r.id === target.id);
+            if (updated) setTimelineNdr(updated);
+          }
+        }
+      } else {
+        alert('Failed to add remark');
+      }
+    } catch (err) {
+      setFormLoading(false);
+      alert('Network error adding remark');
+    }
+  };
 
   useEffect(() => {
     const session = localStorage.getItem('99store_user');
@@ -82,7 +134,16 @@ export default function NdrManagement() {
       const ndrRes = await fetch('/api/ndr');
       const ndrData = await ndrRes.json();
       if (ndrRes.ok && ndrData.records) {
-        setNdrRecords(ndrData.records);
+        const sorted = [...(ndrData.records as NdrRecord[])].sort((a, b) => {
+          const tA = a.temporal_remarks && a.temporal_remarks.length > 0
+            ? new Date(a.temporal_remarks[a.temporal_remarks.length - 1].created_at).getTime()
+            : new Date(a.updatedAt || a.createdAt).getTime();
+          const tB = b.temporal_remarks && b.temporal_remarks.length > 0
+            ? new Date(b.temporal_remarks[b.temporal_remarks.length - 1].created_at).getTime()
+            : new Date(b.updatedAt || b.createdAt).getTime();
+          return tB - tA;
+        });
+        setNdrRecords(sorted);
       }
 
       // 2. Fetch Orders to determine which are in working sheet
@@ -110,6 +171,67 @@ export default function NdrManagement() {
       setSelectedNdrIds([]);
     } else {
       setSelectedNdrIds(filteredRecords.map(r => r.id));
+    }
+  };
+
+  const handleDeleteNdr = async (record: NdrRecord) => {
+    if (!currentUser) return;
+    if (currentUser.role !== 'Super Admin' && currentUser.role !== 'Tracking Team') {
+      alert(`Role '${currentUser.role}' is not authorized to delete NDR records.`);
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to delete NDR ticket for Order #${record.orderId}?`)) {
+      return;
+    }
+    try {
+      const res = await fetch('/api/ndr', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: record.id,
+          deletedBy: currentUser.username,
+          role: currentUser.role
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        fetchData();
+      } else {
+        alert(data.error || 'Failed to delete NDR record.');
+      }
+    } catch (err) {
+      alert('Network error deleting NDR record.');
+    }
+  };
+
+  const handleBulkDeleteNdrs = async () => {
+    if (!currentUser || selectedNdrIds.length === 0) return;
+    if (currentUser.role !== 'Super Admin' && currentUser.role !== 'Tracking Team') {
+      alert(`Role '${currentUser.role}' is not authorized to bulk delete NDR records.`);
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to delete ${selectedNdrIds.length} selected NDR records?`)) {
+      return;
+    }
+    try {
+      const res = await fetch('/api/ndr', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: selectedNdrIds,
+          deletedBy: currentUser.username,
+          role: currentUser.role
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSelectedNdrIds([]);
+        fetchData();
+      } else {
+        alert(data.error || 'Failed bulk deletion.');
+      }
+    } catch (err) {
+      alert('Network error executing bulk deletion.');
     }
   };
 
@@ -372,13 +494,24 @@ export default function NdrManagement() {
             >
               Transfer to NDR Working Sheet
             </button>
+            <button
+              onClick={handleBulkDeleteNdrs}
+              className="premium-btn premium-btn-danger"
+              style={{ padding: '6px 12px', fontSize: '12.5px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Trash2 size={14} />
+              <span>Delete Selected</span>
+            </button>
           </div>
         </div>
       )}
 
       {/* Main Table */}
       {loading ? (
-        <div style={{ color: '#737373', fontSize: '14px' }}>Loading NDR exceptions...</div>
+        <div className="premium-card loading-overlay" style={{ minHeight: '220px' }}>
+          <span className="spinner spinner-lg spinner-accent" />
+          <span>Retrieving NDR exception records...</span>
+        </div>
       ) : activeTab === 'ndr' ? (
         /* Tab 1: All NDR Tickets */
         activeNdrTickets.length === 0 ? (
@@ -402,7 +535,9 @@ export default function NdrManagement() {
                   <th>Customer Contact</th>
                   <th>Courier / AWB</th>
                   <th>Exception Reason</th>
+                  <th>Latest Remark</th>
                   <th>Reported Date</th>
+                  <th style={{ textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -410,6 +545,18 @@ export default function NdrManagement() {
                   const order = getOrderForNdr(n.orderId);
                   const isPartiallyPaid = order?.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0;
                   
+                  let latestRemarkText = n.reason;
+                  let latestRemarkMeta = '';
+                  if (n.temporal_remarks && n.temporal_remarks.length > 0) {
+                    const last = n.temporal_remarks[n.temporal_remarks.length - 1];
+                    latestRemarkText = last.remark_text;
+                    latestRemarkMeta = `${last.author_user_id || 'User'} • ${new Date(last.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`;
+                  } else if (n.history && n.history.length > 0) {
+                    const last = n.history[n.history.length - 1];
+                    latestRemarkText = last.remarks;
+                    latestRemarkMeta = new Date(last.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
+                  }
+
                   return (
                     <tr 
                       key={n.id}
@@ -435,11 +582,47 @@ export default function NdrManagement() {
                         <div>{n.courier}</div>
                         <div style={{ fontSize: '11.5px', color: '#737373', fontFamily: 'monospace' }}>{n.awb}</div>
                       </td>
-                      <td style={{ color: '#EF6868', maxWidth: '240px', fontSize: '13px' }}>
+                      <td style={{ color: '#EF6868', maxWidth: '200px', fontSize: '13px' }}>
                         {n.reason}
+                      </td>
+                      <td style={{ maxWidth: '220px', fontSize: '12px' }}>
+                        <div 
+                          onClick={() => { setTimelineNdr(n); setShowTimelineModal(true); }}
+                          style={{ color: '#3B82F6', cursor: 'pointer' }}
+                          title="Click to view temporal remarks timeline"
+                        >
+                          <div style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            💬 {latestRemarkText}
+                          </div>
+                          {latestRemarkMeta && (
+                            <div style={{ fontSize: '10px', color: '#A1A1AA', marginTop: '2px' }}>
+                              🕒 {latestRemarkMeta}
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td style={{ fontSize: '12.5px', color: '#737373' }}>
                         {n.createdAt.split('T')[0]}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', gap: '6px', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={() => { setSelectedNdrForRemark(n); setNewRemarkInput(''); setShowAddRemarkModal(true); }}
+                            className="premium-btn premium-btn-secondary"
+                            style={{ padding: '6px 8px', fontSize: '12px', borderColor: 'rgba(59, 130, 246, 0.4)', color: '#3B82F6', backgroundColor: 'rgba(59, 130, 246, 0.08)' }}
+                            title="Add User Remark"
+                          >
+                            <MessageSquare size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteNdr(n)}
+                            className="premium-btn premium-btn-danger"
+                            style={{ padding: '6px 8px', fontSize: '12px', backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: '#EF4444', color: '#EF4444' }}
+                            title="Delete NDR Record (Role Restricted)"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -464,6 +647,7 @@ export default function NdrManagement() {
                   <th>Courier / AWB</th>
                   <th>Exception Reason</th>
                   <th>Assigned Handler</th>
+                  <th>Latest Remark</th>
                   <th>Fulfillment Details</th>
                   <th style={{ textAlign: 'right' }}>Action Control</th>
                 </tr>
@@ -472,6 +656,18 @@ export default function NdrManagement() {
                 {workingSheetTickets.map((n) => {
                   const order = getOrderForNdr(n.orderId);
                   const isPartiallyPaid = order?.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0;
+                  
+                  let latestRemarkText = n.reason;
+                  let latestRemarkMeta = '';
+                  if (n.temporal_remarks && n.temporal_remarks.length > 0) {
+                    const last = n.temporal_remarks[n.temporal_remarks.length - 1];
+                    latestRemarkText = last.remark_text;
+                    latestRemarkMeta = `${last.author_user_id || 'User'} • ${new Date(last.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`;
+                  } else if (n.history && n.history.length > 0) {
+                    const last = n.history[n.history.length - 1];
+                    latestRemarkText = last.remarks;
+                    latestRemarkMeta = new Date(last.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
+                  }
                   
                   return (
                     <tr 
@@ -490,11 +686,27 @@ export default function NdrManagement() {
                         <div>{n.courier}</div>
                         <div style={{ fontSize: '11.5px', color: '#737373', fontFamily: 'monospace' }}>{n.awb}</div>
                       </td>
-                      <td style={{ color: '#EF6868', maxWidth: '240px', fontSize: '13px' }}>
+                      <td style={{ color: '#EF6868', maxWidth: '200px', fontSize: '13px' }}>
                         {n.reason}
                       </td>
                       <td style={{ fontWeight: 'bold', color: '#FAFAFA' }}>
                         👤 {order?.assignedTo || 'Unassigned'}
+                      </td>
+                      <td style={{ maxWidth: '220px', fontSize: '12px' }}>
+                        <div 
+                          onClick={() => { setTimelineNdr(n); setShowTimelineModal(true); }}
+                          style={{ color: '#3B82F6', cursor: 'pointer' }}
+                          title="Click to view temporal remarks timeline"
+                        >
+                          <div style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            💬 {latestRemarkText}
+                          </div>
+                          {latestRemarkMeta && (
+                            <div style={{ fontSize: '10px', color: '#A1A1AA', marginTop: '2px' }}>
+                              🕒 {latestRemarkMeta}
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td>
                         <span className="premium-badge status-ndr" style={{ fontSize: '9px', padding: '2px 6px' }}>
@@ -502,21 +714,32 @@ export default function NdrManagement() {
                         </span>
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', gap: '8px' }}>
+                        <div style={{ display: 'inline-flex', gap: '6px', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={() => { setSelectedNdrForRemark(n); setNewRemarkInput(''); setShowAddRemarkModal(true); }}
+                            className="premium-btn premium-btn-secondary"
+                            style={{ padding: '6px 8px', fontSize: '12px', borderColor: 'rgba(59, 130, 246, 0.4)', color: '#3B82F6', backgroundColor: 'rgba(59, 130, 246, 0.08)' }}
+                            title="Add User Remark"
+                          >
+                            <MessageSquare size={14} />
+                          </button>
                           <button
                             onClick={() => order && handleOpenReassign(order)}
                             className="premium-btn premium-btn-secondary"
-                            style={{ padding: '6px 12px', fontSize: '12px' }}
+                            style={{ padding: '6px 8px', fontSize: '12px' }}
                             disabled={!order}
+                            title="Reassign Handler"
                           >
-                            Reassign
+                            <UserCheck size={14} />
                           </button>
                           <button
                             onClick={() => handleOpenResolve(n)}
                             className="premium-btn premium-btn-primary"
-                            style={{ padding: '6px 12px', fontSize: '12px' }}
+                            style={{ padding: '6px 10px', fontSize: '12px' }}
+                            title="Schedule NDR Action"
                           >
-                            Schedule Action
+                            <Calendar size={13} />
+                            <span>Action</span>
                           </button>
                         </div>
                       </td>
@@ -534,61 +757,47 @@ export default function NdrManagement() {
         <div className="premium-modal-backdrop">
           <div className="premium-modal" style={{ maxWidth: '520px' }}>
             <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '17px', color: '#FAFAFA' }}>Resolve NDR Working Sheet: {selectedNdr.orderId}</h3>
+              <h3 style={{ fontSize: '17px', color: '#FAFAFA' }}>Schedule Action: {selectedNdr.orderId}</h3>
               <button onClick={() => setShowResolveModal(false)} style={{ background: 'none', border: 'none', color: '#8A8A8A', cursor: 'pointer' }}>Close</button>
             </div>
 
             <form onSubmit={handleResolveNdr} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* NDR Action dropdown selector */}
+              
               <div>
-                <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '6px', textTransform: 'uppercase' }}>Select NDR Action *</label>
+                <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '6px', textTransform: 'uppercase' }}>Select NDR Action Type *</label>
                 <select
                   className="premium-input"
                   value={actionDropdown}
                   onChange={(e) => setActionDropdown(e.target.value as any)}
                   required
                 >
-                  <option value="Arranged">Arranged (Reattempt Today)</option>
-                  <option value="Arranged for Tomorrow">Arranged for Tomorrow (Reattempt Tomorrow)</option>
-                  <option value="Future Delivery">Future Delivery</option>
+                  <option value="Arranged">Arranged (Re-attempt Delivery Today)</option>
+                  <option value="Arranged for Tomorrow">Arranged for Tomorrow</option>
+                  <option value="Future Delivery">Future Delivery Date</option>
                 </select>
               </div>
 
-              {/* Conditional Future Delivery Date field */}
               {actionDropdown === 'Future Delivery' && (
                 <div>
-                  <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '6px', textTransform: 'uppercase' }}>Delivery Date *</label>
+                  <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '6px', textTransform: 'uppercase' }}>Select Future Delivery Date *</label>
                   <input
                     type="date"
                     className="premium-input"
                     value={futureDeliveryDate}
                     onChange={(e) => setFutureDeliveryDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
                     required
                   />
                 </div>
               )}
 
-              {/* Remarks/Notes */}
               <div>
-                <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '6px', textTransform: 'uppercase' }}>Internal Escalation Notes (Persistent)</label>
+                <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '6px', textTransform: 'uppercase' }}>Escalation Remarks / Notes *</label>
                 <textarea
                   className="premium-input"
-                  placeholder="e.g. Customer requested evening delivery, noted..."
-                  value={internalNotes}
-                  onChange={(e) => setInternalNotes(e.target.value)}
-                  style={{ minHeight: '60px', resize: 'vertical' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '6px', textTransform: 'uppercase' }}>Customer Resolution Comment (History Log) *</label>
-                <textarea
-                  className="premium-input"
-                  placeholder="e.g. Spoke to Rajesh, requested delivery tomorrow afternoon."
+                  placeholder="Enter details from customer conversation..."
                   value={escalationRemarks}
                   onChange={(e) => setEscalationRemarks(e.target.value)}
-                  style={{ minHeight: '60px', resize: 'vertical' }}
+                  style={{ minHeight: '80px' }}
                   required
                 />
               </div>
@@ -600,6 +809,42 @@ export default function NdrManagement() {
                 </button>
               </div>
 
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Dedicated Add User Remark */}
+      {showAddRemarkModal && selectedNdrForRemark && (
+        <div className="premium-modal-backdrop">
+          <div className="premium-modal" style={{ maxWidth: '460px' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '17px', color: '#FAFAFA' }}>Add User Remark: {selectedNdrForRemark.orderId}</h3>
+              <button onClick={() => setShowAddRemarkModal(false)} style={{ background: 'none', border: 'none', color: '#8A8A8A', cursor: 'pointer' }}>Close</button>
+            </div>
+
+            <form onSubmit={handleAddRemarkSubmit} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '6px', textTransform: 'uppercase' }}>User Note / Escalation Detail *</label>
+                <textarea
+                  className="premium-input"
+                  placeholder="e.g. Spoke to Rajesh, customer requested evening delivery after 6 PM."
+                  value={newRemarkInput}
+                  onChange={(e) => setNewRemarkInput(e.target.value)}
+                  style={{ minHeight: '100px' }}
+                  required
+                />
+                <span style={{ fontSize: '11px', color: '#737373', marginTop: '6px', display: 'block' }}>
+                  This remark will be fed with your username and live timestamp.
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '16px', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setShowAddRemarkModal(false)} className="premium-btn premium-btn-secondary">Cancel</button>
+                <button type="submit" className="premium-btn premium-btn-primary" disabled={formLoading}>
+                  {formLoading ? 'Saving...' : 'Add User Remark'}
+                </button>
+              </div>
             </form>
           </div>
         </div>
@@ -635,6 +880,64 @@ export default function NdrManagement() {
                   Confirm Reassignment
                 </button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modules 6 & 7: Audited Temporal Remarks Timeline Modal */}
+      {showTimelineModal && timelineNdr && (
+        <div className="premium-modal-backdrop">
+          <div className="premium-modal" style={{ maxWidth: '580px' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ fontSize: '17px', color: '#FAFAFA' }}>Audited Temporal Remarks Log</h3>
+                <p style={{ fontSize: '12px', color: '#737373', margin: 0 }}>NDR Ticket #{timelineNdr.orderId} - Chronological Exception Life Cycle</p>
+              </div>
+              <button onClick={() => setShowTimelineModal(false)} style={{ background: 'none', border: 'none', color: '#8A8A8A', cursor: 'pointer' }}>Close</button>
+            </div>
+            <div style={{ padding: '24px', maxHeight: '420px', overflowY: 'auto' }}>
+              {(!timelineNdr.temporal_remarks || timelineNdr.temporal_remarks.length === 0) ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {timelineNdr.history && [...timelineNdr.history].reverse().map((h, idx) => (
+                    <div key={idx} style={{ padding: '12px', backgroundColor: '#161619', borderRadius: '8px', borderLeft: '3px solid #EF4444' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#FAFAFA' }}>Action: {h.action}</span>
+                        <span style={{ fontSize: '10px', color: '#737373' }}>{new Date(h.timestamp).toLocaleString()}</span>
+                      </div>
+                      <p style={{ fontSize: '12.5px', color: '#A1A1AA', margin: 0 }}>{h.remarks}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {[...timelineNdr.temporal_remarks].reverse().map((t, idx) => (
+                    <div key={idx} style={{ padding: '12px', backgroundColor: '#161619', borderRadius: '8px', borderLeft: '3px solid #10B981' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#FAFAFA' }}>Author User: {t.author_user_id}</span>
+                        <span style={{ fontSize: '10px', color: '#737373' }}>{new Date(t.created_at).toLocaleString()}</span>
+                      </div>
+                      <p style={{ fontSize: '12.5px', color: '#E4E4E7', margin: 0 }}>{t.remark_text}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Inline add remark form inside timeline */}
+            <form onSubmit={handleAddRemarkSubmit} style={{ padding: '16px 24px 20px', borderTop: '1px solid var(--border)', backgroundColor: '#121214', display: 'flex', gap: '10px' }}>
+              <input
+                type="text"
+                className="premium-input"
+                placeholder="Type new user remark with timestamp..."
+                value={newRemarkInput}
+                onChange={(e) => setNewRemarkInput(e.target.value)}
+                required
+                style={{ flex: 1 }}
+              />
+              <button type="submit" className="premium-btn premium-btn-primary" style={{ whiteSpace: 'nowrap' }} disabled={formLoading}>
+                {formLoading ? 'Adding...' : 'Post Remark'}
+              </button>
             </form>
           </div>
         </div>
