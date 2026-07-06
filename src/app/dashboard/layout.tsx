@@ -831,23 +831,222 @@ export default function DashboardLayout({
           alignItems: 'center',
           justifyContent: 'space-between',
           display: 'none',
-          backgroundColor: '#0F0F11'
+          backgroundColor: '#0F0F11',
+          position: 'sticky',
+          top: '36px',
+          zIndex: 1100
         }} className="mobile-header">
-          <h2 style={{ fontFamily: 'Outfit', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            99Store
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h2 style={{ fontFamily: 'Outfit', fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0, color: '#FAFAFA' }}>
+              99Store
+            </h2>
+            <span style={{ fontSize: '9px', color: '#737373', letterSpacing: '0.1em' }}>OMS</span>
+          </div>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             style={{
-              background: 'none',
-              border: 'none',
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid #2A2A30',
               color: '#FAFAFA',
-              cursor: 'pointer'
+              borderRadius: '6px',
+              padding: '6px 10px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '12px'
             }}
           >
-            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+            <span>Menu</span>
           </button>
         </header>
+
+        {/* Mobile Drawer Backdrop Overlay */}
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(6px)',
+            zIndex: 2500,
+            opacity: mobileMenuOpen ? 1 : 0,
+            pointerEvents: mobileMenuOpen ? 'auto' : 'none',
+            transition: 'opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}
+        />
+
+        {/* Mobile Sliding Navigation Drawer */}
+        <aside
+          style={{
+            position: 'fixed',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            width: '290px',
+            maxWidth: '85vw',
+            backgroundColor: '#0F0F11',
+            borderRight: '1px solid #2A2A30',
+            zIndex: 2600,
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '24px 16px',
+            transform: mobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)',
+            transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+            boxShadow: mobileMenuOpen ? '15px 0 35px rgba(0,0,0,0.8)' : 'none',
+            overflowY: 'auto'
+          }}
+        >
+          {/* Drawer Brand & Close Cross Button */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '24px',
+            paddingBottom: '16px',
+            borderBottom: '1px solid #1C1C21'
+          }}>
+            <div>
+              <h2 style={{
+                fontFamily: 'Outfit',
+                fontSize: '18px',
+                fontWeight: 800,
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                color: '#FAFAFA',
+                margin: 0
+              }}>
+                99Store
+              </h2>
+              <span style={{ fontSize: '10px', color: '#737373', letterSpacing: '0.15em' }}>OMS SOFTWARE</span>
+            </div>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid #2A2A30',
+                color: '#FAFAFA',
+                borderRadius: '8px',
+                width: '34px',
+                height: '34px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              title="Close Menu"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Drawer Navigation Links */}
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.path;
+              const hasAccess = item.roles.includes(user.role);
+
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => {
+                    if (hasAccess) {
+                      setMobileMenuOpen(false);
+                      router.push(item.path);
+                    }
+                  }}
+                  disabled={!hasAccess}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    width: '100%',
+                    padding: '12px 14px',
+                    borderRadius: '8px',
+                    backgroundColor: isActive ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+                    color: isActive ? '#FFFFFF' : hasAccess ? '#A1A1AA' : '#3F3F46',
+                    border: 'none',
+                    textAlign: 'left',
+                    cursor: hasAccess ? 'pointer' : 'not-allowed',
+                    fontSize: '14px',
+                    fontWeight: isActive ? 600 : 400,
+                    transition: 'all 0.15s ease',
+                    opacity: hasAccess ? 1 : 0.4
+                  }}
+                >
+                  <Icon size={18} />
+                  <span style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>{item.name}</span>
+                    {item.path === '/dashboard/messages' && unreadCount > 0 && (
+                      <span style={{
+                        backgroundColor: '#EF4444',
+                        color: '#FFFFFF',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        padding: '2px 6px',
+                        borderRadius: '10px'
+                      }}>
+                        {unreadCount}
+                      </span>
+                    )}
+                  </span>
+                  {!hasAccess && <ShieldAlert size={14} style={{ color: '#E11D48' }} />}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Drawer User Footer */}
+          <div style={{
+            borderTop: '1px solid #1E1E24',
+            paddingTop: '16px',
+            marginTop: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingLeft: '4px' }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                backgroundColor: '#1E1E24',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#FAFAFA'
+              }}>
+                <UserIcon size={16} />
+              </div>
+              <div style={{ overflow: 'hidden' }}>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: '#FAFAFA', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                  {user.name}
+                </p>
+                <p style={{ fontSize: '10px', color: '#737373', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                  {user.role}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                handleLogout();
+              }}
+              className="premium-btn premium-btn-secondary"
+              style={{ width: '100%', padding: '10px 12px', fontSize: '13px', justifyContent: 'center' }}
+            >
+              <LogOut size={16} />
+              <span>Logout Terminal</span>
+            </button>
+          </div>
+        </aside>
 
         {/* Desktop Header Navigation & Notification Bar */}
         <div style={{
@@ -957,7 +1156,7 @@ export default function DashboardLayout({
         </div>
 
         {/* 4. Auth Checker / View Render Panel */}
-        <main style={{
+        <main className="dashboard-main" style={{
           flex: 1,
           padding: '40px',
           maxWidth: '1440px',
@@ -1547,6 +1746,14 @@ export default function DashboardLayout({
           }
           .mobile-header {
             display: flex !important;
+          }
+          .dashboard-main {
+            padding: 20px 16px !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .dashboard-main {
+            padding: 16px 12px !important;
           }
         }
       `}</style>

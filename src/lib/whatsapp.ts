@@ -3,7 +3,7 @@ import { WhatsAppLog } from '@/lib/types';
 
 // MetaExperts WhatsApp API Credentials
 const API_URL = 'https://metaexperts.in/api/send';
-const INSTANCE_ID = '698EBE515A0E4';
+const INSTANCE_ID = '6A4374650741D';
 const ACCESS_TOKEN = '685694fd67a5b';
 const IMAGE_URL = 'https://i.postimg.cc/NjY3VRz6/WEBLOCKIN.png';
 
