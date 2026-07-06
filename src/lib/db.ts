@@ -352,7 +352,38 @@ export const db = {
     if (database) {
       try {
         const result = await database.collection('settings').findOne({ key: 'system-settings' });
-        if (result) { const { _id, key, ...rest } = result as any; return rest as SystemSettings; }
+        if (result) {
+          const { _id, key, ...rest } = result as any;
+          const settings = rest as SystemSettings;
+
+          // Self-healing: Auto-migrate old DTDC credentials in database to the new live credentials
+          if (
+            settings.dtdcConfig &&
+            (settings.dtdcConfig.customerCode === 'GL018' ||
+             settings.dtdcConfig.customerCode === 'MOCK_CUST' ||
+             settings.dtdcConfig.apiKey === 'f4ae602554b4a185d21695991885f0' ||
+             settings.dtdcConfig.apiKey === 'dtdc_live_sec_99store_8a9238bc')
+          ) {
+            settings.dtdcConfig = {
+              ...settings.dtdcConfig,
+              apiKey: 'e614c8b751f65543f53eced95f4174',
+              customerCode: 'UO4125',
+              serviceTypeId: 'B2C PRIORITY',
+              commodityId: '2',
+              username: 'UO4125_trk_json',
+              password: 'wm4tH',
+              accessToken: 'UO4125_trk_json:7a9d27b8932b2194e13e1665680c6d32'
+            };
+            
+            // Asynchronously update MongoDB settings collection
+            database.collection('settings').updateOne(
+              { key: 'system-settings' },
+              { $set: { dtdcConfig: settings.dtdcConfig } }
+            ).catch(err => console.error('Failed to auto-migrate DTDC settings in MongoDB:', err));
+          }
+
+          return settings;
+        }
       } catch (e) {
         console.warn('MongoDB getSettings error, using memory:', e);
       }
