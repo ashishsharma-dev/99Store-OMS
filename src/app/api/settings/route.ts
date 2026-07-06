@@ -56,6 +56,11 @@ export async function POST(request: Request) {
         ? body.secondaryContactNumbers.map((n: string) => n.trim()) 
         : (settings.secondaryContactNumbers || ['+91 9123456789', '+91 9123456780']),
       otpWhatsappNumber: typeof body.otpWhatsappNumber === 'string' ? body.otpWhatsappNumber.trim() : settings.otpWhatsappNumber,
+      whatsappBrandName: typeof body.whatsappBrandName === 'string' ? body.whatsappBrandName.trim() : settings.whatsappBrandName,
+      whatsappSupportName: typeof body.whatsappSupportName === 'string' ? body.whatsappSupportName.trim() : settings.whatsappSupportName,
+      whatsappSupportNumber: typeof body.whatsappSupportNumber === 'string' ? body.whatsappSupportNumber.trim() : settings.whatsappSupportNumber,
+      whatsappCourierSupportName: typeof body.whatsappCourierSupportName === 'string' ? body.whatsappCourierSupportName.trim() : settings.whatsappCourierSupportName,
+      whatsappCourierSupportNumber: typeof body.whatsappCourierSupportNumber === 'string' ? body.whatsappCourierSupportNumber.trim() : settings.whatsappCourierSupportNumber,
       ipWhitelist: Array.isArray(body.ipWhitelist) ? body.ipWhitelist.map((ip: string) => ip.trim()) : settings.ipWhitelist,
       isIpWhitelistEnabled: typeof body.isIpWhitelistEnabled === 'boolean' ? body.isIpWhitelistEnabled : settings.isIpWhitelistEnabled,
       autoCourierEnabled: typeof body.autoCourierEnabled === 'boolean' ? body.autoCourierEnabled : settings.autoCourierEnabled,

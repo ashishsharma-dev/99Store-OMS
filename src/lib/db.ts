@@ -354,7 +354,10 @@ export const db = {
         const result = await database.collection('settings').findOne({ key: 'system-settings' });
         if (result) {
           const { _id, key, ...rest } = result as any;
-          const settings = rest as SystemSettings;
+          const settings = {
+            ...mockSettings,
+            ...rest
+          } as SystemSettings;
 
           // Self-healing: Auto-migrate old DTDC credentials in database to the new live credentials
           if (

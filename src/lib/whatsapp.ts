@@ -66,6 +66,7 @@ export interface TriggerWhatsAppParams {
   eta?: string;
   orderValue: number | string;
   paymentType: string;
+  productName?: string;
 }
 
 export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams): Promise<WhatsAppLog[]> {
@@ -79,35 +80,185 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
     courier,
     eta,
     orderValue,
-    paymentType
+    paymentType,
+    productName
   } = params;
 
   const logsSent: WhatsAppLog[] = [];
+
+  // Load settings for dynamic template values
+  const settings = await db.getSettings();
+  const brandName = settings.whatsappBrandName || '99Store';
+  const supportName = settings.whatsappSupportName || '99Store Support';
+  const supportNumber = settings.whatsappSupportNumber || settings.primaryContactNumbers?.[0] || '+91 9876543210';
+  const courierSupportName = settings.whatsappCourierSupportName || 'Courier Helpdesk';
+  const courierSupportNumber = settings.whatsappCourierSupportNumber || settings.secondaryContactNumbers?.[0] || '+91 9123456789';
+
+  // Get product name (either from params, or fetch from DB)
+  let pName = productName;
+  if (!pName) {
+    const order = await db.getOrderByOrderId(orderId);
+    pName = order?.productDetails || 'Product';
+  }
 
   // --- 1. Primary Number Notifications ---
   let primaryMessage = '';
   switch (status) {
     case 'Created':
-      primaryMessage = `🎉 Order Confirmed! Hi ${customerName}, your 99Store order #${orderId} of ₹${orderValue} has been successfully received. We will notify you once it's dispatched. Thank you for shopping with 99Store!`;
+      primaryMessage = `🙏 ऑर्डर कन्फर्मेशन संदेश
+
+नमस्कार ${customerName},
+
+आपका ऑर्डर सफलतापूर्वक कन्फर्म हो गया है। 🎉
+
+ऑर्डर विवरण:
+• उत्पाद: ${pName}
+• ऑर्डर आईडी: ${orderId}
+• कुल राशि: ₹${orderValue}
+
+आपका ऑर्डर जल्द ही पैक करके डिस्पैच किया जाएगा। जैसे ही आपका ऑर्डर हमारी ओर से भेजा जाएगा, हम आपको उसकी जानकारी और ट्रैकिंग विवरण भेज देंगे।
+
+यदि आपको किसी भी प्रकार की सहायता चाहिए, तो आप हमसे संपर्क कर सकते हैं।
+
+ऑर्डर सहायता:
+${supportName}
+📞 ${supportNumber}
+
+धन्यवाद!
+${brandName}`;
       break;
+
     case 'Dispatched':
-      primaryMessage = `Hi ${customerName}, your 99Store order #${orderId} has been dispatched via ${courier || 'our shipping partner'}! Track your package using AWB: ${awb || 'N/A'}. ETA: ${eta || '3-4 Days'}. Thank you for shopping with 99Store!`;
+      primaryMessage = `🚚 ऑर्डर डिस्पैच अपडेट
+
+नमस्कार ${customerName},
+
+आपका ऑर्डर हमारी ओर से सफलतापूर्वक डिस्पैच कर दिया गया है। 🎉
+
+ऑर्डर विवरण:
+• उत्पाद: ${pName}
+• ऑर्डर आईडी: ${orderId}
+• ट्रैकिंग आईडी (AWB): ${awb || 'N/A'}
+• कूरियर पार्टनर: ${courier || 'N/A'}
+• अनुमानित डिलीवरी: ${eta || '3-4 Days'}
+
+आप अपने ऑर्डर को ट्रैकिंग आईडी की सहायता से कूरियर की वेबसाइट पर ट्रैक कर सकते हैं।
+
+यदि आपके ऑर्डर से संबंधित किसी भी प्रकार की सहायता चाहिए, तो नीचे दिए गए नंबरों पर संपर्क करें:
+
+ऑर्डर सहायता
+👤 ${supportName}
+📞 ${supportNumber}
+
+कूरियर सहायता
+📦 ${courierSupportName}
+📞 ${courierSupportNumber}
+
+आपके विश्वास के लिए धन्यवाद।
+– Team ${brandName}`;
       break;
-    case 'OFD':
-      primaryMessage = `🟢 Out for Delivery! Hi ${customerName}, your 99Store order #${orderId} is out for delivery today. Please keep your phone reachable. Courier AWB: ${awb || 'N/A'}.`;
-      break;
-    case 'Delivered':
-      primaryMessage = `🎉 Delivered! Hi ${customerName}, your 99Store order #${orderId} has been successfully delivered. ${paymentType === 'COD' ? `COD Amount of ₹${orderValue} collected.` : 'Thank you for your prepaid payment!' } We hope you love your purchase!`;
-      break;
-    case 'NDR':
-      primaryMessage = `⚠️ Delivery Failed! Hi ${customerName}, our courier partner was unable to deliver your 99Store order #${orderId}. Reason: Delivery attempt failed. Don't worry, we are scheduling a re-attempt shortly. Contact us if you wish to update details.`;
-      break;
-    case 'Return':
+
     case 'RDC':
-      primaryMessage = `🔄 Return Update! Hi ${customerName}, your 99Store order #${orderId} has been marked for return (RDC/RTO). It is being shipped back to our fulfillment center. Please reach out to customer support to arrange a refund or reshipment.`;
+      primaryMessage = `📍 आपका ऑर्डर आपके नज़दीकी डिलीवरी सेंटर पर पहुँच गया है
+
+नमस्कार ${customerName},
+
+आपके ऑर्डर की नवीनतम जानकारी साझा की जा रही है।
+
+ऑर्डर विवरण:
+• उत्पाद: ${pName}
+• ऑर्डर आईडी: ${orderId}
+• ट्रैकिंग आईडी (AWB): ${awb || 'N/A'}
+• कूरियर पार्टनर: ${courier || 'N/A'}
+• भुगतान राशि${paymentType === 'COD' ? ' (COD)' : ''}: ${paymentType === 'COD' ? `₹${orderValue}` : 'Prepaid' }
+
+आपका ऑर्डर आपके नज़दीकी डिलीवरी सेंटर (RDC) पर पहुँच चुका है और डिलीवरी की प्रक्रिया में है।
+${paymentType === 'COD' 
+  ? `संभावना है कि आपका ऑर्डर आज या कल तक आपको प्राप्त हो जाएगा।\nकृपया डिलीवरी के समय ₹${orderValue} की राशि तैयार रखें।` 
+  : 'संभावना है कि आपका ऑर्डर आज या कल तक आपको प्राप्त हो जाएगा।'}
+
+यदि किसी भी प्रकार की सहायता चाहिए, तो कृपया हमसे संपर्क करें।
+
+ऑर्डर सहायता
+👤 ${supportName}
+📞 ${supportNumber}
+
+कूरियर सहायता
+📦 ${courierSupportName}
+📞 ${courierSupportNumber}
+
+धन्यवाद!
+– Team ${brandName}`;
       break;
+
+    case 'OFD':
+      primaryMessage = `🚚 आपका ऑर्डर डिलीवरी के लिए निकल चुका है
+
+नमस्कार ${customerName},
+
+खुशखबरी! 🎉
+
+आपका ऑर्डर आज डिलीवरी के लिए निकल चुका है।
+
+ऑर्डर विवरण:
+• उत्पाद: ${pName}
+• ऑर्डर आईडी: ${orderId}
+• ट्रैकिंग आईडी (AWB): ${awb || 'N/A'}
+• कूरियर पार्टनर: ${courier || 'N/A'}
+• भुगतान राशि${paymentType === 'COD' ? ' (COD)' : ''}: ${paymentType === 'COD' ? `₹${orderValue}` : 'Prepaid' }
+
+आपका ऑर्डर आज ही डिलीवर होने की पूरी संभावना है।
+${paymentType === 'COD'
+  ? `कृपया डिलीवरी के समय ₹${orderValue} की राशि तैयार रखें। साथ ही अपना मोबाइल फ़ोन उपलब्ध रखें ताकि डिलीवरी पार्टनर आवश्यकता पड़ने पर आपसे संपर्क कर सके।`
+  : 'कृपया अपना मोबाइल फ़ोन उपलब्ध रखें ताकि डिलीवरी पार्टनर आवश्यकता पड़ने पर आपसे संपर्क कर सके।'}
+
+यदि किसी भी प्रकार की सहायता चाहिए, तो कृपया हमसे संपर्क करें।
+
+ऑर्डर सहायता
+👤 ${supportName}
+📞 ${supportNumber}
+
+कूरियर सहायता
+📦 ${courierSupportName}
+📞 ${courierSupportNumber}
+
+धन्यवाद!
+– Team ${brandName}`;
+      break;
+
+    case 'Delivered':
+      primaryMessage = `✅ आपका ऑर्डर सफलतापूर्वक डिलीवर हो गया
+
+नमस्कार ${customerName},
+
+हमें खुशी है कि आपका ऑर्डर सफलतापूर्वक डिलीवर हो गया है। 😊
+
+ऑर्डर विवरण:
+• उत्पाद: ${pName}
+• ऑर्डर आईडी: ${orderId}
+
+हमें आशा है कि आपको आपका उत्पाद पसंद आएगा। यदि उत्पाद से संबंधित कोई प्रश्न, समस्या या सहायता चाहिए, तो बेझिझक हमसे संपर्क करें।
+
+ऑर्डर सहायता
+👤 ${supportName}
+📞 ${supportNumber}
+
+यदि आपको हमारा उत्पाद और सेवा पसंद आई हो, तो कृपया अपना अनुभव अपने परिवार और मित्रों के साथ साझा करें। आपका विश्वास और सहयोग हमारे लिए बेहद महत्वपूर्ण है।
+
+धन्यवाद! ❤️
+– Team ${brandName}`;
+      break;
+
+    case 'NDR':
+      primaryMessage = `⚠️ Delivery Failed! Hi ${customerName}, our courier partner was unable to deliver your ${brandName} order #${orderId}. Reason: Delivery attempt failed. Don't worry, we are scheduling a re-attempt shortly. Contact us if you wish to update details.`;
+      break;
+
+    case 'Return':
+      primaryMessage = `🔄 Return Update! Hi ${customerName}, your ${brandName} order #${orderId} has been marked for return (RTO). It is being shipped back to our fulfillment center. Please reach out to customer support to arrange a refund or reshipment.`;
+      break;
+
     default:
-      primaryMessage = `Hello ${customerName}, your 99Store order #${orderId} status has been updated to: ${status}.`;
+      primaryMessage = `Hello ${customerName}, your ${brandName} order #${orderId} status has been updated to: ${status}.`;
       break;
   }
 
@@ -129,26 +280,28 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
     let secondaryMessage = '';
     switch (status) {
       case 'Created':
-        secondaryMessage = `Order Confirmed: Order #${orderId} is successfully received and preparing for packing. Alternate number alert.`;
+        secondaryMessage = `ऑर्डर कन्फर्मेशन: ऑर्डर #${orderId} सफलतापूर्वक प्राप्त हुआ। वैकल्पिक नंबर अलर्ट। – ${brandName}`;
         break;
       case 'Dispatched':
-        secondaryMessage = `Tracking Update for #${orderId}: Package shipped via ${courier || 'partner'}. AWB: ${awb || 'N/A'}. Follow delivery status updates.`;
+        secondaryMessage = `डिस्पैच अपडेट: ऑर्डर #${orderId} को ${courier || 'कूरियर'} द्वारा भेजा गया है। AWB: ${awb || 'N/A'}। – ${brandName}`;
+        break;
+      case 'RDC':
+        secondaryMessage = `डिलीवरी अपडेट: ऑर्डर #${orderId} स्थानीय डिलीवरी सेंटर (RDC) पहुँच गया है। – ${brandName}`;
         break;
       case 'OFD':
-        secondaryMessage = `Tracking Alert: Order #${orderId} is now OUT FOR DELIVERY (OFD). Courier: ${courier || 'partner'}. Estimated delivery: Today.`;
+        secondaryMessage = `डिलीवरी अपडेट: ऑर्डर #${orderId} आज डिलीवरी के लिए बाहर (OFD) है। – ${brandName}`;
         break;
       case 'Delivered':
-        secondaryMessage = `Delivery Complete: Order #${orderId} has been marked as DELIVERED. Alternate contact notification. Thank you!`;
+        secondaryMessage = `डिलीवरी संपन्न: ऑर्डर #${orderId} डिलीवर कर दिया गया है। वैकल्पिक नंबर अपडेट। धन्यवाद! – ${brandName}`;
         break;
       case 'NDR':
-        secondaryMessage = `Tracking Alert: Delivery attempt failed for Order #${orderId}. Status set to NDR. Re-attempt will be scheduled.`;
+        secondaryMessage = `डिलीवरी विफलता: ऑर्डर #${orderId} की डिलीवरी का प्रयास असफल रहा। पुनः प्रयास किया जाएगा। – ${brandName}`;
         break;
       case 'Return':
-      case 'RDC':
-        secondaryMessage = `Tracking Alert: Order #${orderId} is returning to origin (RTO) - Return Delivery Center.`;
+        secondaryMessage = `ऑर्डर अपडेट: ऑर्डर #${orderId} को रिटर्न (RTO) चिह्नित किया गया है। – ${brandName}`;
         break;
       default:
-        secondaryMessage = `Tracking Update: Order #${orderId} is now in state: ${status}.`;
+        secondaryMessage = `ऑर्डर अपडेट: ऑर्डर #${orderId} की स्थिति: ${status}। – ${brandName}`;
         break;
     }
 

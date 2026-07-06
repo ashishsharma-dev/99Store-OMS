@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Shield, 
-  Truck, 
-  MessageSquare, 
-  Terminal, 
-  Check, 
+import {
+  Shield,
+  Truck,
+  MessageSquare,
+  Terminal,
+  Check,
   Database,
   Key,
   Globe,
@@ -42,6 +42,11 @@ export default function IntegrationsSettings() {
 
   // Settings Form states
   const [otpWhatsappNumber, setOtpWhatsappNumber] = useState('');
+  const [whatsappBrandName, setWhatsappBrandName] = useState('99Store');
+  const [whatsappSupportName, setWhatsappSupportName] = useState('99Store Support');
+  const [whatsappSupportNumber, setWhatsappSupportNumber] = useState('');
+  const [whatsappCourierSupportName, setWhatsappCourierSupportName] = useState('Courier Helpdesk');
+  const [whatsappCourierSupportNumber, setWhatsappCourierSupportNumber] = useState('');
   const [ipInput, setIpInput] = useState('');
   const [isIpEnabled, setIsIpEnabled] = useState(false);
   const [autoCourier, setAutoCourier] = useState(true);
@@ -49,7 +54,7 @@ export default function IntegrationsSettings() {
   const [xpressActive, setXpressActive] = useState(true);
   const [dlvActive, setDlvActive] = useState(true);
   const [aggActive, setAggActive] = useState(true);
-  
+
   // Courier keys
   const [dtdcKey, setDtdcKey] = useState('');
   const [xpressKey, setXpressKey] = useState('');
@@ -112,6 +117,11 @@ export default function IntegrationsSettings() {
         setPrimaryContacts(s.primaryContactNumbers ? s.primaryContactNumbers.join(', ') : '+91 9876543210, +91 9876543211');
         setSecondaryContacts(s.secondaryContactNumbers ? s.secondaryContactNumbers.join(', ') : '+91 9123456789, +91 9123456780');
         setOtpWhatsappNumber(s.otpWhatsappNumber || '');
+        setWhatsappBrandName(s.whatsappBrandName || '99Store');
+        setWhatsappSupportName(s.whatsappSupportName || '99Store Support');
+        setWhatsappSupportNumber(s.whatsappSupportNumber || '');
+        setWhatsappCourierSupportName(s.whatsappCourierSupportName || 'Courier Helpdesk');
+        setWhatsappCourierSupportNumber(s.whatsappCourierSupportNumber || '');
         setIpInput(s.ipWhitelist.join(', '));
         setIsIpEnabled(s.isIpWhitelistEnabled);
         setAutoCourier(s.autoCourierEnabled);
@@ -181,7 +191,7 @@ export default function IntegrationsSettings() {
       const userRole = currentUser?.role || 'User';
       const res = await fetch('/api/settings', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'x-user-role': userRole
         },
@@ -190,6 +200,11 @@ export default function IntegrationsSettings() {
           primaryContactNumbers: primaryContacts.split(',').map(n => n.trim()).filter(n => n.length > 0),
           secondaryContactNumbers: secondaryContacts.split(',').map(n => n.trim()).filter(n => n.length > 0),
           otpWhatsappNumber,
+          whatsappBrandName,
+          whatsappSupportName,
+          whatsappSupportNumber,
+          whatsappCourierSupportName,
+          whatsappCourierSupportNumber,
           ipWhitelist: ipList,
           isIpWhitelistEnabled: isIpEnabled,
           autoCourierEnabled: autoCourier,
@@ -197,7 +212,7 @@ export default function IntegrationsSettings() {
           xpressbeesActive: xpressActive,
           deliveryActive: dlvActive,
           aggregatorActive: aggActive,
-          dtdcConfig: { 
+          dtdcConfig: {
             apiKey: dtdcKey,
             customerCode: dtdcCustomerCode,
             serviceTypeId: dtdcServiceType,
@@ -233,7 +248,7 @@ export default function IntegrationsSettings() {
             trackSummaryUrl: xpressTrackSummaryUrl,
             trackBulkUrl: xpressTrackBulkUrl
           },
-          deliveryConfig: { 
+          deliveryConfig: {
             apiKey: dlvKey,
             clientName: dlvClientName,
             pickupLocation: dlvPickupLocation
@@ -272,15 +287,15 @@ export default function IntegrationsSettings() {
     }
   };
 
-  const filteredCourierLogs = courierLogs.filter(log => 
-    !logSearchQuery || 
+  const filteredCourierLogs = courierLogs.filter(log =>
+    !logSearchQuery ||
     log.courier.toLowerCase().includes(logSearchQuery.toLowerCase()) ||
     log.action.toLowerCase().includes(logSearchQuery.toLowerCase()) ||
     log.requestPayload.toLowerCase().includes(logSearchQuery.toLowerCase()) ||
     log.responsePayload.toLowerCase().includes(logSearchQuery.toLowerCase())
   );
 
-  const filteredWaLogs = waLogs.filter(log => 
+  const filteredWaLogs = waLogs.filter(log =>
     !logSearchQuery ||
     log.phone.includes(logSearchQuery) ||
     log.message.toLowerCase().includes(logSearchQuery.toLowerCase())
@@ -288,7 +303,7 @@ export default function IntegrationsSettings() {
 
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
-      
+
       {/* Top Banner Header */}
       <div style={{
         background: 'linear-gradient(135deg, #18181B 0%, #09090B 100%)',
@@ -325,8 +340,8 @@ export default function IntegrationsSettings() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button 
-            onClick={() => handleSaveSettings()} 
+          <button
+            onClick={() => handleSaveSettings()}
             disabled={saveLoading}
             className="premium-btn premium-btn-primary"
             style={{
@@ -341,9 +356,9 @@ export default function IntegrationsSettings() {
             <span>{saveLoading ? 'Saving...' : 'Save All Changes'}</span>
           </button>
 
-          <button 
-            onClick={handleResetDb} 
-            className="premium-btn premium-btn-danger" 
+          <button
+            onClick={handleResetDb}
+            className="premium-btn premium-btn-danger"
             style={{ padding: '10px 16px', fontSize: '13px', background: '#27272A', color: '#EF4444', border: '1px solid #3F3F46', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
           >
             <Database size={15} />
@@ -431,7 +446,7 @@ export default function IntegrationsSettings() {
       {/* Main Content Areas based on Active Tab */}
       {activeMainTab === 'couriers' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          
+
           {/* Sub-tabs for Courier Selection */}
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <button
@@ -496,11 +511,11 @@ export default function IntegrationsSettings() {
 
           {/* Courier Details Card */}
           <div className="premium-card" style={{ padding: '24px', borderRadius: '12px', backgroundColor: '#121212', border: '1px solid #27272A' }}>
-            
+
             {/* XPRESSBEES TAB */}
             {activeCourierSubTab === 'xpressbees' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                
+
                 {/* Master Active Switch */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #27272A' }}>
                   <div>
@@ -522,7 +537,7 @@ export default function IntegrationsSettings() {
 
                 {xpressActive && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    
+
                     {/* Sub-navigation inside XpressBees */}
                     <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #27272A', paddingBottom: '8px' }}>
                       <button
@@ -568,7 +583,7 @@ export default function IntegrationsSettings() {
                     {/* Sub-Tab 1: Credentials */}
                     {activeXpressSubTab === 'credentials' && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        
+
                         {/* Profiles Overview */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px', marginBottom: '8px' }}>
                           <div style={{ background: '#18181B', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px', padding: '12px 16px' }}>
@@ -625,30 +640,30 @@ export default function IntegrationsSettings() {
                             <input type="text" className="premium-input" placeholder="XB Key" value={xpressXbKey} onChange={(e) => setXpressXbKey(e.target.value)} style={{ fontFamily: 'monospace' }} />
                           </div>
 
-                        <div>
-                          <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Vendor Code</label>
-                          <input type="text" className="premium-input" placeholder="Vendor Code" value={xpressVendorCode} onChange={(e) => setXpressVendorCode(e.target.value)} />
-                        </div>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Vendor Code</label>
+                            <input type="text" className="premium-input" placeholder="Vendor Code" value={xpressVendorCode} onChange={(e) => setXpressVendorCode(e.target.value)} />
+                          </div>
 
-                        <div>
-                          <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Service Type</label>
-                          <select className="premium-input" value={xpressServiceType} onChange={(e) => setXpressServiceType(e.target.value)}>
-                            <option value="NDD">Next Day Delivery (NDD)</option>
-                            <option value="SDD">Same Day Delivery (SDD)</option>
-                            <option value="SD">Standard Delivery (SD)</option>
-                            <option value="IntraSDD">Intra Same Day (IntraSDD)</option>
-                          </select>
-                        </div>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Service Type</label>
+                            <select className="premium-input" value={xpressServiceType} onChange={(e) => setXpressServiceType(e.target.value)}>
+                              <option value="NDD">Next Day Delivery (NDD)</option>
+                              <option value="SDD">Same Day Delivery (SDD)</option>
+                              <option value="SD">Standard Delivery (SD)</option>
+                              <option value="IntraSDD">Intra Same Day (IntraSDD)</option>
+                            </select>
+                          </div>
 
-                        <div>
-                          <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Auth Method</label>
-                          <select className="premium-input" value={xpressAuthType} onChange={(e) => setXpressAuthType(e.target.value)}>
-                            <option value="new">New Auth Type (generateToken)</option>
-                            <option value="old">Old Auth Type (login)</option>
-                          </select>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Auth Method</label>
+                            <select className="premium-input" value={xpressAuthType} onChange={(e) => setXpressAuthType(e.target.value)}>
+                              <option value="new">New Auth Type (generateToken)</option>
+                              <option value="old">Old Auth Type (login)</option>
+                            </select>
+                          </div>
                         </div>
                       </div>
-                    </div>
                     )}
 
                     {/* Sub-Tab 2: Endpoints */}
@@ -896,14 +911,14 @@ export default function IntegrationsSettings() {
       {/* SECURITY TAB */}
       {activeMainTab === 'security' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '20px' }}>
-          
+
           {/* Card 1: OTP Routing */}
           <div className="premium-card" style={{ padding: '24px', borderRadius: '12px', backgroundColor: '#121212', border: '1px solid #27272A', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <h3 style={{ fontSize: '16px', color: '#FAFAFA', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '10px' }}>
               <MessageSquare size={18} style={{ color: '#E11D48' }} />
               <span>Global WhatsApp OTP Routing</span>
             </h3>
-            
+
             <div>
               <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
                 Recipient WhatsApp Phone Number
@@ -961,48 +976,143 @@ export default function IntegrationsSettings() {
 
       {/* CONTACT CONFIGURATIONS TAB (MODULE 5) */}
       {activeMainTab === 'contacts' && (
-        <div className="premium-card" style={{ padding: '28px', borderRadius: '12px', backgroundColor: '#121212', border: '1px solid #27272A', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div>
-            <h3 style={{ fontSize: '18px', color: '#FAFAFA', fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Sliders size={20} style={{ color: '#EC4899' }} />
-              Global Contact Hierarchy & Role Configurations
-            </h3>
-            <p style={{ fontSize: '13px', color: '#A1A1AA' }}>
-              Define default Primary and Secondary contact arrays for store fulfillment. Editing these central settings requires an <strong>Admin / Super Admin</strong> user session (enforced via strict HTTP 403 authorization).
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Card 1: Contact Numbers */}
+          <div className="premium-card" style={{ padding: '28px', borderRadius: '12px', backgroundColor: '#121212', border: '1px solid #27272A', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
-                Primary Store Contact Numbers (Comma Separated) *
-              </label>
-              <input
-                type="text"
-                className="premium-input"
-                placeholder="+91 9876543210, +91 9876543211"
-                value={primaryContacts}
-                onChange={(e) => setPrimaryContacts(e.target.value)}
-              />
-              <span style={{ fontSize: '11.5px', color: '#71717A', marginTop: '4px', display: 'block' }}>
-                Globally referenced across order creation forms and dispatch labels.
-              </span>
+              <h3 style={{ fontSize: '18px', color: '#FAFAFA', fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Sliders size={20} style={{ color: '#EC4899' }} />
+                Global Contact Hierarchy & Role Configurations
+              </h3>
+              <p style={{ fontSize: '13px', color: '#A1A1AA' }}>
+                Define default Primary and Secondary contact arrays for store fulfillment. Editing these central settings requires an <strong>Admin / Super Admin</strong> user session (enforced via strict HTTP 403 authorization).
+              </p>
             </div>
 
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Primary Store Contact Numbers (Comma Separated) *
+                </label>
+                <input
+                  type="text"
+                  className="premium-input"
+                  placeholder="+91 9876543210, +91 9876543211"
+                  value={primaryContacts}
+                  onChange={(e) => setPrimaryContacts(e.target.value)}
+                />
+                <span style={{ fontSize: '11.5px', color: '#71717A', marginTop: '4px', display: 'block' }}>
+                  Globally referenced across order creation forms and dispatch labels.
+                </span>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Secondary Hub Contact Numbers (Comma Separated) *
+                </label>
+                <input
+                  type="text"
+                  className="premium-input"
+                  placeholder="+91 9123456789, +91 9123456780"
+                  value={secondaryContacts}
+                  onChange={(e) => setSecondaryContacts(e.target.value)}
+                />
+                <span style={{ fontSize: '11.5px', color: '#71717A', marginTop: '4px', display: 'block' }}>
+                  Backup coordination contacts for packing department and courier partners.
+                </span>
+              </div>
+
+              <div style={{ marginTop: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => handleSaveSettings()}
+                  disabled={saveLoading}
+                  className="premium-btn premium-btn-primary"
+                  style={{ padding: '10px 20px', backgroundColor: '#EC4899', borderColor: '#EC4899' }}
+                >
+                  {saveLoading ? 'Validating RBAC & Saving...' : 'Save Global Contact Settings'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: WhatsApp Templates Identity & Support */}
+          <div className="premium-card" style={{ padding: '28px', borderRadius: '12px', backgroundColor: '#121212', border: '1px solid #27272A', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
-                Secondary Hub Contact Numbers (Comma Separated) *
-              </label>
-              <input
-                type="text"
-                className="premium-input"
-                placeholder="+91 9123456789, +91 9123456780"
-                value={secondaryContacts}
-                onChange={(e) => setSecondaryContacts(e.target.value)}
-              />
-              <span style={{ fontSize: '11.5px', color: '#71717A', marginTop: '4px', display: 'block' }}>
-                Backup coordination contacts for packing department and courier partners.
-              </span>
+              <h3 style={{ fontSize: '18px', color: '#FAFAFA', fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <MessageSquare size={20} style={{ color: '#EC4899' }} />
+                WhatsApp Notification Brand & Support Configurations
+              </h3>
+              <p style={{ fontSize: '13px', color: '#A1A1AA' }}>
+                Define support contacts, help desk names, and brand identifiers dynamically embedded into customer-facing WhatsApp alerts.
+              </p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Brand Identity Name
+                </label>
+                <input
+                  type="text"
+                  className="premium-input"
+                  placeholder="e.g. 99Store"
+                  value={whatsappBrandName}
+                  onChange={(e) => setWhatsappBrandName(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Order Support Representative Name
+                </label>
+                <input
+                  type="text"
+                  className="premium-input"
+                  placeholder="e.g. 99Store Support"
+                  value={whatsappSupportName}
+                  onChange={(e) => setWhatsappSupportName(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Order Support Phone Number
+                </label>
+                <input
+                  type="text"
+                  className="premium-input"
+                  placeholder="e.g. +91 9876543210"
+                  value={whatsappSupportNumber}
+                  onChange={(e) => setWhatsappSupportNumber(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Courier Helpdesk Support Name
+                </label>
+                <input
+                  type="text"
+                  className="premium-input"
+                  placeholder="e.g. Courier Helpdesk"
+                  value={whatsappCourierSupportName}
+                  onChange={(e) => setWhatsappCourierSupportName(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Courier Helpdesk Phone Number
+                </label>
+                <input
+                  type="text"
+                  className="premium-input"
+                  placeholder="e.g. +91 9123456789"
+                  value={whatsappCourierSupportNumber}
+                  onChange={(e) => setWhatsappCourierSupportNumber(e.target.value)}
+                />
+              </div>
             </div>
 
             <div style={{ marginTop: '10px' }}>
@@ -1013,7 +1123,7 @@ export default function IntegrationsSettings() {
                 className="premium-btn premium-btn-primary"
                 style={{ padding: '10px 20px', backgroundColor: '#EC4899', borderColor: '#EC4899' }}
               >
-                {saveLoading ? 'Validating RBAC & Saving...' : 'Save Global Contact Settings'}
+                {saveLoading ? 'Validating RBAC & Saving...' : 'Save Brand & Support Configurations'}
               </button>
             </div>
           </div>
@@ -1023,7 +1133,7 @@ export default function IntegrationsSettings() {
       {/* CONSOLE LOGS TAB */}
       {activeMainTab === 'console' && (
         <div className="premium-card" style={{ padding: '24px', borderRadius: '12px', backgroundColor: '#121212', border: '1px solid #27272A', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
             <div style={{ display: 'flex', borderBottom: '1px solid #27272A', gap: '16px' }}>
               <button
@@ -1055,9 +1165,9 @@ export default function IntegrationsSettings() {
 
             <div style={{ position: 'relative', width: '280px' }}>
               <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#71717A' }} />
-              <input 
-                type="text" 
-                placeholder="Search payloads or waybills..." 
+              <input
+                type="text"
+                placeholder="Search payloads or waybills..."
                 className="premium-input"
                 style={{ paddingLeft: '32px', fontSize: '12px', height: '34px' }}
                 value={logSearchQuery}

@@ -147,6 +147,11 @@ export interface SystemSettings {
   primaryContactNumbers?: string[];
   secondaryContactNumbers?: string[];
   otpWhatsappNumber?: string;
+  whatsappBrandName?: string;
+  whatsappSupportName?: string;
+  whatsappSupportNumber?: string;
+  whatsappCourierSupportName?: string;
+  whatsappCourierSupportNumber?: string;
   ipWhitelist: string[];
   isIpWhitelistEnabled: boolean;
   autoCourierEnabled: boolean;
