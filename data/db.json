@@ -2189,8 +2189,14 @@
     "deliveryActive": true,
     "aggregatorActive": true,
     "dtdcConfig": {
-      "apiKey": "dtdc_live_sec_99store_8a9238bc",
-      "priority": 1
+      "apiKey": "e614c8b751f65543f53eced95f4174",
+      "priority": 1,
+      "customerCode": "UO4125",
+      "serviceTypeId": "B2C PRIORITY",
+      "commodityId": "2",
+      "username": "UO4125_trk_json",
+      "password": "wm4tH",
+      "accessToken": "UO4125_trk_json:7a9d27b8932b2194e13e1665680c6d32"
     },
     "xpressbeesConfig": {
       "apiKey": "",
