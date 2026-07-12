@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { CourierApiLog } from '@/lib/types';
 import { getXpressBeesToken, resolveXpressBeesConfig } from '@/lib/xpressbees';
 import { syncOrderStatus } from '@/lib/courierSync';
+import { bookVelocityOrder, trackVelocityShipment, cancelVelocityShipment } from '@/lib/velocity';
 
 function isDtdcStaging(apiKey?: string, username?: string): boolean {
   const key = (apiKey || '').toLowerCase();
@@ -34,9 +35,66 @@ export async function GET(request: Request) {
 
     const settings = await db.getSettings();
 
-    // Determine if it is XpressBees or DTDC
+    const isVelocity = queryCourier === 'Velocity' || queryCourier === 'Aggregator' || waybill.startsWith('VEL') || (await db.getOrders()).some(o => o.awb === waybill && (o.courier === 'Velocity' || o.courier === 'Aggregator'));
     const isXpressBees = queryCourier === 'XpressBees' || waybill.startsWith('XB') || waybill.startsWith('5963');
     const isDtdc = queryCourier === 'DTDC' || waybill.startsWith('DTDC');
+
+    if (isVelocity) {
+      if (!settings.velocityActive && !settings.aggregatorActive) {
+        return NextResponse.json({ error: 'Velocity integration is disabled in settings.' }, { status: 400 });
+      }
+
+      if (action === 'track') {
+        try {
+          const unifiedData = await trackVelocityShipment(waybill, settings);
+          await db.addCourierLog({
+            id: `cl-vel-track-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            courier: 'Velocity',
+            action: 'Track Shipment',
+            requestPayload: `POST /custom/api/v1/order-tracking awbs: [${waybill}]`,
+            responsePayload: JSON.stringify(unifiedData, null, 2),
+            status: 'Success'
+          });
+
+          const courierStatus = unifiedData?.ShipmentData?.[0]?.Shipment?.Status?.Status;
+          const scanLocation = unifiedData?.ShipmentData?.[0]?.Shipment?.Status?.StatusLocation;
+          if (courierStatus) {
+            await syncOrderStatus(waybill, courierStatus, scanLocation);
+          }
+          return NextResponse.json(unifiedData);
+        } catch (err: any) {
+          return NextResponse.json({ error: `Velocity tracking failed: ${err.message}` }, { status: 500 });
+        }
+      }
+
+      if (action === 'label') {
+        const order = (await db.getOrders()).find(o => o.awb === waybill);
+        if (!order || !order.velocity_label_url) {
+          return NextResponse.json({ error: 'Velocity label URL not found for order.' }, { status: 404 });
+        }
+
+        try {
+          const labelRes = await fetch(order.velocity_label_url);
+          if (!labelRes.ok) {
+            return NextResponse.json({ error: `Failed to fetch Velocity label PDF: HTTP ${labelRes.status}` }, { status: 400 });
+          }
+
+          const blob = await labelRes.blob();
+          order.label_generated = true;
+          await db.saveOrder(order);
+
+          return new Response(blob, {
+            headers: {
+              'Content-Type': 'application/pdf',
+              'Content-Disposition': `inline; filename="label-${waybill}.pdf"`
+            }
+          });
+        } catch (err: any) {
+          return NextResponse.json({ error: `Failed to proxy Velocity label: ${err.message}` }, { status: 500 });
+        }
+      }
+    }
 
     if (isXpressBees) {
       if (!settings.xpressbeesActive) {
@@ -584,8 +642,50 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Missing AWB waybill parameter for cancellation.' }, { status: 400 });
       }
 
+      const isVelocity = courier === 'Velocity' || courier === 'Aggregator' || waybill.startsWith('VEL');
       const isXpressBees = courier === 'XpressBees' || waybill.startsWith('XB');
       const isDtdc = courier === 'DTDC' || waybill.startsWith('DTDC');
+
+      if (isVelocity) {
+        try {
+          const cancelData = await cancelVelocityShipment(waybill, settings);
+          const order = (await db.getOrders()).find(o => o.awb === waybill);
+          if (order) {
+            order.cancelled = true;
+            order.status = 'Return';
+            order.history.push({
+              status: 'Return',
+              timestamp: new Date().toISOString(),
+              updatedBy: 'Velocity API',
+              remarks: 'Consignment successfully cancelled via Velocity API.'
+            });
+            await db.saveOrder(order);
+          }
+
+          await db.addCourierLog({
+            id: `cl-vel-cancel-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            courier: 'Velocity',
+            action: 'Cancel Shipment',
+            requestPayload: JSON.stringify({ awbs: [waybill] }, null, 2),
+            responsePayload: JSON.stringify(cancelData, null, 2),
+            status: 'Success'
+          });
+
+          return NextResponse.json(cancelData);
+        } catch (err: any) {
+          await db.addCourierLog({
+            id: `cl-vel-cancel-fail-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            courier: 'Velocity',
+            action: 'Cancel Shipment Failed',
+            requestPayload: JSON.stringify({ awbs: [waybill] }, null, 2),
+            responsePayload: JSON.stringify({ error: err.message || err }, null, 2),
+            status: 'Error'
+          });
+          return NextResponse.json({ error: `Velocity cancellation failed: ${err.message}` }, { status: 500 });
+        }
+      }
 
       if (isXpressBees) {
         const xbConfig = resolveXpressBeesConfig(settings.xpressbeesConfig);
@@ -867,8 +967,12 @@ export async function POST(request: Request) {
         apiKey = settings.deliveryConfig.apiKey;
         break;
       case 'Aggregator':
-        isCourierActive = settings.aggregatorActive;
+        isCourierActive = settings.aggregatorActive || settings.velocityActive;
         apiKey = 'agg_link_99s_9a2b8e';
+        break;
+      case 'Velocity':
+        isCourierActive = settings.velocityActive;
+        apiKey = 'velocity_api_token';
         break;
     }
 
@@ -1188,6 +1292,55 @@ export async function POST(request: Request) {
           status: 'Error'
         });
         return NextResponse.json({ error: `XpressBees booking network error: ${err.message}` }, { status: 500 });
+      }
+    }
+
+    if (courier === 'Velocity' || courier === 'Aggregator') {
+      const order = (await db.getOrders()).find(o => o.orderId.toLowerCase() === orderId.toLowerCase() || o.id === orderId);
+      if (!order) {
+        return NextResponse.json({ error: `Order with ID ${orderId} not found in database.` }, { status: 400 });
+      }
+
+      try {
+        const bookData = await bookVelocityOrder(order, settings, weight, paymentType);
+        
+        order.awb = bookData.awb;
+        order.courier = courier;
+        order.eta = bookData.eta;
+        order.velocity_label_url = bookData.label_url;
+        order.velocity_shipment_id = bookData.shipment_id;
+        order.updatedAt = new Date().toISOString();
+        
+        await db.saveOrder(order);
+
+        await db.addCourierLog({
+          id: `cl-vel-book-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          courier: 'Velocity',
+          action: 'Create Shipment',
+          requestPayload: JSON.stringify(body, null, 2),
+          responsePayload: JSON.stringify(bookData, null, 2),
+          status: 'Success'
+        });
+
+        return NextResponse.json({
+          success: true,
+          awb: bookData.awb,
+          eta: bookData.eta,
+          courier: courier,
+          charge: bookData.charge
+        });
+      } catch (err: any) {
+        await db.addCourierLog({
+          id: `cl-vel-book-fail-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          courier: 'Velocity',
+          action: 'Create Shipment Failed',
+          requestPayload: JSON.stringify(body, null, 2),
+          responsePayload: JSON.stringify({ error: err.message || err }, null, 2),
+          status: 'Error'
+        });
+        return NextResponse.json({ error: `Velocity booking failed: ${err.message}` }, { status: 500 });
       }
     }
 

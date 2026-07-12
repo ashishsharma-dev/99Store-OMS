@@ -23,7 +23,7 @@ export default function Packing() {
   const [showPrintLabel, setShowPrintLabel] = useState(false);
 
   // Selected courier overrides for each order during packing
-  const [courierOverrides, setCourierOverrides] = useState<Record<string, 'DTDC' | 'XpressBees' | 'Delhivery' | 'Aggregator'>>({});
+  const [courierOverrides, setCourierOverrides] = useState<Record<string, 'DTDC' | 'XpressBees' | 'Delhivery' | 'Aggregator' | 'Velocity'>>({});
   
   // Primary phone selection override if customer has multiple phone numbers
   const [phoneSelections, setPhoneSelections] = useState<Record<string, string>>({});
@@ -288,6 +288,7 @@ export default function Packing() {
               <option value="XpressBees">XpressBees Logistics</option>
               <option value="Delhivery">Delhivery Express</option>
               <option value="Aggregator">Aggregator API</option>
+              <option value="Velocity">Velocity Aggregator</option>
             </select>
           </div>
           <div>
@@ -432,6 +433,7 @@ export default function Packing() {
                             <option value="XpressBees Surface">XpressBees Surface</option>
                             <option value="Delhivery">Delhivery (Priority 3)</option>
                             <option value="Aggregator">Aggregator API</option>
+                            <option value="Velocity">Velocity Aggregator</option>
                           </select>
                         ) : (
                           <span style={{ fontWeight: 500, fontSize: '12px' }}>{o.courier}</span>

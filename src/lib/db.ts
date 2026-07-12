@@ -385,6 +385,18 @@ export const db = {
             ).catch(err => console.error('Failed to auto-migrate DTDC settings in MongoDB:', err));
           }
 
+          // Self-healing: Auto-migrate Velocity settings in database if missing
+          if (settings.velocityActive === undefined || !settings.velocityConfig) {
+            settings.velocityActive = true;
+            settings.velocityConfig = mockSettings.velocityConfig;
+            
+            // Asynchronously update MongoDB settings collection
+            database.collection('settings').updateOne(
+              { key: 'system-settings' },
+              { $set: { velocityActive: true, velocityConfig: mockSettings.velocityConfig } }
+            ).catch(err => console.error('Failed to auto-migrate Velocity settings in MongoDB:', err));
+          }
+
           return settings;
         }
       } catch (e) {

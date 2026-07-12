@@ -68,9 +68,11 @@ export async function POST(request: Request) {
       xpressbeesActive: typeof body.xpressbeesActive === 'boolean' ? body.xpressbeesActive : settings.xpressbeesActive,
       deliveryActive: typeof body.deliveryActive === 'boolean' ? body.deliveryActive : settings.deliveryActive,
       aggregatorActive: typeof body.aggregatorActive === 'boolean' ? body.aggregatorActive : settings.aggregatorActive,
+      velocityActive: typeof body.velocityActive === 'boolean' ? body.velocityActive : settings.velocityActive,
       dtdcConfig: body.dtdcConfig ? { ...settings.dtdcConfig, ...body.dtdcConfig } : settings.dtdcConfig,
       xpressbeesConfig: body.xpressbeesConfig ? { ...settings.xpressbeesConfig, ...body.xpressbeesConfig } : settings.xpressbeesConfig,
       deliveryConfig: body.deliveryConfig ? { ...settings.deliveryConfig, ...body.deliveryConfig } : settings.deliveryConfig,
+      velocityConfig: body.velocityConfig ? { ...settings.velocityConfig, ...body.velocityConfig } : settings.velocityConfig,
     };
 
     await db.saveSettings(updatedSettings);

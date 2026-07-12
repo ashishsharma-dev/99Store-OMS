@@ -72,7 +72,7 @@ export interface Order {
   
   status: OrderStatus;
   awb?: string;
-  courier?: 'DTDC' | 'XpressBees' | 'Delhivery' | 'Aggregator';
+  courier?: 'DTDC' | 'XpressBees' | 'Delhivery' | 'Aggregator' | 'Velocity';
   eta?: string;
   createdAt: string;
   updatedAt: string;
@@ -95,6 +95,11 @@ export interface Order {
   last_tracking_update?: string;
   label_generated?: boolean;
   cancelled?: boolean;
+
+  // Velocity fields
+  velocity_label_url?: string;
+  velocity_shipment_id?: string;
+
   isDeleted?: boolean;
   deletedAt?: string;
   deletedBy?: string;
@@ -159,6 +164,7 @@ export interface SystemSettings {
   xpressbeesActive: boolean;
   deliveryActive: boolean;
   aggregatorActive: boolean;
+  velocityActive: boolean;
   dtdcConfig: {
     apiKey: string;
     priority: number;
@@ -223,6 +229,20 @@ export interface SystemSettings {
     priority: number;
     clientName?: string;
     pickupLocation?: string;
+  };
+  velocityConfig: {
+    username?: string;
+    password?: string;
+    priority: number;
+    baseUrl?: string;
+    warehouseId?: string;
+    warehouseName?: string;
+    contactName?: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
   };
 }
 

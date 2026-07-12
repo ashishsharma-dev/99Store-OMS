@@ -72,6 +72,7 @@ export const mockSettings: SystemSettings = {
   xpressbeesActive: true,
   deliveryActive: true,
   aggregatorActive: true,
+  velocityActive: true,
   dtdcConfig: {
     apiKey: 'e614c8b751f65543f53eced95f4174',
     priority: 1,
@@ -136,6 +137,20 @@ export const mockSettings: SystemSettings = {
     priority: 3,
     clientName: 'SOM ENTERPRISES',
     pickupLocation: 'Default Pickup Location'
+  },
+  velocityConfig: {
+    username: 'shivaynew66@gmail.com',
+    password: 'Som@9870740681',
+    priority: 4,
+    baseUrl: 'https://shazam.velocity.in/',
+    warehouseId: 'WH66DU',
+    warehouseName: 'Main Warehouse',
+    contactName: 'Shivay Manager',
+    phone: '9870740681',
+    address: '123 Velocity St',
+    city: 'Agra',
+    state: 'Uttar Pradesh',
+    pincode: '282001'
   }
 };
 

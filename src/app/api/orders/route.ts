@@ -138,7 +138,7 @@ export async function POST(request: Request) {
     const nextId = `ord-${maxNum + 1}`;
 
     const settings = await db.getSettings();
-    let assignedCourier: 'DTDC' | 'XpressBees' | 'Delhivery' | 'Aggregator' | undefined = undefined;
+    let assignedCourier: 'DTDC' | 'XpressBees' | 'Delhivery' | 'Aggregator' | 'Velocity' | undefined = undefined;
 
     // Apply auto courier routing engine if enabled
     if (settings.autoCourierEnabled) {
