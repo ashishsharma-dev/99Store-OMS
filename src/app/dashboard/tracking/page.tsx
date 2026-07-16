@@ -272,6 +272,22 @@ export default function Tracking() {
                       <div style={{ fontSize: '12px', color: '#737373', marginTop: '6px' }}>
                         {o.customerName} | {o.courier}: <span style={{ fontFamily: 'monospace' }}>{o.awb}</span>
                       </div>
+
+                      {(o.eta || o.current_status) && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px', alignItems: 'center' }}>
+                          {o.current_status && (
+                            <span className="premium-badge" style={{ fontSize: '9px', padding: '1px 4px', backgroundColor: '#1C1C21', color: '#A1A1AA', border: '1px solid var(--border)' }}>
+                              {o.current_status}
+                            </span>
+                          )}
+                          {o.eta && (
+                            <span style={{ fontSize: '10.5px', color: '#10B981', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                              <Clock size={10} />
+                              <span>EDT: {o.eta}</span>
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     
                     <ChevronRight size={16} style={{ color: '#737373' }} />
@@ -302,9 +318,22 @@ export default function Tracking() {
                 </div>
 
                 <div style={{ textAlign: 'right' }}>
-                  <span className={`premium-badge status-${selectedOrder.status.toLowerCase().replace(' ', '')}`}>
-                    {selectedOrder.status}
-                  </span>
+                  <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span className={`premium-badge status-${selectedOrder.status.toLowerCase().replace(' ', '')}`}>
+                      {selectedOrder.status}
+                    </span>
+                    {selectedOrder.current_status && (
+                      <span className="premium-badge" style={{ backgroundColor: '#1E1E24', color: '#E4E4E7', border: '1px solid var(--border)' }}>
+                        {selectedOrder.current_status}
+                      </span>
+                    )}
+                    {selectedOrder.eta && (
+                      <span style={{ fontSize: '12px', color: '#10B981', display: 'inline-flex', alignItems: 'center', gap: '3px' }} title="Estimated Delivery Date (EDT)">
+                        <Clock size={11} />
+                        <span>EDT: {selectedOrder.eta}</span>
+                      </span>
+                    )}
+                  </div>
                   <div style={{ fontSize: '11px', color: '#737373', marginTop: '6px', fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
                     <span>AWB: {selectedOrder.awb || 'N/A'} ({selectedOrder.courier})</span>
                     {selectedOrder.awb && (

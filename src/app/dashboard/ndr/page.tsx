@@ -18,7 +18,8 @@ import {
   UserCheck,
   MessageSquare,
   Trash2,
-  Star
+  Star,
+  Clock
 } from 'lucide-react';
 import { NdrRecord, Order, User as DbUser } from '@/lib/types';
 
@@ -589,8 +590,26 @@ export default function NdrManagement() {
                         <div style={{ fontSize: '11px', color: '#737373' }}>Tel: {n.phonePrimary}</div>
                       </td>
                       <td>
-                        <div>{n.courier}</div>
-                        <div style={{ fontSize: '11.5px', color: '#737373', fontFamily: 'monospace' }}>{n.awb}</div>
+                        <div style={{ fontWeight: 500 }}>{n.courier}</div>
+                        <div style={{ fontSize: '11px', color: '#737373', fontFamily: 'monospace' }}>{n.awb}</div>
+                        {order && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px', alignItems: 'center' }}>
+                            <span className={`premium-badge status-${order.status.toLowerCase().replace(' ', '')}`} style={{ fontSize: '9px', padding: '1px 3px' }}>
+                              {order.status}
+                            </span>
+                            {order.current_status && (
+                              <span className="premium-badge" style={{ fontSize: '9px', padding: '1px 3px', backgroundColor: '#1E1E24', color: '#E4E4E7', border: '1px solid var(--border)' }} title="Courier Tracking Status">
+                                {order.current_status}
+                              </span>
+                            )}
+                            {order.eta && (
+                              <span style={{ fontSize: '10px', color: '#10B981', display: 'inline-flex', alignItems: 'center', gap: '2px' }} title="Estimated Delivery Date (EDT)">
+                                <Clock size={10} />
+                                <span>EDT: {order.eta}</span>
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td style={{ color: '#EF6868', maxWidth: '200px', fontSize: '13px' }}>
                         {n.reason}
@@ -703,8 +722,26 @@ export default function NdrManagement() {
                         <div style={{ fontSize: '11px', color: '#737373' }}>Tel: {n.phonePrimary}</div>
                       </td>
                       <td>
-                        <div>{n.courier}</div>
-                        <div style={{ fontSize: '11.5px', color: '#737373', fontFamily: 'monospace' }}>{n.awb}</div>
+                        <div style={{ fontWeight: 500 }}>{n.courier}</div>
+                        <div style={{ fontSize: '11px', color: '#737373', fontFamily: 'monospace' }}>{n.awb}</div>
+                        {order && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px', alignItems: 'center' }}>
+                            <span className={`premium-badge status-${order.status.toLowerCase().replace(' ', '')}`} style={{ fontSize: '9px', padding: '1px 3px' }}>
+                              {order.status}
+                            </span>
+                            {order.current_status && (
+                              <span className="premium-badge" style={{ fontSize: '9px', padding: '1px 3px', backgroundColor: '#1E1E24', color: '#E4E4E7', border: '1px solid var(--border)' }} title="Courier Tracking Status">
+                                {order.current_status}
+                              </span>
+                            )}
+                            {order.eta && (
+                              <span style={{ fontSize: '10px', color: '#10B981', display: 'inline-flex', alignItems: 'center', gap: '2px' }} title="Estimated Delivery Date (EDT)">
+                                <Clock size={10} />
+                                <span>EDT: {order.eta}</span>
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td style={{ color: '#EF6868', maxWidth: '200px', fontSize: '13px' }}>
                         {n.reason}

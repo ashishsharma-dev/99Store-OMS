@@ -18,7 +18,8 @@ import {
   Send,
   Copy,
   MessageSquare,
-  Trash2
+  Trash2,
+  Clock
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
 
@@ -584,6 +585,17 @@ export default function Orders() {
                           <div>
                             <div style={{ fontSize: '12px', fontWeight: 500 }}>{o.courier}</div>
                             <div style={{ fontSize: '11px', color: '#737373', fontFamily: 'monospace' }}>{o.awb}</div>
+                            {o.eta && (
+                              <div style={{ fontSize: '11px', color: '#10B981', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <Clock size={11} />
+                                <span>EDT: {o.eta}</span>
+                              </div>
+                            )}
+                            {o.current_status && (
+                              <div style={{ fontSize: '10.5px', color: '#A1A1AA', marginTop: '2px' }}>
+                                Status: {o.current_status}
+                              </div>
+                            )}
                             <button
                               onClick={() => handlePrintLabel(o)}
                               style={{
@@ -605,7 +617,15 @@ export default function Orders() {
                             </button>
                           </div>
                         ) : (
-                          <span style={{ fontSize: '11px', color: '#55555A' }}>AWB Pending</span>
+                          <div>
+                            <span style={{ fontSize: '11px', color: '#55555A' }}>AWB Pending</span>
+                            {o.eta && (
+                              <div style={{ fontSize: '11px', color: '#10B981', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <Clock size={11} />
+                                <span>EDT: {o.eta}</span>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </td>
                       <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>

@@ -401,8 +401,24 @@ export default function OfdManagement() {
                         <div style={{ fontSize: '11px', color: '#737373' }}>Primary Tel: {o.phonePrimary}</div>
                       </td>
                       <td>
-                        <div>{o.courier}</div>
-                        <div style={{ fontSize: '11.5px', color: '#737373', fontFamily: 'monospace' }}>{o.awb}</div>
+                        <div style={{ fontWeight: 500 }}>{o.courier}</div>
+                        <div style={{ fontSize: '11px', color: '#8A8A8A', fontFamily: 'monospace' }}>{o.awb}</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px', alignItems: 'center' }}>
+                          <span className={`premium-badge status-${o.status.toLowerCase().replace(' ', '')}`} style={{ fontSize: '9px', padding: '1px 4px' }}>
+                            {o.status}
+                          </span>
+                          {o.current_status && (
+                            <span className="premium-badge" style={{ fontSize: '9px', padding: '1px 4px', backgroundColor: '#1E1E24', color: '#E4E4E7', border: '1px solid var(--border)' }} title="Courier Tracking Status">
+                              {o.current_status}
+                            </span>
+                          )}
+                          {o.eta && (
+                            <span style={{ fontSize: '10px', color: '#10B981', display: 'inline-flex', alignItems: 'center', gap: '2px' }} title="Estimated Delivery Date (EDT)">
+                              <Clock size={10} />
+                              <span>EDT: {o.eta}</span>
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td>
                         <div>{o.area}</div>
@@ -510,8 +526,24 @@ export default function OfdManagement() {
                         <div style={{ fontSize: '11px', color: '#737373' }}>Tel: {o.phonePrimary}</div>
                       </td>
                       <td>
-                        <div>{o.courier}</div>
-                        <div style={{ fontSize: '11.5px', color: '#737373', fontFamily: 'monospace' }}>{o.awb}</div>
+                        <div style={{ fontWeight: 500 }}>{o.courier}</div>
+                        <div style={{ fontSize: '11px', color: '#8A8A8A', fontFamily: 'monospace' }}>{o.awb}</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px', alignItems: 'center' }}>
+                          <span className={`premium-badge status-${o.status.toLowerCase().replace(' ', '')}`} style={{ fontSize: '9px', padding: '1px 4px' }}>
+                            {o.status}
+                          </span>
+                          {o.current_status && (
+                            <span className="premium-badge" style={{ fontSize: '9px', padding: '1px 4px', backgroundColor: '#1E1E24', color: '#E4E4E7', border: '1px solid var(--border)' }} title="Courier Tracking Status">
+                              {o.current_status}
+                            </span>
+                          )}
+                          {o.eta && (
+                            <span style={{ fontSize: '10px', color: '#10B981', display: 'inline-flex', alignItems: 'center', gap: '2px' }} title="Estimated Delivery Date (EDT)">
+                              <Clock size={10} />
+                              <span>EDT: {o.eta}</span>
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td style={{ fontWeight: 'bold', color: '#FAFAFA' }}>
                         👤 {o.assignedTo}
