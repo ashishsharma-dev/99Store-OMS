@@ -877,8 +877,12 @@ export default function Orders() {
                   <span style={{ fontWeight: 600, color: '#FAFAFA' }}>{selectedOrder.customerName}</span>
                 </div>
                 <div>
-                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Primary Phone</span>
-                  <span>{selectedOrder.phonePrimary}</span>
+                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Phone Numbers</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span>{selectedOrder.phonePrimary} (Primary)</span>
+                    {selectedOrder.phoneSecondary && <span>{selectedOrder.phoneSecondary} (Secondary)</span>}
+                    {selectedOrder.phoneTertiary && <span>{selectedOrder.phoneTertiary} (Tertiary)</span>}
+                  </div>
                 </div>
                 <div>
                   <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>State / Area</span>

@@ -1067,8 +1067,12 @@ export default function NdrManagement() {
                   <span style={{ fontWeight: 600, color: '#FAFAFA' }}>{detailOrder.customerName}</span>
                 </div>
                 <div>
-                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Primary Phone</span>
-                  <span>{detailOrder.phonePrimary}</span>
+                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Phone Numbers</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span>{detailOrder.phonePrimary} (Primary)</span>
+                    {detailOrder.phoneSecondary && <span>{detailOrder.phoneSecondary} (Secondary)</span>}
+                    {detailOrder.phoneTertiary && <span>{detailOrder.phoneTertiary} (Tertiary)</span>}
+                  </div>
                 </div>
                 <div>
                   <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>State / Area</span>
