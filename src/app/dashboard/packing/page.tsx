@@ -12,6 +12,7 @@ import {
   Barcode
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
+import { HealvitaShippingLabel } from '@/components/HealvitaShippingLabel';
 
 export default function Packing() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -539,95 +540,15 @@ export default function Packing() {
               <div id="printable-labels-boundary">
                 {printingOrders.map((order, idx) => (
                   <div 
-                    key={order.id} 
-                    className="thermal-shipping-label"
+                    key={order.id}
                     style={{ 
-                      width: '4in', 
-                      height: '6in', 
-                      backgroundColor: '#FFFFFF', 
-                      color: '#000000', 
-                      border: '2px solid #000000',
-                      boxSizing: 'border-box',
-                      padding: '16px',
-                      fontFamily: 'monospace',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '10px',
+                      width: '4.5in', // matches target dimensions closely
+                      backgroundColor: '#FFFFFF',
                       pageBreakAfter: 'always',
-                      marginBottom: idx < printingOrders.length - 1 ? '20px' : '0' // spacing only in dashboard preview
+                      marginBottom: idx < printingOrders.length - 1 ? '20px' : '0'
                     }}
                   >
-                    
-                    {/* Header */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #000000', paddingBottom: '6px', alignItems: 'center' }}>
-                      <div>
-                        <h2 style={{ fontSize: '15px', fontWeight: 900, fontFamily: 'sans-serif', letterSpacing: '0.02em', margin: 0 }}>99STORE</h2>
-                        <span style={{ fontSize: '8px' }}>LOGISTICS CENTER</span>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '11px', fontWeight: 'bold', border: '2px solid #000000', padding: '1px 4px', textTransform: 'uppercase' }}>
-                          {order.paymentType}
-                        </div>
-                        {order.isVip && <span style={{ fontSize: '9px', fontWeight: 'bold' }}>⭐ VIP</span>}
-                      </div>
-                    </div>
-
-                    {/* Courier and AWB */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', borderBottom: '2px solid #000000', paddingBottom: '6px', fontSize: '11px' }}>
-                      <div>
-                        <span style={{ fontSize: '8px', display: 'block', color: '#555' }}>COURIER:</span>
-                        <span style={{ fontWeight: 'bold' }}>{order.courier || 'DTDC'}</span>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontSize: '8px', display: 'block', color: '#555' }}>AWB NUMBER:</span>
-                        <span style={{ fontWeight: 'bold' }}>{order.awb || 'N/A'}</span>
-                      </div>
-                    </div>
-
-                    {/* Barcode representation */}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', borderBottom: '2px solid #000000', paddingBottom: '8px' }}>
-                      <div style={{ width: '100%', height: '30px', display: 'flex', gap: '1px', backgroundColor: '#FFFFFF' }}>
-                        {Array.from({ length: 42 }).map((_, i) => {
-                          const widths = [1, 2, 3, 1, 2, 1];
-                          const w = widths[i % widths.length];
-                          return (
-                            <div key={i} style={{ flexGrow: w, height: '100%', backgroundColor: i % 3 === 0 ? '#FFFFFF' : '#000000' }} />
-                          );
-                        })}
-                      </div>
-                      <span style={{ fontSize: '10px', fontWeight: 'bold', letterSpacing: '0.05em' }}>*{order.awb}*</span>
-                    </div>
-
-                    {/* Destination Address */}
-                    <div style={{ borderBottom: '2px solid #000000', paddingBottom: '6px', fontSize: '10.5px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                      <span style={{ fontSize: '8px', display: 'block', color: '#555', marginBottom: '2px' }}>SHIP TO:</span>
-                      <div style={{ fontWeight: 'bold', fontSize: '11px', marginBottom: '2px' }}>{order.customerName}</div>
-                      <div style={{ lineHeight: '1.2', maxHeight: '38px', overflow: 'hidden' }}>{order.address}</div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '4px' }}>
-                        <span>PIN: {order.pincode}</span>
-                        <span>TEL: {phoneSelections[order.id] || order.phonePrimary}</span>
-                      </div>
-                    </div>
-
-                    {/* Footer values and Weight */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', fontSize: '10px', paddingTop: '4px' }}>
-                      <div>
-                        <span style={{ fontSize: '8px', display: 'block', color: '#555' }}>PRODUCT DETAILS:</span>
-                        <span style={{ fontWeight: 'bold', fontSize: '9px', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>
-                          {order.productDetails}
-                        </span>
-                        <span style={{ fontSize: '8px' }}>Weight: {order.weight} kg</span>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontSize: '8px', display: 'block', color: '#555' }}>COLLECT CHARGES:</span>
-                        <span style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                          {order.paymentType === 'COD' 
-                            ? `₹${(order.finalPayableAmount !== undefined ? order.finalPayableAmount : order.orderValue).toFixed(2)}` 
-                            : '₹0.00 (PAID)'}
-                        </span>
-                      </div>
-                    </div>
-
+                    <HealvitaShippingLabel order={order} phoneSelection={phoneSelections[order.id]} />
                   </div>
                 ))}
               </div>
