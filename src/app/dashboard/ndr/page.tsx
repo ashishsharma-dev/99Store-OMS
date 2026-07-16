@@ -1069,9 +1069,9 @@ export default function NdrManagement() {
                 <div>
                   <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Phone Numbers</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span>{detailOrder.phonePrimary} (Primary)</span>
-                    {detailOrder.phoneSecondary && <span>{detailOrder.phoneSecondary} (Secondary)</span>}
-                    {detailOrder.phoneTertiary && <span>{detailOrder.phoneTertiary} (Tertiary)</span>}
+                    <span>{detailOrder.phonePrimary || 'N/A'} (Primary)</span>
+                    <span>{detailOrder.phoneSecondary || 'N/A'} (Secondary)</span>
+                    <span>{detailOrder.phoneTertiary || 'N/A'} (Tertiary)</span>
                   </div>
                 </div>
                 <div>

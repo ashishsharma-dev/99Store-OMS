@@ -88,9 +88,9 @@ export const InspectTooltipButton = ({
             </button>
           </div>
 
-          {order.phoneSecondary && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontFamily: 'monospace' }}>📞 S: {order.phoneSecondary}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontFamily: 'monospace' }}>📞 S: {order.phoneSecondary || 'N/A'}</span>
+            {order.phoneSecondary && (
               <button
                 onClick={(e) => copyToClipboard(order.phoneSecondary!, 'p2', e)}
                 style={{ background: 'none', border: 'none', color: copiedType === 'p2' ? '#10B981' : '#737373', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px' }}
@@ -98,12 +98,12 @@ export const InspectTooltipButton = ({
               >
                 {copiedType === 'p2' ? <Check size={11} /> : <Copy size={11} />}
               </button>
-            </div>
-          )}
+            )}
+          </div>
 
-          {order.phoneTertiary && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontFamily: 'monospace' }}>📞 T: {order.phoneTertiary}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontFamily: 'monospace' }}>📞 T: {order.phoneTertiary || 'N/A'}</span>
+            {order.phoneTertiary && (
               <button
                 onClick={(e) => copyToClipboard(order.phoneTertiary!, 'p3', e)}
                 style={{ background: 'none', border: 'none', color: copiedType === 'p3' ? '#10B981' : '#737373', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px' }}
@@ -111,8 +111,8 @@ export const InspectTooltipButton = ({
               >
                 {copiedType === 'p3' ? <Check size={11} /> : <Copy size={11} />}
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Address */}
