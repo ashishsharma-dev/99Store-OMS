@@ -13,7 +13,10 @@ import {
   ListFilter,
   MessageSquare,
   UserCheck,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  Star,
+  Clock
 } from 'lucide-react';
 import { Order, OrderStatus, User as DbUser } from '@/lib/types';
 
@@ -42,6 +45,15 @@ export default function OfdManagement() {
   const [showAddRemarkModal, setShowAddRemarkModal] = useState(false);
   const [selectedOrderForRemark, setSelectedOrderForRemark] = useState<Order | null>(null);
   const [newRemarkInput, setNewRemarkInput] = useState('');
+
+  // Selected Order for detail modal inspection
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [detailOrder, setDetailOrder] = useState<Order | null>(null);
+
+  const openOrderDetail = (order: Order) => {
+    setDetailOrder(order);
+    setShowDetailModal(true);
+  };
 
   const handleAddOfdRemarkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -415,6 +427,14 @@ export default function OfdManagement() {
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '6px', justifyContent: 'flex-end' }}>
                           <button
+                            onClick={() => openOrderDetail(o)}
+                            className="premium-btn premium-btn-secondary"
+                            style={{ padding: '6px 8px', fontSize: '12px' }}
+                            title="View Full Order Details"
+                          >
+                            <Eye size={14} />
+                          </button>
+                          <button
                             onClick={() => { setSelectedOrderForRemark(o); setNewRemarkInput(''); setShowAddRemarkModal(true); }}
                             className="premium-btn premium-btn-secondary"
                             style={{ padding: '6px 8px', fontSize: '12px', borderColor: 'rgba(59, 130, 246, 0.4)', color: '#3B82F6', backgroundColor: 'rgba(59, 130, 246, 0.08)' }}
@@ -517,6 +537,14 @@ export default function OfdManagement() {
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '6px', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={() => openOrderDetail(o)}
+                            className="premium-btn premium-btn-secondary"
+                            style={{ padding: '6px 8px', fontSize: '12px' }}
+                            title="View Full Order Details"
+                          >
+                            <Eye size={14} />
+                          </button>
                           <button
                             onClick={() => { setSelectedOrderForRemark(o); setNewRemarkInput(''); setShowAddRemarkModal(true); }}
                             className="premium-btn premium-btn-secondary"
@@ -734,6 +762,130 @@ export default function OfdManagement() {
                 {actionLoading ? 'Adding...' : 'Post Remark'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Shipment Inspect Detail Modal */}
+      {showDetailModal && detailOrder && (
+        <div className="premium-modal-backdrop">
+          <div className="premium-modal" style={{ maxWidth: '640px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '18px', color: '#FAFAFA', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>Shipment: {detailOrder.orderId}</span>
+                {detailOrder.isVip && <Star size={14} fill="var(--color-vip)" style={{ color: 'var(--color-vip)' }} />}
+              </h3>
+              <button onClick={() => setShowDetailModal(false)} style={{ background: 'none', border: 'none', color: '#8A8A8A', cursor: 'pointer' }}>Close</button>
+            </div>
+
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              
+              {/* Order Info Fields */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', fontSize: '13.5px' }}>
+                <div>
+                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Customer Recipient</span>
+                  <span style={{ fontWeight: 600, color: '#FAFAFA' }}>{detailOrder.customerName}</span>
+                </div>
+                <div>
+                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Primary Phone</span>
+                  <span>{detailOrder.phonePrimary}</span>
+                </div>
+                <div>
+                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>State / Area</span>
+                  <span>{detailOrder.area}, {detailOrder.state}</span>
+                </div>
+                <div>
+                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Pincode</span>
+                  <span>{detailOrder.pincode}</span>
+                </div>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Shipping Destination Address</span>
+                  <span>{detailOrder.address}</span>
+                </div>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Product Description</span>
+                  <span>{detailOrder.productDetails}</span>
+                </div>
+                <div>
+                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Payment Details</span>
+                  <span className={`premium-badge ${detailOrder.paymentType === 'Paid' ? 'badge-paid' : 'badge-cod'}`} style={{ marginTop: '4px', width: 'fit-content' }}>
+                    {detailOrder.paymentType}
+                  </span>
+                </div>
+                <div>
+                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Total Value</span>
+                  <span style={{ fontWeight: 'bold' }}>₹{detailOrder.orderValue}</span>
+                </div>
+
+                {detailOrder.partiallyPaidAmount !== undefined && detailOrder.partiallyPaidAmount > 0 && (
+                  <>
+                    <div>
+                      <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Partially Paid Amount</span>
+                      <span style={{ color: '#10B981', fontWeight: 600 }}>₹{detailOrder.partiallyPaidAmount}</span>
+                    </div>
+                    <div>
+                      <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Payable Balance</span>
+                      <span style={{ color: '#10B981', fontWeight: 'bold' }}>₹{detailOrder.finalPayableAmount}</span>
+                    </div>
+                  </>
+                )}
+
+                <div>
+                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Fulfillment Courier / AWB</span>
+                  <span>{detailOrder.courier || 'Unassigned'} / <span style={{ fontFamily: 'monospace' }}>{detailOrder.awb || 'N/A'}</span></span>
+                </div>
+                <div>
+                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Delivery Agent contact (FE)</span>
+                  <span style={{ color: '#F59E0B', fontWeight: 'bold' }}>{detailOrder.feNumber || 'N/A'}</span>
+                </div>
+
+                {detailOrder.assignedTo && (
+                  <div>
+                    <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Rider Ownership Assignment</span>
+                    <span style={{ fontWeight: 'bold' }}>{detailOrder.assignedTo}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* History Timeline */}
+              <div>
+                <h4 style={{ fontSize: '13px', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '14px', borderBottom: '1px solid #1C1C21', paddingBottom: '6px' }}>
+                  Fulfillment History Log
+                </h4>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingLeft: '8px' }}>
+                  {detailOrder.history && detailOrder.history.map((hist, idx) => (
+                    <div key={idx} style={{ display: 'flex', gap: '14px', position: 'relative' }}>
+                      {idx < detailOrder.history.length - 1 && (
+                        <div style={{ position: 'absolute', left: '6px', top: '16px', bottom: '-16px', width: '1px', backgroundColor: 'var(--border)' }} />
+                      )}
+                      
+                      <div style={{
+                        width: '13px',
+                        height: '13px',
+                        borderRadius: '50%',
+                        backgroundColor: '#1E1E24',
+                        border: '2px solid var(--border-focus)',
+                        marginTop: '3px',
+                        zIndex: 1
+                      }} />
+
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 600, color: '#FAFAFA' }}>{hist.status}</span>
+                          <span style={{ fontSize: '11px', color: '#737373' }}>
+                            {new Date(hist.timestamp).toLocaleString()} | by {hist.updatedBy}
+                          </span>
+                        </div>
+                        <p style={{ fontSize: '12.5px', color: '#8A8A8A', marginTop: '4px', lineHeight: '1.4' }}>
+                          {hist.remarks}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
           </div>
         </div>
       )}
