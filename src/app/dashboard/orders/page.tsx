@@ -18,11 +18,9 @@ import {
   Send,
   Copy,
   MessageSquare,
-  Trash2,
-  Clock
+  Trash2
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
-import { ShippingLabel } from '@/components/ShippingLabel';
 
 export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -586,17 +584,6 @@ export default function Orders() {
                           <div>
                             <div style={{ fontSize: '12px', fontWeight: 500 }}>{o.courier}</div>
                             <div style={{ fontSize: '11px', color: '#737373', fontFamily: 'monospace' }}>{o.awb}</div>
-                            {o.eta && (
-                              <div style={{ fontSize: '11px', color: '#10B981', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <Clock size={11} />
-                                <span>ETD: {o.eta}</span>
-                              </div>
-                            )}
-                            {o.current_status && (
-                              <div style={{ fontSize: '10.5px', color: '#A1A1AA', marginTop: '2px' }}>
-                                Status: {o.current_status}
-                              </div>
-                            )}
                             <button
                               onClick={() => handlePrintLabel(o)}
                               style={{
@@ -618,15 +605,7 @@ export default function Orders() {
                             </button>
                           </div>
                         ) : (
-                          <div>
-                            <span style={{ fontSize: '11px', color: '#55555A' }}>AWB Pending</span>
-                            {o.eta && (
-                              <div style={{ fontSize: '11px', color: '#10B981', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <Clock size={11} />
-                                <span>ETD: {o.eta}</span>
-                              </div>
-                            )}
-                          </div>
+                          <span style={{ fontSize: '11px', color: '#55555A' }}>AWB Pending</span>
                         )}
                       </td>
                       <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
@@ -1000,17 +979,82 @@ export default function Orders() {
       {/* Shipping Label CSS Printing Mock Modal */}
       {showPrintLabel && printingOrder && (
         <div className="premium-modal-backdrop">
-          <div className="premium-modal" style={{ maxWidth: '420px', backgroundColor: '#FFFFFF', padding: '0', border: '1px solid var(--border)' }}>
-            
-            {/* Scrollable preview wrapper */}
-            <div style={{ backgroundColor: '#1A1A1E', padding: '20px', display: 'flex', justifyContent: 'center' }}>
-              <div id="printable-shipping-label">
-                <ShippingLabel order={printingOrder} />
+          <div className="premium-modal" style={{ maxWidth: '480px', backgroundColor: '#FFFFFF', color: '#000000', border: '2px solid #000000' }}>
+            {/* Real Visual Shipping Invoice Label Card */}
+            <div id="printable-shipping-label" style={{ padding: '24px', fontFamily: 'monospace', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              
+              {/* Header Box */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #000000', paddingBottom: '12px', alignItems: 'center' }}>
+                <div>
+                  <h2 style={{ fontSize: '20px', fontWeight: 900, fontFamily: 'sans-serif', letterSpacing: '0.05em' }}>99STORE</h2>
+                  <span style={{ fontSize: '10px' }}>LOGISTICS CENTER</span>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 'bold', border: '2px solid #000000', padding: '2px 8px', textTransform: 'uppercase' }}>
+                    {printingOrder.paymentType}
+                  </div>
+                  {printingOrder.isVip && <span style={{ fontSize: '11px', fontWeight: 'bold' }}>⭐ VIP SHIPMENT</span>}
+                </div>
               </div>
+
+              {/* Courier and AWB Box */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', borderBottom: '2px solid #000000', paddingBottom: '12px' }}>
+                <div>
+                  <span style={{ fontSize: '9px', display: 'block', color: '#555' }}>COURIER:</span>
+                  <span style={{ fontSize: '16px', fontWeight: 'bold' }}>{printingOrder.courier || 'DTDC'}</span>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: '9px', display: 'block', color: '#555' }}>AWB NUMBER:</span>
+                  <span style={{ fontSize: '16px', fontWeight: 'bold' }}>{printingOrder.awb || 'N/A'}</span>
+                </div>
+              </div>
+
+              {/* Barcode Mock */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', borderBottom: '2px solid #000000', paddingBottom: '14px', paddingTop: '4px' }}>
+                <Barcode size={44} style={{ color: '#000000' }} />
+                {/* Visual pure-CSS barcode mock lines */}
+                <div style={{ width: '100%', height: '36px', display: 'flex', gap: '2px', backgroundColor: '#FFFFFF', padding: '0 10px', boxSizing: 'border-box' }}>
+                  {Array.from({ length: 42 }).map((_, i) => {
+                    const barWidths = [1, 2, 3, 1, 4, 2, 1, 3];
+                    const w = barWidths[i % barWidths.length];
+                    return (
+                      <div key={i} style={{ flexGrow: w, height: '100%', backgroundColor: i % 3 === 0 ? '#FFFFFF' : '#000000' }} />
+                    );
+                  })}
+                </div>
+                <span style={{ fontSize: '11px', fontWeight: 'bold', letterSpacing: '0.1em' }}>*{printingOrder.awb}*</span>
+              </div>
+
+              {/* Address Recipient Box */}
+              <div style={{ borderBottom: '2px solid #000000', paddingBottom: '12px', fontSize: '12px' }}>
+                <span style={{ fontSize: '9px', display: 'block', color: '#555', marginBottom: '4px' }}>DELIVER TO:</span>
+                <div style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '4px' }}>{printingOrder.customerName}</div>
+                <div style={{ lineHeight: '1.4', marginBottom: '6px' }}>{printingOrder.address}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                  <span>PINCODE: {printingOrder.pincode}</span>
+                  <span>TEL: {printingOrder.phonePrimary}</span>
+                </div>
+              </div>
+
+              {/* Product and billing Box */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', fontSize: '12px' }}>
+                <div>
+                  <span style={{ fontSize: '9px', display: 'block', color: '#555' }}>PRODUCT DETAILS:</span>
+                  <span style={{ fontSize: '11px', fontWeight: 'bold' }}>{printingOrder.productDetails}</span>
+                  <span style={{ display: 'block', fontSize: '10px', marginTop: '2px' }}>Weight: {printingOrder.weight} kg</span>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: '9px', display: 'block', color: '#555' }}>COLLECT AMOUNT:</span>
+                  <span style={{ fontSize: '18px', fontWeight: 'bold' }}>
+                    {printingOrder.paymentType === 'COD' ? `₹${printingOrder.orderValue.toFixed(2)}` : '₹0.00 (PAID)'}
+                  </span>
+                </div>
+              </div>
+
             </div>
 
             {/* Print operations bar */}
-            <div style={{ padding: '16px', backgroundColor: '#F4F4F5', borderTop: '1px solid var(--border)', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            <div style={{ padding: '16px', backgroundColor: '#F4F4F5', borderTop: '2px solid #000000', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button 
                 onClick={() => setShowPrintLabel(false)} 
                 className="premium-btn premium-btn-secondary" 
@@ -1032,34 +1076,6 @@ export default function Orders() {
           </div>
         </div>
       )}
-
-      <style jsx global>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          #printable-shipping-label, 
-          #printable-shipping-label * {
-            visibility: visible;
-          }
-          #printable-shipping-label {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-          .thermal-shipping-label {
-            margin-bottom: 0 !important;
-            border: none !important;
-            width: 4in !important;
-            height: 6in !important;
-          }
-          @page {
-            size: 4in 6in;
-            margin: 0;
-          }
-        }
-      `}</style>
     </div>
   );
 }

@@ -86,7 +86,7 @@ export const mockSettings: SystemSettings = {
     phone: '8057023592',
     address: 'J.K. NAGAR, NANDLALPUR HATHRAS ROAD KUBERPUR',
     address2: 'Kuberpur',
-    pincode: '282007',
+    pincode: '282006',
     city: 'Agra',
     state: 'Uttar Pradesh'
   },

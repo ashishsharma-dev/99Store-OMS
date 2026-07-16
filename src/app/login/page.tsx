@@ -57,45 +57,6 @@ export default function Login() {
         return;
       }
 
-      if (data.bypassOtp) {
-        setMessage(data.message || 'OTP Bypassed. Logging you in...');
-        setLoading(true);
-        try {
-          const loginRes = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              username: username.trim().toLowerCase(),
-              otp: '999999',
-              bypassIpCheck: bypassCheck
-            })
-          });
-
-          const loginData = await loginRes.json();
-          setLoading(false);
-
-          if (!loginRes.ok) {
-            if (loginData.ipBlocked) {
-              setIpBlocked(true);
-              setClientIp(loginData.clientIp || 'Unknown');
-              setError(loginData.error);
-            } else {
-              setError(loginData.error || 'Authentication failed.');
-            }
-            return;
-          }
-
-          if (loginData.success && loginData.user) {
-            localStorage.setItem('99store_user', JSON.stringify(loginData.user));
-            router.push('/dashboard');
-          }
-        } catch (err: any) {
-          setLoading(false);
-          setError('Network connection failed during bypass login. Please check your Next.js server.');
-        }
-        return;
-      }
-
       setStep('otp');
       setMessage(data.message || 'OTP code sent! Check your registered WhatsApp.');
     } catch (err: any) {

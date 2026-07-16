@@ -2196,14 +2196,7 @@
       "commodityId": "2",
       "username": "UO4125_trk_json",
       "password": "wm4tH",
-      "accessToken": "UO4125_trk_json:7a9d27b8932b2194e13e1665680c6d32",
-      "contactName": "Vishnu Singh Sikarwar",
-      "phone": "8057023592",
-      "address": "J.K. NAGAR, NANDLALPUR HATHRAS ROAD KUBERPUR",
-      "address2": "Kuberpur",
-      "pincode": "282007",
-      "city": "Agra",
-      "state": "Uttar Pradesh"
+      "accessToken": "UO4125_trk_json:7a9d27b8932b2194e13e1665680c6d32"
     },
     "xpressbeesConfig": {
       "apiKey": "",
@@ -2217,8 +2210,8 @@
       "address2": "Kuberpur",
       "city": "Agra",
       "state": "Uttar Pradesh",
-      "pincode": "282007",
-      "phone": "8057023592",
+      "pincode": "282006",
+      "phone": "9999999999",
       "secretKey": "d0277ffa8e293bf04578ee8f63337fe71ac41f854e296fb95b5975ed5aa4a802",
       "xbKey": "JnueT39994Dyats",
       "vendorCode": "VEND001",

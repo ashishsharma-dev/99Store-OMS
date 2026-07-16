@@ -31,16 +31,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid username or password.' }, { status: 401 });
     }
 
-    // Check if OTP is disabled globally
-    if (process.env.DISABLE_OTP === 'true') {
-      console.log(`[AUTH] OTP verification bypassed for ${user.username} (DISABLE_OTP=true)`);
-      return NextResponse.json({
-        success: true,
-        bypassOtp: true,
-        message: 'OTP verification is temporarily disabled. Logging in...'
-      });
-    }
-
     // Retrieve system settings to check for a global OTP WhatsApp number
     const settings = await db.getSettings();
     const targetPhone = (settings.otpWhatsappNumber && settings.otpWhatsappNumber.trim() !== '') 

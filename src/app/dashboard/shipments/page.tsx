@@ -241,17 +241,6 @@ export default function AllShipments() {
                             <span style={{ fontFamily: 'monospace', fontSize: '11px', color: '#8A8A8A' }}>
                               {o.awb}
                             </span>
-                            {o.eta && (
-                              <div style={{ fontSize: '11px', color: '#10B981', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <Clock size={11} />
-                                <span>ETD: {o.eta}</span>
-                              </div>
-                            )}
-                            {o.current_status && (
-                              <div style={{ fontSize: '10.5px', color: '#A1A1AA', marginTop: '2px' }}>
-                                Status: {o.current_status}
-                              </div>
-                            )}
                             {o.feNumber && (
                               <div style={{ fontSize: '10px', color: '#F59E0B', fontWeight: 'bold', marginTop: '2px' }}>
                                 FE: {o.feNumber}
@@ -259,15 +248,7 @@ export default function AllShipments() {
                             )}
                           </div>
                         ) : (
-                          <div>
-                            <span style={{ fontSize: '11px', color: '#55555A' }}>AWB Pending</span>
-                            {o.eta && (
-                              <div style={{ fontSize: '11px', color: '#10B981', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <Clock size={11} />
-                                <span>ETD: {o.eta}</span>
-                              </div>
-                            )}
-                          </div>
+                          <span style={{ fontSize: '11px', color: '#55555A' }}>AWB Pending</span>
                         )}
                       </td>
                       <td>

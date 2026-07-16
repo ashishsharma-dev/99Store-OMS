@@ -377,7 +377,8 @@ export async function GET(request: Request) {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'x-access-token': accessToken
+              'x-access-token': accessToken,
+              'X-Access-Token': accessToken
             },
             body: JSON.stringify(trackPayload)
           });
@@ -998,403 +999,299 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: `Order with ID ${orderId} not found in database.` }, { status: 400 });
       }
 
+      let token = 'MOCK_TOKEN_12345';
+      try {
+        token = await getXpressBeesToken(xbConfig);
+      } catch (err: any) {
+        const errorLog: CourierApiLog = {
+          id: `cl-fail-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          courier: 'XpressBees',
+          action: 'Login / Generate AWB',
+          requestPayload: JSON.stringify(body, null, 2),
+          responsePayload: JSON.stringify({ error: `Authentication failed: ${err.message}` }, null, 2),
+          status: 'Error'
+        };
+        await db.addCourierLog(errorLog);
+        return NextResponse.json({ error: `XpressBees Authentication failed: ${err.message}` }, { status: 400 });
+      }
+
+      const isMockToken = token === 'MOCK_TOKEN_12345';
+      const baseUrl = xbConfig.baseUrl || 'https://shipment.xpressbees.com/api';
+
+      if (isMockToken) {
+        // Fallback simulation
+        const randomAwbSuffix = Math.floor(100000000 + Math.random() * 900000000).toString();
+        const awb = `XB${randomAwbSuffix}`;
+        const charge = 55 + (weight || order.weight) * 25 + (paymentType === 'COD' ? 35 : 0);
+        const etaDays = 3;
+        const etaDate = new Date();
+        etaDate.setDate(etaDate.getDate() + etaDays);
+        const etaString = etaDate.toISOString().split('T')[0];
+
+        const responsePayload = {
+          status: 'SUCCESS',
+          awb,
+          eta: etaString,
+          charge: parseFloat(charge.toFixed(2)),
+          shipper: '99Store Fulfillment Center - Delhi NCR (Simulated)',
+          apiKeyUsed: 'MOCK_TOKEN_12345'
+        };
+
+        await db.addCourierLog({
+          id: `cl-success-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          courier: 'XpressBees',
+          action: 'Generate AWB (Simulated)',
+          requestPayload: JSON.stringify(body, null, 2),
+          responsePayload: JSON.stringify(responsePayload, null, 2),
+          status: 'Success'
+        });
+
+        order.awb = awb;
+        order.courier = 'XpressBees';
+        order.eta = etaString;
+        order.updatedAt = new Date().toISOString();
+        await db.saveOrder(order);
+
+        return NextResponse.json({ success: true, awb, eta: etaString, courier: 'XpressBees', charge });
+      }
+
+      let finalAwb = '';
       const authType = xbConfig.authType || 'new';
+
+      if (authType === 'new') {
+        try {
+          // Step 1: Generate AWB series batch ID
+          const awbGenUrl = xbConfig.awbGenUrl || 'https://xbclientapi.xbees.in/POSTShipmentService.svc/AWBNumberSeriesGeneration';
+          const awbGenRes = await fetch(awbGenUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+              'Token': token,
+              'token': token,
+              'TokenNumber': token,
+              'XBKey': xbConfig.xbKey || '',
+              'xb-key': xbConfig.xbKey || ''
+            },
+            body: JSON.stringify({
+              BusinessUnit: "ECOM",
+              ServiceType: "FORWARD",
+              DeliveryType: order.paymentType === 'COD' ? 'COD' : 'PREPAID',
+              TokenNumber: token,
+              Token: token
+            })
+          });
+
+          const awbGenData = await awbGenRes.json();
+          await db.addCourierLog({
+            id: `cl-xb-awbgen-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            courier: 'XpressBees',
+            action: 'AWB Series Generation',
+            requestPayload: JSON.stringify({ BusinessUnit: "ECOM", ServiceType: "FORWARD", DeliveryType: order.paymentType === 'COD' ? 'COD' : 'PREPAID' }, null, 2),
+            responsePayload: JSON.stringify(awbGenData, null, 2),
+            status: awbGenRes.ok && awbGenData.ReturnCode === 100 ? 'Success' : 'Error'
+          });
+
+          if (!awbGenRes.ok || awbGenData.ReturnCode !== 100 || !awbGenData.BatchID) {
+            return NextResponse.json({ error: `XpressBees AWB Series Generation failed: ${awbGenData.ReturnMessage || 'Invalid response'}` }, { status: 400 });
+          }
+
+          const batchId = awbGenData.BatchID;
+
+          // Step 2: Retrieve the generated AWB numbers from batch ID
+          const awbRetrieveUrl = xbConfig.awbRetrieveUrl || 'https://xbclientapi.xbees.in/TrackingService.svc/GetAWBNumberGeneratedSeries';
+          const awbRetrieveRes = await fetch(awbRetrieveUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+              'Token': token,
+              'token': token,
+              'TokenNumber': token,
+              'XBKey': xbConfig.xbKey || '',
+              'xb-key': xbConfig.xbKey || ''
+            },
+            body: JSON.stringify({
+              BusinessUnit: "ECOM",
+              ServiceType: "FORWARD",
+              BatchID: batchId,
+              TokenNumber: token,
+              Token: token
+            })
+          });
+
+          const awbRetrieveData = await awbRetrieveRes.json();
+          // Truncate AWB list in log payload to avoid database file bloat
+          const loggedRetrieveData = { ...awbRetrieveData };
+          if (Array.isArray(loggedRetrieveData.AWBNoSeries) && loggedRetrieveData.AWBNoSeries.length > 5) {
+            loggedRetrieveData.AWBNoSeries = [
+              ...loggedRetrieveData.AWBNoSeries.slice(0, 5),
+              `... and ${loggedRetrieveData.AWBNoSeries.length - 5} more AWB numbers (truncated to prevent bloat)`
+            ];
+          }
+
+          await db.addCourierLog({
+            id: `cl-xb-awbretrieve-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            courier: 'XpressBees',
+            action: 'Get AWB Generated Series',
+            requestPayload: JSON.stringify({ BusinessUnit: "ECOM", ServiceType: "FORWARD", BatchID: batchId }, null, 2),
+            responsePayload: JSON.stringify(loggedRetrieveData, null, 2),
+            status: awbRetrieveRes.ok && awbRetrieveData.ReturnCode === 100 ? 'Success' : 'Error'
+          });
+
+          if (!awbRetrieveRes.ok || awbRetrieveData.ReturnCode !== 100 || !awbRetrieveData.AWBNoSeries || awbRetrieveData.AWBNoSeries.length === 0) {
+            return NextResponse.json({ error: `XpressBees AWB Retrieval failed: ${awbRetrieveData.ReturnMessage || 'No AWB numbers returned'}` }, { status: 400 });
+          }
+
+          finalAwb = awbRetrieveData.AWBNoSeries[0];
+        } catch (err: any) {
+          await db.addCourierLog({
+            id: `cl-xb-awbgen-fail-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            courier: 'XpressBees',
+            action: 'AWB Generation Flow',
+            requestPayload: JSON.stringify({ orderId: order.orderId }, null, 2),
+            responsePayload: JSON.stringify({ error: err.message || err }, null, 2),
+            status: 'Error'
+          });
+          return NextResponse.json({ error: `XpressBees AWB pre-generation flow error: ${err.message}` }, { status: 500 });
+        }
+      }
+
+      // Step 3: Manifest/Book shipment
       const weightInGrams = Math.round(Number(weight || order.weight || 0.5) * 1000);
       const serviceType = xbConfig.serviceType || 'NDD';
       const vendorCode = xbConfig.vendorCode || 'VEND001';
 
-      let token = 'MOCK_TOKEN_12345';
-      let finalAwb = '';
-      let retries = 1;
+      const bookingPayload: any = {
+        order_number: order.orderId,
+        unique_order_number: "yes",
+        shipping_charges: 40,
+        discount: 0,
+        cod_charges: 0,
+        payment_type: order.paymentType === 'COD' ? 'cod' : 'prepaid',
+        order_amount: order.orderValue,
+        package_weight: weightInGrams,
+        package_length: 10,
+        package_breadth: 10,
+        package_height: 10,
+        request_auto_pickup: "yes",
+        service_type: serviceType,
+        pickup_vendor_code: vendorCode,
+        consignee: {
+          name: order.customerName,
+          address: order.address,
+          address_2: order.area || '',
+          city: order.area || 'Agra',
+          state: order.state || 'Uttar Pradesh',
+          pincode: order.pincode,
+          phone: order.phonePrimary
+        },
+        pickup: {
+          vendor_code: vendorCode,
+          warehouse_name: xbConfig.warehouseName || 'Main Warehouse',
+          name: xbConfig.contactName || 'Warehouse Manager',
+          address: xbConfig.address || '140 MG Road',
+          address_2: xbConfig.address2 || 'Near Metro Station',
+          city: xbConfig.city || 'Agra',
+          state: xbConfig.state || 'Uttar Pradesh',
+          pincode: xbConfig.pincode || '282001',
+          phone: xbConfig.phone || '9999999999'
+        },
+        order_items: [
+          {
+            name: order.productDetails || 'Product 1',
+            qty: "1",
+            price: order.orderValue,
+            sku: "SKU001"
+          }
+        ],
+        courier_id: "1",
+        collectable_amount: order.paymentType === 'COD' ? String(order.orderValue) : "0"
+      };
+
+      if (authType === 'new') {
+        bookingPayload.awb_number = finalAwb;
+        bookingPayload.awb = finalAwb;
+        bookingPayload.TokenNumber = token;
+        bookingPayload.Token = token;
+      }
+
       let bookingResponseData: any = null;
-      let isSuccess = false;
-      let responseText = '';
+      try {
+        const manifestUrl = xbConfig.manifestUrl || 'https://apishipmentmanifestation.xbees.in/shipmentmanifestation/forward';
+        const targetUrl = authType === 'new' ? manifestUrl : `${baseUrl}/shipments2`;
 
-      while (retries >= 0) {
+        const bookRes = await fetch(targetUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'Token': token,
+            'token': token,
+            'TokenNumber': token,
+            'XBKey': xbConfig.xbKey || '',
+            'xb-key': xbConfig.xbKey || ''
+          },
+          body: JSON.stringify(bookingPayload)
+        });
+
+        const responseText = await bookRes.text();
         try {
-          token = await getXpressBeesToken(xbConfig, retries === 0);
-        } catch (err: any) {
-          if (retries === 0) {
-            const errorLog: CourierApiLog = {
-              id: `cl-fail-${Date.now()}`,
-              timestamp: new Date().toISOString(),
-              courier: 'XpressBees',
-              action: 'Login / Generate AWB',
-              requestPayload: JSON.stringify(body, null, 2),
-              responsePayload: JSON.stringify({ error: `Authentication failed: ${err.message}` }, null, 2),
-              status: 'Error'
-            };
-            await db.addCourierLog(errorLog);
-            return NextResponse.json({ error: `XpressBees Authentication failed: ${err.message}` }, { status: 400 });
-          }
-          retries--;
-          continue;
+          bookingResponseData = JSON.parse(responseText);
+        } catch (e) {
+          bookingResponseData = { error: responseText, status: false };
         }
 
-        const isMockToken = token === 'MOCK_TOKEN_12345';
-        const baseUrl = xbConfig.baseUrl || 'https://shipment.xpressbees.com/api';
+        const isSuccess = bookRes.ok && (authType === 'new' ? (bookingResponseData.status === true || bookingResponseData.ReturnCode === 100 || responseText.toLowerCase().includes('success')) : bookingResponseData.status === true);
 
-        if (isMockToken) {
-          // Fallback simulation
-          const randomAwbSuffix = Math.floor(100000000 + Math.random() * 900000000).toString();
-          const awb = `XB${randomAwbSuffix}`;
-          const charge = 55 + (weight || order.weight) * 25 + (paymentType === 'COD' ? 35 : 0);
-          const etaDays = 3;
-          const etaDate = new Date();
-          etaDate.setDate(etaDate.getDate() + etaDays);
-          const etaString = etaDate.toISOString().split('T')[0];
+        await db.addCourierLog({
+          id: `cl-xb-manifest-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          courier: 'XpressBees',
+          action: authType === 'new' ? 'Forward Manifesting' : 'Create Shipment',
+          requestPayload: JSON.stringify(bookingPayload, null, 2),
+          responsePayload: JSON.stringify(bookingResponseData, null, 2),
+          status: isSuccess ? 'Success' : 'Error'
+        });
 
-          const responsePayload = {
-            status: 'SUCCESS',
-            awb,
-            eta: etaString,
-            charge: parseFloat(charge.toFixed(2)),
-            shipper: '99Store Fulfillment Center - Delhi NCR (Simulated)',
-            apiKeyUsed: 'MOCK_TOKEN_12345'
-          };
-
-          await db.addCourierLog({
-            id: `cl-success-${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            courier: 'XpressBees',
-            action: 'Generate AWB (Simulated)',
-            requestPayload: JSON.stringify(body, null, 2),
-            responsePayload: JSON.stringify(responsePayload, null, 2),
-            status: 'Success'
-          });
-
-          order.awb = awb;
-          order.courier = 'XpressBees';
-          order.eta = etaString;
-          order.updatedAt = new Date().toISOString();
-          await db.saveOrder(order);
-
-          return NextResponse.json({ success: true, awb, eta: etaString, courier: 'XpressBees', charge });
+        if (!isSuccess) {
+          return NextResponse.json({ error: `XpressBees API booking failed: ${bookingResponseData.message || bookingResponseData.ReturnMessage || bookingResponseData.rmk || responseText}` }, { status: 400 });
         }
 
-        if (authType === 'new') {
-          try {
-            // Step 1: Generate AWB series batch ID
-            const awbGenUrl = xbConfig.awbGenUrl || 'https://xbclientapi.xbees.in/POSTShipmentService.svc/AWBNumberSeriesGeneration';
-            const awbGenRes = await fetch(awbGenUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'token': token,
-                'TokenNumber': token,
-                'XBKey': xbConfig.xbKey || ''
-              },
-              body: JSON.stringify({
-                BusinessUnit: "ECOM",
-                ServiceType: "FORWARD",
-                DeliveryType: order.paymentType === 'COD' ? 'COD' : 'PREPAID',
-                TokenNumber: token,
-                Token: token
-              })
-            });
-
-            const awbGenData = await awbGenRes.json();
-            
-            if (retries > 0 && (awbGenData.ReturnMessage?.toLowerCase().includes('token') || awbGenData.ReturnCode === 103)) {
-              console.log("Token expired/invalid during AWB generation. Retrying...");
-              retries--;
-              continue;
-            }
-
-            await db.addCourierLog({
-              id: `cl-xb-awbgen-${Date.now()}`,
-              timestamp: new Date().toISOString(),
-              courier: 'XpressBees',
-              action: 'AWB Series Generation',
-              requestPayload: JSON.stringify({ BusinessUnit: "ECOM", ServiceType: "FORWARD", DeliveryType: order.paymentType === 'COD' ? 'COD' : 'PREPAID' }, null, 2),
-              responsePayload: JSON.stringify(awbGenData, null, 2),
-              status: awbGenRes.ok && awbGenData.ReturnCode === 100 ? 'Success' : 'Error'
-            });
-
-            if (!awbGenRes.ok || awbGenData.ReturnCode !== 100 || !awbGenData.BatchID) {
-              return NextResponse.json({ error: `XpressBees AWB Series Generation failed: ${awbGenData.ReturnMessage || 'Invalid response'}` }, { status: 400 });
-            }
-
-            const batchId = awbGenData.BatchID;
-
-            // Step 2: Retrieve the generated AWB numbers from batch ID
-            const awbRetrieveUrl = xbConfig.awbRetrieveUrl || 'https://xbclientapi.xbees.in/TrackingService.svc/GetAWBNumberGeneratedSeries';
-            const awbRetrieveRes = await fetch(awbRetrieveUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'token': token,
-                'TokenNumber': token,
-                'XBKey': xbConfig.xbKey || ''
-              },
-              body: JSON.stringify({
-                BusinessUnit: "ECOM",
-                ServiceType: "FORWARD",
-                BatchID: batchId,
-                TokenNumber: token,
-                Token: token
-              })
-            });
-
-            const awbRetrieveData = await awbRetrieveRes.json();
-            const loggedRetrieveData = { ...awbRetrieveData };
-            if (Array.isArray(loggedRetrieveData.AWBNoSeries) && loggedRetrieveData.AWBNoSeries.length > 5) {
-              loggedRetrieveData.AWBNoSeries = [
-                ...loggedRetrieveData.AWBNoSeries.slice(0, 5),
-                `... and ${loggedRetrieveData.AWBNoSeries.length - 5} more AWB numbers (truncated to prevent bloat)`
-              ];
-            }
-
-            await db.addCourierLog({
-              id: `cl-xb-awbretrieve-${Date.now()}`,
-              timestamp: new Date().toISOString(),
-              courier: 'XpressBees',
-              action: 'Get AWB Generated Series',
-              requestPayload: JSON.stringify({ BusinessUnit: "ECOM", ServiceType: "FORWARD", BatchID: batchId }, null, 2),
-              responsePayload: JSON.stringify(loggedRetrieveData, null, 2),
-              status: awbRetrieveRes.ok && awbRetrieveData.ReturnCode === 100 ? 'Success' : 'Error'
-            });
-
-            if (!awbRetrieveRes.ok || awbRetrieveData.ReturnCode !== 100 || !awbRetrieveData.AWBNoSeries || awbRetrieveData.AWBNoSeries.length === 0) {
-              return NextResponse.json({ error: `XpressBees AWB Retrieval failed: ${awbRetrieveData.ReturnMessage || 'No AWB numbers returned'}` }, { status: 400 });
-            }
-
-            finalAwb = awbRetrieveData.AWBNoSeries[0];
-          } catch (err: any) {
-            if (retries > 0) {
-              retries--;
-              continue;
-            }
-            return NextResponse.json({ error: `XpressBees AWB pre-generation flow error: ${err.message}` }, { status: 500 });
-          }
+        if (authType !== 'new') {
+          finalAwb = bookingResponseData.data?.awb_number || '';
         }
 
-        // Construct booking payload
-        let bookingPayload: any;
+        const etaDays = 3;
+        const etaDate = new Date();
+        etaDate.setDate(etaDate.getDate() + etaDays);
+        const etaString = etaDate.toISOString().split('T')[0];
+        const charge = 55 + (weight || order.weight) * 25 + (paymentType === 'COD' ? 35 : 0);
 
-        if (authType === 'new') {
-          const isSurface = (xbConfig.activeAccount || 'Air').toLowerCase().includes('surface') || (xbConfig.activeAccount || 'Air').toLowerCase().includes('sfc');
-          const businessAccountName = isSurface ? "Shivay SFC" : "Shivay Air";
+        order.awb = finalAwb;
+        order.courier = 'XpressBees';
+        order.eta = etaString;
+        order.updatedAt = new Date().toISOString();
+        await db.saveOrder(order);
 
-          bookingPayload = {
-            "OrderNo": order.orderId,
-            "UniqueOrderNo": "yes",
-            "ShippingCharges": 40,
-            "Discount": 0,
-            "CODCharges": 0,
-            "PaymentType": order.paymentType === 'COD' ? 'cod' : 'prepaid',
-            "OrderType": order.paymentType === 'COD' ? 'cod' : 'prepaid',
-            "OrderAmount": order.orderValue,
-            "DeclaredValue": order.orderValue,
-            "PackageWeight": weightInGrams,
-            "Quantity": 1,
-            "PackageLength": 10,
-            "PackageBreadth": 10,
-            "PackageHeight": 10,
-            "RequestAutoPickup": "yes",
-            "ServiceType": serviceType,
-            "DropDetails": {
-              "Addresses": [
-                {
-                  "Type": "Primary",
-                  "Address": order.address + (order.area ? `, ${order.area}` : ''),
-                  "City": order.area || 'Agra',
-                  "State": order.state || 'Uttar Pradesh',
-                  "PinCode": order.pincode,
-                  "Name": order.customerName
-                }
-              ],
-              "ContactDetails": [
-                {
-                  "Type": "Primary",
-                  "PhoneNo": order.phonePrimary
-                }
-              ]
-            },
-            "PickupDetails": {
-              "PickupVendorCode": vendorCode,
-              "Addresses": [
-                {
-                  "Type": "Primary",
-                  "Address": xbConfig.address + (xbConfig.address2 ? `, ${xbConfig.address2}` : ''),
-                  "City": xbConfig.city || 'Agra',
-                  "State": xbConfig.state || 'Uttar Pradesh',
-                  "PinCode": xbConfig.pincode || '282007',
-                  "Name": xbConfig.contactName || 'Vishnu Sikarwar'
-                }
-              ],
-              "ContactDetails": [
-                {
-                  "Type": "Primary",
-                  "PhoneNo": xbConfig.phone || '7409954268'
-                }
-              ]
-            },
-            "RTODetails": {
-              "Addresses": [
-                {
-                  "Type": "Primary",
-                  "Address": xbConfig.address + (xbConfig.address2 ? `, ${xbConfig.address2}` : ''),
-                  "City": xbConfig.city || 'Agra',
-                  "State": xbConfig.state || 'Uttar Pradesh',
-                  "PinCode": xbConfig.pincode || '282007',
-                  "Name": xbConfig.contactName || 'Vishnu Sikarwar'
-                }
-              ],
-              "ContactDetails": [
-                {
-                  "Type": "Primary",
-                  "PhoneNo": xbConfig.phone || '7409954268'
-                }
-              ]
-            },
-            "OrderItems": [
-              {
-                "Name": order.productDetails || 'Product 1',
-                "Qty": "1",
-                "Price": order.orderValue,
-                "SKU": "SKU001"
-              }
-            ],
-            "CourierID": "1",
-            "CollectableAmount": order.paymentType === 'COD' ? String(order.orderValue) : "0",
-            "AirWayBillNO": finalAwb,
-            "TokenNumber": token,
-            "Token": token,
-            "BusinessAccountName": businessAccountName
-          };
-        } else {
-          bookingPayload = {
-            order_number: order.orderId,
-            unique_order_number: "yes",
-            shipping_charges: 40,
-            discount: 0,
-            cod_charges: 0,
-            payment_type: order.paymentType === 'COD' ? 'cod' : 'prepaid',
-            order_amount: order.orderValue,
-            package_weight: weightInGrams,
-            package_length: 10,
-            package_breadth: 10,
-            package_height: 10,
-            request_auto_pickup: "yes",
-            service_type: serviceType,
-            pickup_vendor_code: vendorCode,
-            consignee: {
-              name: order.customerName,
-              address: order.address,
-              address_2: order.area || '',
-              city: order.area || 'Agra',
-              state: order.state || 'Uttar Pradesh',
-              pincode: order.pincode,
-              phone: order.phonePrimary
-            },
-            pickup: {
-              vendor_code: vendorCode,
-              warehouse_name: xbConfig.warehouseName || 'Main Warehouse',
-              name: xbConfig.contactName || 'Warehouse Manager',
-              address: xbConfig.address || '140 MG Road',
-              address_2: xbConfig.address2 || 'Near Metro Station',
-              city: xbConfig.city || 'Agra',
-              state: xbConfig.state || 'Uttar Pradesh',
-              pincode: xbConfig.pincode || '282001',
-              phone: xbConfig.phone || '9999999999'
-            },
-            order_items: [
-              {
-                name: order.productDetails || 'Product 1',
-                qty: "1",
-                price: order.orderValue,
-                sku: "SKU001"
-              }
-            ],
-            courier_id: "1",
-            collectable_amount: order.paymentType === 'COD' ? String(order.orderValue) : "0"
-          };
-        }
+        return NextResponse.json({ success: true, awb: finalAwb, eta: etaString, courier: 'XpressBees', charge });
 
-        try {
-          const manifestUrl = xbConfig.manifestUrl || 'https://apishipmentmanifestation.xbees.in/shipmentmanifestation/forward';
-          const targetUrl = authType === 'new' ? manifestUrl : `${baseUrl}/shipments2`;
-
-          const headersObj: Record<string, string> = {
-            'Content-Type': 'application/json'
-          };
-          if (authType === 'new') {
-            headersObj['token'] = token;
-            headersObj['xbkey'] = xbConfig.xbKey || '';
-          } else {
-            headersObj['Authorization'] = `Bearer ${token}`;
-          }
-
-          const bookRes = await fetch(targetUrl, {
-            method: 'POST',
-            headers: headersObj,
-            body: JSON.stringify(bookingPayload)
-          });
-
-          responseText = await bookRes.text();
-          try {
-            bookingResponseData = JSON.parse(responseText);
-          } catch (e) {
-            bookingResponseData = { error: responseText, status: false };
-          }
-
-          if (retries > 0 && authType === 'new' && (bookingResponseData.ReturnMessage?.toLowerCase().includes('token') || bookingResponseData.ReturnCode === 103)) {
-            console.log("Token expired/invalid during manifest booking. Retrying...");
-            retries--;
-            continue;
-          }
-
-          isSuccess = bookRes.ok && (authType === 'new' ? (bookingResponseData.status === true || bookingResponseData.ReturnCode === 100 || responseText.toLowerCase().includes('success')) : bookingResponseData.status === true);
-
-          await db.addCourierLog({
-            id: `cl-xb-manifest-${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            courier: 'XpressBees',
-            action: authType === 'new' ? 'Forward Manifesting' : 'Create Shipment',
-            requestPayload: JSON.stringify(bookingPayload, null, 2),
-            responsePayload: JSON.stringify(bookingResponseData, null, 2),
-            status: isSuccess ? 'Success' : 'Error'
-          });
-
-          if (!isSuccess) {
-            return NextResponse.json({ error: `XpressBees API booking failed: ${bookingResponseData.message || bookingResponseData.ReturnMessage || bookingResponseData.rmk || responseText}` }, { status: 400 });
-          }
-
-          if (authType !== 'new') {
-            finalAwb = bookingResponseData.data?.awb_number || '';
-          }
-
-          const etaDays = 3;
-          const etaDate = new Date();
-          etaDate.setDate(etaDate.getDate() + etaDays);
-          const etaString = etaDate.toISOString().split('T')[0];
-          const charge = 55 + (weight || order.weight) * 25 + (paymentType === 'COD' ? 35 : 0);
-
-          order.awb = finalAwb;
-          order.courier = 'XpressBees';
-          order.eta = etaString;
-          order.updatedAt = new Date().toISOString();
-          await db.saveOrder(order);
-
-          return NextResponse.json({ success: true, awb: finalAwb, eta: etaString, courier: 'XpressBees', charge });
-
-        } catch (err: any) {
-          if (retries > 0) {
-            retries--;
-            continue;
-          }
-          await db.addCourierLog({
-            id: `cl-xb-manifest-fail-${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            courier: 'XpressBees',
-            action: authType === 'new' ? 'Forward Manifesting' : 'Create Shipment',
-            requestPayload: JSON.stringify(bookingPayload, null, 2),
-            responsePayload: JSON.stringify({ error: err.message || err }, null, 2),
-            status: 'Error'
-          });
-          return NextResponse.json({ error: `XpressBees booking network error: ${err.message}` }, { status: 500 });
-        }
+      } catch (err: any) {
+        await db.addCourierLog({
+          id: `cl-xb-manifest-fail-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          courier: 'XpressBees',
+          action: authType === 'new' ? 'Forward Manifesting' : 'Create Shipment',
+          requestPayload: JSON.stringify(bookingPayload, null, 2),
+          responsePayload: JSON.stringify({ error: err.message || err }, null, 2),
+          status: 'Error'
+        });
+        return NextResponse.json({ error: `XpressBees booking network error: ${err.message}` }, { status: 500 });
       }
     }
 
@@ -1507,7 +1404,7 @@ export async function POST(request: Request) {
               alternate_phone: '',
               address_line_1: settings.dtdcConfig.address || settings.xpressbeesConfig.address || 'J.K. NAGAR, NANDLALPUR HATHRAS ROAD KUBERPUR',
               address_line_2: settings.dtdcConfig.address2 || settings.xpressbeesConfig.address2 || 'Kuberpur',
-              pincode: settings.dtdcConfig.pincode || settings.xpressbeesConfig.pincode || '282007',
+              pincode: settings.dtdcConfig.pincode || settings.xpressbeesConfig.pincode || '282006',
               city: settings.dtdcConfig.city || settings.xpressbeesConfig.city || 'Agra',
               state: settings.dtdcConfig.state || settings.xpressbeesConfig.state || 'Uttar Pradesh'
             },

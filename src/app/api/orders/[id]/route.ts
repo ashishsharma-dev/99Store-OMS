@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { Order, OrderStatus, NdrRecord } from '@/lib/types';
 import { triggerWhatsAppNotification } from '@/lib/whatsapp';
-import { POST as handleCourierBooking } from '@/app/api/integrations/courier/route';
 
 export async function GET(
   request: Request,
@@ -87,7 +86,7 @@ export async function PATCH(
     if (targetStatus === 'Label Generated' && !order.awb) {
       const selectedCourier = courier || order.courier || 'DTDC';
       try {
-        const fakeReq = new Request(`${baseUrl}/api/integrations/courier`, {
+        const courierRes = await fetch(`${baseUrl}/api/integrations/courier`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -100,7 +99,6 @@ export async function PATCH(
             pincode: order.pincode
           })
         });
-        const courierRes = await handleCourierBooking(fakeReq);
         const courierData = await courierRes.json();
 
         if (courierRes.ok && courierData.success) {
