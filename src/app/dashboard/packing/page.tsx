@@ -240,7 +240,7 @@ export default function Packing() {
     fetchPackingQueue();
   };
 
-  const handleSimulatePrint = () => {
+  const handlePrint = () => {
     window.print();
   };
 
@@ -541,8 +541,9 @@ export default function Packing() {
                 {printingOrders.map((order, idx) => (
                   <div 
                     key={order.id}
+                    className="thermal-shipping-label"
                     style={{ 
-                      width: '4.5in', // matches target dimensions closely
+                      width: '4in', // matches target dimensions closely (4in)
                       backgroundColor: '#FFFFFF',
                       pageBreakAfter: 'always',
                       marginBottom: idx < printingOrders.length - 1 ? '20px' : '0'
@@ -565,7 +566,7 @@ export default function Packing() {
               </button>
               
               <button 
-                onClick={handleSimulatePrint} 
+                onClick={handlePrint} 
                 className="premium-btn premium-btn-primary" 
                 style={{ backgroundColor: '#000', color: '#FFF', border: 'none', padding: '6px 12px' }}
               >

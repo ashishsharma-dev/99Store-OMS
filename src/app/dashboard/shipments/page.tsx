@@ -15,6 +15,7 @@ import {
   Printer
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
+import { InspectTooltipButton } from '@/components/InspectTooltipButton';
 
 export default function AllShipments() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -291,14 +292,7 @@ export default function AllShipments() {
                         </span>
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <button
-                          onClick={() => openOrderDetail(o)}
-                          className="premium-btn premium-btn-secondary"
-                          style={{ padding: '6px 10px', fontSize: '12px' }}
-                        >
-                          <Eye size={12} />
-                          <span>Inspect</span>
-                        </button>
+                        <InspectTooltipButton order={o} onClick={() => openOrderDetail(o)} iconSize={12} padding="6px 10px" showText={true} />
                       </td>
                     </tr>
                   );

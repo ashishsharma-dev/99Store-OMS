@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
 import { HealvitaShippingLabel } from '@/components/HealvitaShippingLabel';
+import { InspectTooltipButton } from '@/components/InspectTooltipButton';
 
 export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -344,7 +345,7 @@ export default function Orders() {
     setShowPrintLabel(true);
   };
 
-  const handleSimulatePrint = () => {
+  const handlePrint = () => {
     window.print();
   };
 
@@ -647,14 +648,7 @@ export default function Orders() {
                           >
                             <Copy size={14} />
                           </button>
-                          <button
-                            onClick={() => openOrderDetail(o)}
-                            className="premium-btn premium-btn-secondary"
-                            style={{ padding: '6px 8px', fontSize: '12px' }}
-                            title="View Full Order Details"
-                          >
-                            <Eye size={14} />
-                          </button>
+                          <InspectTooltipButton order={o} onClick={() => openOrderDetail(o)} />
                           <button
                             onClick={() => handleDeleteOrder(o)}
                             className="premium-btn premium-btn-danger"
@@ -1002,7 +996,7 @@ export default function Orders() {
         <div className="premium-modal-backdrop">
           <div className="premium-modal" style={{ maxWidth: '520px', backgroundColor: '#FFFFFF', color: '#000000', border: '2px solid #000000' }}>
             {/* Real Visual Shipping Invoice Label Card */}
-            <div id="printable-shipping-label" style={{ padding: '20px', backgroundColor: '#FFFFFF' }}>
+            <div id="printable-shipping-label" className="thermal-shipping-label" style={{ padding: '0', backgroundColor: '#FFFFFF', width: '4in', margin: '0 auto' }}>
               <HealvitaShippingLabel order={printingOrder} />
             </div>
 
@@ -1017,12 +1011,12 @@ export default function Orders() {
               </button>
               
               <button 
-                onClick={handleSimulatePrint} 
+                onClick={handlePrint} 
                 className="premium-btn premium-btn-primary" 
                 style={{ backgroundColor: '#000', color: '#FFF', border: 'none', padding: '6px 12px' }}
               >
                 <Printer size={14} />
-                <span>Simulate Print API</span>
+                <span>Print Label</span>
               </button>
             </div>
 

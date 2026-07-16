@@ -19,6 +19,7 @@ import {
   Clock
 } from 'lucide-react';
 import { Order, OrderStatus, User as DbUser } from '@/lib/types';
+import { InspectTooltipButton } from '@/components/InspectTooltipButton';
 
 export default function OfdManagement() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -491,14 +492,7 @@ export default function OfdManagement() {
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '6px', justifyContent: 'flex-end' }}>
-                          <button
-                            onClick={() => openOrderDetail(o)}
-                            className="premium-btn premium-btn-secondary"
-                            style={{ padding: '6px 8px', fontSize: '12px' }}
-                            title="View Full Order Details"
-                          >
-                            <Eye size={14} />
-                          </button>
+                          <InspectTooltipButton order={o} onClick={() => openOrderDetail(o)} />
                           <button
                             onClick={() => { setSelectedOrderForRemark(o); setNewRemarkInput(''); setShowAddRemarkModal(true); }}
                             className="premium-btn premium-btn-secondary"
@@ -627,14 +621,7 @@ export default function OfdManagement() {
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '6px', justifyContent: 'flex-end' }}>
-                          <button
-                            onClick={() => openOrderDetail(o)}
-                            className="premium-btn premium-btn-secondary"
-                            style={{ padding: '6px 8px', fontSize: '12px' }}
-                            title="View Full Order Details"
-                          >
-                            <Eye size={14} />
-                          </button>
+                          <InspectTooltipButton order={o} onClick={() => openOrderDetail(o)} />
                           <button
                             onClick={() => { setSelectedOrderForRemark(o); setNewRemarkInput(''); setShowAddRemarkModal(true); }}
                             className="premium-btn premium-btn-secondary"

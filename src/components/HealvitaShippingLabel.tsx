@@ -24,7 +24,7 @@ CODE39_MAP['*'] = '100101101101';
 const Code39Barcode = ({ value, height = 45 }: { value: string; height?: number }) => {
   const cleanValue = (value || 'PENDING').toUpperCase().replace(/[^0-9A-Z\-\.\ \$\/\+\%]/g, '');
   const barcodeText = `*${cleanValue}*`;
-  
+
   let pattern = '';
   for (let i = 0; i < barcodeText.length; i++) {
     const char = barcodeText[i];
@@ -64,9 +64,9 @@ function numberToWords(num: number): string {
   ];
   const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
   const g = ['', 'Thousand', 'Million', 'Billion'];
-  
+
   if (num === 0) return 'Zero';
-  
+
   const makeGroup = (n: number) => {
     let s = '';
     if (n >= 100) {
@@ -82,11 +82,11 @@ function numberToWords(num: number): string {
     }
     return s;
   };
-  
+
   let i = 0;
   let word = '';
   let integerPart = Math.floor(num);
-  
+
   while (integerPart > 0) {
     let rem = integerPart % 1000;
     if (rem > 0) {
@@ -95,7 +95,7 @@ function numberToWords(num: number): string {
     integerPart = Math.floor(integerPart / 1000);
     i++;
   }
-  
+
   return word.trim() + ' Only';
 }
 
@@ -106,7 +106,7 @@ interface HealvitaShippingLabelProps {
 
 export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippingLabelProps) => {
   const finalPhone = phoneSelection || order.phonePrimary;
-  
+
   // Format dates: DD-MM-YYYY
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -122,11 +122,11 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
   const orderDate = formatDate(order.createdAt);
 
   const amountToCollect = order.paymentType === 'COD' ? order.orderValue : 0;
-  
+
   // Tax calculations
   const orderVal = order.orderValue || 0;
   const isHaryana = (order.state || '').toLowerCase().includes('haryana');
-  
+
   // Assume 18% GST (9% CGST + 9% SGST or 18% IGST)
   const taxableValue = parseFloat((orderVal / 1.18).toFixed(2));
   const totalTax = parseFloat((orderVal - taxableValue).toFixed(2));
@@ -153,7 +153,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
       fontSize: '10px',
       lineHeight: '1.2'
     }}>
-      
+
       {/* 1. Header Box */}
       <div style={{
         display: 'grid',
@@ -165,13 +165,15 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
         {/* Logo and brand name */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderRight: '1px solid #000000', paddingRight: '6px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <svg width="28" height="28" viewBox="0 0 100 100" fill="none">
-              <path d="M50 5C50 5 80 15 80 45C80 75 50 95 50 95C50 95 20 75 20 45C20 15 50 5 50 5Z" fill="#E53E3E" stroke="#000" strokeWidth="4"/>
-              <path d="M50 15C50 15 72 23 72 45C72 67 50 82 50 82C50 82 28 67 28 45C28 23 50 15 50 15Z" fill="#FFF"/>
-              <path d="M38 30 V60 H44 V48 H56 V60 H62 V30 H56 V42 H44 V30 H38 Z" fill="#E53E3E"/>
-            </svg>
+            {/* <svg width="28" height="28" viewBox="0 0 100 100" fill="none">
+              <path d="M50 5C50 5 80 15 80 45C80 75 50 95 50 95C50 95 20 75 20 45C20 15 50 5 50 5Z" fill="#E53E3E" stroke="#000" strokeWidth="4" />
+              <path d="M50 15C50 15 72 23 72 45C72 67 50 82 50 82C50 82 28 67 28 45C28 23 50 15 50 15Z" fill="#FFF" />
+              <path d="M38 30 V60 H44 V48 H56 V60 H62 V30 H56 V42 H44 V30 H38 Z" fill="#E53E3E" />
+            </svg> */}
+
+            <img style={{ width: '40px', marginRight: '10px' }} src="/99-logo.png" loading="eager" alt="99Store Logo" />
             <div style={{ textAlign: 'left' }}>
-              <h2 style={{ fontSize: '15px', fontWeight: 900, margin: 0, color: '#000000', fontFamily: 'Arial, sans-serif', letterSpacing: '-0.5px' }}>HEALVITA</h2>
+              <h2 style={{ fontSize: '15px', fontWeight: 900, margin: 0, color: '#000000', fontFamily: 'Arial, sans-serif', letterSpacing: '-0.5px' }}>99Store</h2>
               <span style={{ fontSize: '7px', fontWeight: 'bold', display: 'block', color: '#000000', marginTop: '-2px' }}>HEALTH & WELLNESS</span>
             </div>
           </div>
@@ -219,7 +221,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
             Original for Recipient
           </span>
           <span style={{ fontSize: '8px', fontWeight: 'bold', margin: '4px 0 2px 0', display: 'block' }}>
-            GSTIN: 27ABCDE1234F1Z5
+            GSTIN: 09GQCPS4557N1ZX
           </span>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', color: '#2F855A', fontSize: '7.5px', fontWeight: 'bold' }}>
             <span style={{ fontSize: '10px' }}>✔</span> COMPLIANT
@@ -242,7 +244,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
           <div style={{ fontSize: '8.5px', marginTop: '2px' }}>
             <div><strong>Name</strong> : <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>{order.customerName}</span></div>
             <div style={{ display: 'flex', marginTop: '2px' }}>
-              <strong style={{ minWidth: '45px' }}>Address</strong> : 
+              <strong style={{ minWidth: '45px' }}>Address</strong> :
               <span style={{ paddingLeft: '4px', lineHeight: '1.2' }}>
                 {order.address}, {order.area}, {order.state} - <strong>{order.pincode}</strong>
               </span>
@@ -313,9 +315,9 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
             gap: '4px'
           }}>
             💵 {order.paymentType === 'COD' ? (
-              <span><strong>COLLECT CASH ONLY</strong><br/>PLEASE COLLECT EXACT AMOUNT</span>
+              <span><strong>COLLECT CASH ONLY</strong><br />PLEASE COLLECT EXACT AMOUNT</span>
             ) : (
-              <span style={{ color: '#2F855A' }}><strong>PREPAID - DO NOT COLLECT CASH</strong><br/>THANK YOU FOR SHOPPING!</span>
+              <span style={{ color: '#2F855A' }}><strong>PREPAID - DO NOT COLLECT CASH</strong><br />THANK YOU FOR SHOPPING!</span>
             )}
           </div>
         </div>
@@ -345,7 +347,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
               {order.courier || 'DTDC'}
             </span>
           </div>
-          
+
           {/* Barcode component */}
           <div style={{ width: '100%', margin: '2px 0' }}>
             <Code39Barcode value={trackingAwb} height={38} />
@@ -383,7 +385,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', paddingLeft: '4px' }}>
-            <img src={qrCodeUrl} alt="Scan QR" style={{ width: '56px', height: '56px', border: '1px solid #E2E8F0' }} />
+            <img src={qrCodeUrl} alt="Scan QR" loading="eager" style={{ width: '56px', height: '56px', border: '1px solid #E2E8F0' }} />
           </div>
         </div>
       </div>
@@ -427,11 +429,12 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
             👤 SENDER DETAILS
           </div>
           <div style={{ fontSize: '7.5px', lineHeight: '1.2', marginTop: '2px' }}>
-            <div style={{ fontWeight: 'bold' }}>HealVita Healthcare Pvt. Ltd.</div>
-            <div>Plot No. 48, Sector 5, IMT Manesar</div>
-            <div>Gurugram, Haryana - 122050</div>
-            <div>Mobile : 1800-123-4567</div>
-            <div><strong>GSTIN</strong> : 06ABCDE1234F1Z5</div>
+            <div style={{ fontWeight: 'bold' }}>Shivay Ayurveda</div>
+            <div>Plot No. 25 Dwarika Dham Colony</div>
+            <div>Hathras Road Agra UP 282006</div>
+            <div>Mobile : 9027953133</div>
+            <div><strong>GSTIN</strong> : 09GQCPS4557N1ZX</div>
+            <div><strong>FSSAI</strong> : 22726113002151</div>
           </div>
         </div>
 
@@ -440,7 +443,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
           <div style={{ backgroundColor: '#000000', color: '#FFFFFF', padding: '1px 6px', borderRadius: '2px', fontSize: '7.5px', fontWeight: 'bold', width: 'fit-content' }}>
             📦 PRODUCT DESCRIPTION
           </div>
-          
+
           <table style={{ width: '100%', fontSize: '7.5px', borderCollapse: 'collapse', marginTop: '2px' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #000000', textAlign: 'left', fontWeight: 'bold' }}>
@@ -454,7 +457,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
                 <td style={{ padding: '1px 0', fontWeight: 'bold' }}>
                   {order.productDetails || 'Wellness Premium Supplements'}
                 </td>
-                <td style={{ padding: '1px 2px', textAlign: 'right' }}>21069099</td>
+                <td style={{ padding: '1px 2px', textAlign: 'right' }}>3004</td>
                 <td style={{ padding: '1px 0', textAlign: 'right', fontWeight: 'bold' }}>1</td>
               </tr>
             </tbody>
@@ -487,7 +490,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
               <td style={{ borderRight: '1px solid #000000', padding: '3px', fontWeight: 'bold' }}>
                 {order.productDetails || 'Wellness Premium Supplements'}
               </td>
-              <td style={{ borderRight: '1px solid #000000', padding: '3px', textAlign: 'center' }}>21069099</td>
+              <td style={{ borderRight: '1px solid #000000', padding: '3px', textAlign: 'center' }}>3004</td>
               <td style={{ borderRight: '1px solid #000000', padding: '3px', textAlign: 'center' }}>1</td>
               <td style={{ borderRight: '1px solid #000000', padding: '3px', textAlign: 'right' }}>{taxableValue.toFixed(2)}</td>
               <td style={{ borderRight: '1px solid #000000', padding: '3px', textAlign: 'right' }}>{taxableValue.toFixed(2)}</td>
@@ -500,10 +503,10 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
             <tr>
               <td colSpan={4} rowSpan={5} style={{ borderRight: '1px solid #000000', padding: '4px', verticalAlign: 'top' }}>
                 <div style={{ fontSize: '7.5px' }}>
-                  <strong>Amount in Words:</strong><br/>
+                  <strong>Amount in Words:</strong><br />
                   <span style={{ fontWeight: 'bold', textTransform: 'capitalize' }}>{amountInWords}</span>
                 </div>
-                
+
                 {/* Visual badges */}
                 <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
                   <div style={{ border: '1px solid #000000', padding: '1px 3px', borderRadius: '2px', fontSize: '6px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '1px' }}>
@@ -551,10 +554,11 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
           <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '2px', marginBottom: '2px' }}>
             🔄 RETURN / RTO ADDRESS
           </div>
-          <div>HealVita Healthcare Pvt. Ltd.</div>
-          <div>Plot No. 48, Sector 5, IMT Manesar</div>
-          <div>Gurugram, Haryana - 122050</div>
-          <div>Mobile: 1800-123-4567</div>
+          <div>Shivay Ayurveda</div>
+          <div>Plot No. 25 Dwarika Dham Colony</div>
+          <div>Hathras Road Agra UP 282006</div>
+          <div>Mobile: 9027953133</div>
+          <div><strong>FSSAI</strong> : 22726113002151</div>
         </div>
 
         {/* Handle with care */}
@@ -562,13 +566,13 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
           <span style={{ fontWeight: 'bold', fontSize: '6.5px', textTransform: 'uppercase' }}>Handle With Care</span>
           <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
             <div style={{ border: '1px solid #000000', padding: '2px', borderRadius: '2px', textAlign: 'center', minWidth: '30px' }}>
-              🍷<br/><span style={{ fontSize: '4.5px', fontWeight: 'bold' }}>FRAGILE</span>
+              🍷<br /><span style={{ fontSize: '4.5px', fontWeight: 'bold' }}>FRAGILE</span>
             </div>
             <div style={{ border: '1px solid #000000', padding: '2px', borderRadius: '2px', textAlign: 'center', minWidth: '30px' }}>
-              ↑↑<br/><span style={{ fontSize: '4.5px', fontWeight: 'bold' }}>THIS SIDE UP</span>
+              ↑↑<br /><span style={{ fontSize: '4.5px', fontWeight: 'bold' }}>THIS SIDE UP</span>
             </div>
             <div style={{ border: '1px solid #000000', padding: '2px', borderRadius: '2px', textAlign: 'center', minWidth: '30px' }}>
-              ☂<br/><span style={{ fontSize: '4.5px', fontWeight: 'bold' }}>KEEP DRY</span>
+              ☂<br /><span style={{ fontSize: '4.5px', fontWeight: 'bold' }}>KEEP DRY</span>
             </div>
           </div>
         </div>
@@ -576,9 +580,9 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
         {/* Customer Care */}
         <div style={{ paddingLeft: '6px', display: 'flex', flexWrap: 'wrap', gap: '2px' }}>
           <div style={{ fontWeight: 'bold', width: '100%' }}>🎧 CUSTOMER CARE</div>
-          <div style={{ width: '100%' }}>📞 1800-123-4567</div>
-          <div style={{ width: '100%', wordBreak: 'break-all' }}>✉ support@healvita.com</div>
-          <div style={{ width: '100%' }}>🌐 www.healvita.com</div>
+          <div style={{ width: '100%' }}>📞 9027953133</div>
+          <div style={{ width: '100%', wordBreak: 'break-all' }}>✉ customercare@viatvi.com</div>
+          <div style={{ width: '100%' }}>🌐 www.viatvi.com</div>
         </div>
       </div>
 
@@ -592,7 +596,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
         fontWeight: 'bold',
         letterSpacing: '0.5px'
       }}>
-        THANK YOU FOR CHOOSING HEALVITA ❤️ YOUR TRUST IS OUR STRENGTH
+        THANK YOU FOR CHOOSING SHIVAY AYURVEDA ❤️ YOUR TRUST IS OUR STRENGTH
       </div>
 
     </div>

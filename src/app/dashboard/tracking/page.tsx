@@ -182,7 +182,7 @@ export default function Tracking() {
     setShowPrintLabel(true);
   };
 
-  const handleSimulatePrint = () => {
+  const handlePrint = () => {
     window.print();
   };
 
@@ -194,7 +194,7 @@ export default function Tracking() {
         <div>
           <h1 style={{ fontSize: '28px', color: '#FAFAFA' }}>Fulfillment & Dispatch Logistics</h1>
           <p style={{ color: '#737373', fontSize: '13.5px', marginTop: '4px' }}>
-            Live courier tracking console, simulated status overrides, and automated customer updates.
+            Live courier tracking console and automated customer status updates.
           </p>
         </div>
 
@@ -508,134 +508,7 @@ export default function Tracking() {
                 </div>
               )}
 
-              {/* Simulation Action Console Board */}
-              <div style={{
-                marginTop: '16px',
-                borderTop: '1px solid var(--border)',
-                paddingTop: '20px'
-              }}>
-                <h4 style={{ fontSize: '12px', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Clock size={12} />
-                  <span>Interactive Courier Simulation Commands Console</span>
-                </h4>
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {/* Dispatched state triggers */}
-                  {selectedOrder.status === 'Label Generated' && (
-                    <button
-                      onClick={() => handleUpdateStatus('Dispatched', 'Handed over to pickup agent.')}
-                      className="premium-btn premium-btn-primary"
-                      disabled={actionLoading}
-                      style={{ fontSize: '12.5px', padding: '6px 12px' }}
-                    >
-                      🚚 Set Dispatched
-                    </button>
-                  )}
-
-                  {['Dispatched', 'NDR'].includes(selectedOrder.status) && (
-                    <button
-                      onClick={() => handleUpdateStatus('OFD', 'Package out for delivery. Alternate contact updated.')}
-                      className="premium-btn premium-btn-primary"
-                      disabled={actionLoading}
-                      style={{ fontSize: '12.5px', padding: '6px 12px', backgroundColor: 'var(--color-vip)', borderColor: 'var(--color-vip)', color: '#000' }}
-                    >
-                      🛵 Set Out for Delivery (OFD)
-                    </button>
-                  )}
-
-                  {selectedOrder.status === 'OFD' && (
-                    <>
-                      <button
-                        onClick={() => handleUpdateStatus('Delivered', 'Delivered. Cash reconciled.')}
-                        className="premium-btn premium-btn-primary"
-                        disabled={actionLoading}
-                        style={{ fontSize: '12.5px', padding: '6px 12px', backgroundColor: 'var(--color-paid)', borderColor: 'var(--color-paid)' }}
-                      >
-                        ✅ Set Delivered
-                      </button>
-
-                      <button
-                        onClick={() => setShowNdrReasonSelect(true)}
-                        className="premium-btn premium-btn-danger"
-                        disabled={actionLoading}
-                        style={{ fontSize: '12.5px', padding: '6px 12px' }}
-                      >
-                        ⚠️ Set NDR Exception (Fail)
-                      </button>
-                    </>
-                  )}
-
-                  {/* Return trigger */}
-                  {['NDR', 'Dispatched', 'OFD'].includes(selectedOrder.status) && (
-                    <button
-                      onClick={() => handleUpdateStatus('Return', 'Initiating RTO back to warehouse.')}
-                      className="premium-btn premium-btn-secondary"
-                      disabled={actionLoading}
-                      style={{ fontSize: '12.5px', padding: '6px 12px', color: '#EF6868', borderColor: '#EF6868' }}
-                    >
-                      🔄 Set Return to Origin (RTO)
-                    </button>
-                  )}
-                </div>
-
-                {/* Select NDR Reason Modal block */}
-                {showNdrReasonSelect && (
-                  <div style={{
-                    marginTop: '16px',
-                    backgroundColor: '#111113',
-                    border: '1px solid #E11D48',
-                    borderRadius: '6px',
-                    padding: '16px',
-                    animation: 'fadeIn 0.2s ease'
-                  }}>
-                    <h5 style={{ fontSize: '12.5px', color: '#FAFAFA', fontWeight: 600, marginBottom: '10px' }}>
-                      Select NDR Exception Reason Code
-                    </h5>
-                    
-                    <select
-                      className="premium-input"
-                      style={{ padding: '6px 12px', fontSize: '13px', marginBottom: '12px' }}
-                      value={ndrReason}
-                      onChange={(e) => setNdrReason(e.target.value)}
-                    >
-                      <option value="Customer phone out of reach / Switched off">Customer phone out of reach / Switched off</option>
-                      <option value="Customer refused delivery of COD package">Customer refused delivery of COD package</option>
-                      <option value="Incorrect delivery address provided">Incorrect delivery address provided</option>
-                      <option value="Door locked / Nobody home at address">Door locked / Nobody home at address</option>
-                      <option value="Customer requested delivery postponement">Customer requested delivery postponement</option>
-                    </select>
-
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                      <button onClick={() => setShowNdrReasonSelect(false)} className="premium-btn premium-btn-secondary" style={{ padding: '4px 10px', fontSize: '12px' }}>Cancel</button>
-                      <button 
-                        onClick={() => handleUpdateStatus('NDR', `Courier report: Failed delivery attempt. Reason: ${ndrReason}`)} 
-                        className="premium-btn premium-btn-primary" 
-                        style={{ padding: '4px 10px', fontSize: '12px', backgroundColor: '#E11D48', borderColor: '#E11D48' }}
-                      >
-                        Confirm NDR Exception
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Informative block showing automation side effects */}
-              <div style={{
-                backgroundColor: '#111113',
-                border: '1px solid var(--border)',
-                borderRadius: '6px',
-                padding: '12px 14px',
-                fontSize: '12px',
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '8px',
-                color: '#8A8A8A'
-              }}>
-                <Clock size={16} style={{ flexShrink: 0, marginTop: '2px', color: '#FAFAFA' }} />
-                <div>
-                  <strong>Automated Triggers:</strong> Modifying status above immediately sends simulated WhatsApp messages to the customer primary and secondary numbers, logs courier events, and registers NDR exception files.
-                </div>
-              </div>
 
             </div>
           ) : (
@@ -643,7 +516,7 @@ export default function Tracking() {
               <Truck size={36} style={{ color: 'var(--border-focus)', marginBottom: '14px' }} />
               <h3>No Shipment Selected</h3>
               <p style={{ fontSize: '12.5px', marginTop: '6px' }}>
-                Select a shipment from the left queue list to examine its fulfillment timeline and trigger courier simulations commands.
+                Select a shipment from the left queue list to examine its fulfillment timeline.
               </p>
             </div>
           )}
@@ -656,7 +529,7 @@ export default function Tracking() {
         <div className="premium-modal-backdrop">
           <div className="premium-modal" style={{ maxWidth: '520px', backgroundColor: '#FFFFFF', color: '#000000', border: '2px solid #000000' }}>
             {/* Real Visual Shipping Invoice Label Card */}
-            <div id="printable-shipping-label" style={{ padding: '20px', backgroundColor: '#FFFFFF' }}>
+            <div id="printable-shipping-label" className="thermal-shipping-label" style={{ padding: '0', backgroundColor: '#FFFFFF', width: '4in', margin: '0 auto' }}>
               <HealvitaShippingLabel order={printingOrder} />
             </div>
 
@@ -671,12 +544,12 @@ export default function Tracking() {
               </button>
               
               <button 
-                onClick={handleSimulatePrint} 
+                onClick={handlePrint} 
                 className="premium-btn premium-btn-primary" 
                 style={{ backgroundColor: '#000', color: '#FFF', border: 'none', padding: '6px 12px' }}
               >
                 <Printer size={14} />
-                <span>Simulate Print API</span>
+                <span>Print Label</span>
               </button>
             </div>
 

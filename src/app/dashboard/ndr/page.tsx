@@ -22,6 +22,7 @@ import {
   Clock
 } from 'lucide-react';
 import { NdrRecord, Order, User as DbUser } from '@/lib/types';
+import { InspectTooltipButton } from '@/components/InspectTooltipButton';
 
 export default function NdrManagement() {
   const [ndrRecords, setNdrRecords] = useState<NdrRecord[]>([]);
@@ -686,14 +687,7 @@ export default function NdrManagement() {
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '6px', justifyContent: 'flex-end' }}>
                           {order && (
-                            <button
-                              onClick={() => openOrderDetail(order)}
-                              className="premium-btn premium-btn-secondary"
-                              style={{ padding: '6px 8px', fontSize: '12px' }}
-                              title="View Full Order Details"
-                            >
-                              <Eye size={14} />
-                            </button>
+                            <InspectTooltipButton order={order} onClick={() => openOrderDetail(order)} />
                           )}
                           <button
                             onClick={() => { setSelectedNdrForRemark(n); setNewRemarkInput(''); setShowAddRemarkModal(true); }}
@@ -823,14 +817,7 @@ export default function NdrManagement() {
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '6px', justifyContent: 'flex-end' }}>
                           {order && (
-                            <button
-                              onClick={() => openOrderDetail(order)}
-                              className="premium-btn premium-btn-secondary"
-                              style={{ padding: '6px 8px', fontSize: '12px' }}
-                              title="View Full Order Details"
-                            >
-                              <Eye size={14} />
-                            </button>
+                            <InspectTooltipButton order={order} onClick={() => openOrderDetail(order)} />
                           )}
                           <button
                             onClick={() => { setSelectedNdrForRemark(n); setNewRemarkInput(''); setShowAddRemarkModal(true); }}
