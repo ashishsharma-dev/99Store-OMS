@@ -72,6 +72,55 @@ export default function NdrManagement() {
     setShowDetailModal(true);
   };
 
+  const getDynamicEdt = (order: Order, ndrRecord: NdrRecord) => {
+    if (order.status === 'Delivered') return null;
+
+    if (ndrRecord.reattemptDate) {
+      return ndrRecord.reattemptDate;
+    }
+    if (order.futureDeliveryDate) {
+      return order.futureDeliveryDate;
+    }
+    if (order.ndrAction === 'Arranged') {
+      return new Date().toISOString().split('T')[0];
+    }
+    if (order.ndrAction === 'Arranged for Tomorrow') {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return tomorrow.toISOString().split('T')[0];
+    }
+
+    let currentEta = order.eta;
+    const isValidDate = (d: string | undefined): d is string => !!d && /^\d{4}-\d{2}-\d{2}$/.test(d);
+    if (!isValidDate(currentEta)) {
+      try {
+        const createdDate = new Date(order.createdAt);
+        createdDate.setDate(createdDate.getDate() + 3);
+        currentEta = createdDate.toISOString().split('T')[0];
+      } catch (e) {
+        currentEta = new Date().toISOString().split('T')[0];
+      }
+    }
+
+    try {
+      const etaDate = new Date(currentEta);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (etaDate.getTime() < today.getTime()) {
+        if (order.status === 'OFD') {
+          return today.toISOString().split('T')[0];
+        }
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return tomorrow.toISOString().split('T')[0];
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    return currentEta;
+  };
+
   const handleAddRemarkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const target = selectedNdrForRemark || timelineNdr;
@@ -374,6 +423,7 @@ export default function NdrManagement() {
               inNdrWorkingSheet: false,
               ndrAction: actionDropdown,
               futureDeliveryDate: actionDropdown === 'Future Delivery' ? futureDeliveryDate : undefined,
+              eta: targetReattemptDate,
               updatedBy: currentUser?.username || 'ndr_operator',
               remarks: `NDR Action applied: ${actionDropdown}. Removed from NDR working queue.`
             })
@@ -602,10 +652,10 @@ export default function NdrManagement() {
                                 {order.current_status}
                               </span>
                             )}
-                            {order.eta && (
+                            {order.status !== 'Delivered' && getDynamicEdt(order, n) && (
                               <span style={{ fontSize: '10px', color: '#10B981', display: 'inline-flex', alignItems: 'center', gap: '2px' }} title="Estimated Delivery Date (EDT)">
                                 <Clock size={10} />
-                                <span>EDT: {order.eta}</span>
+                                <span>EDT: {getDynamicEdt(order, n)}</span>
                               </span>
                             )}
                           </div>
@@ -734,10 +784,10 @@ export default function NdrManagement() {
                                 {order.current_status}
                               </span>
                             )}
-                            {order.eta && (
+                            {order.status !== 'Delivered' && getDynamicEdt(order, n) && (
                               <span style={{ fontSize: '10px', color: '#10B981', display: 'inline-flex', alignItems: 'center', gap: '2px' }} title="Estimated Delivery Date (EDT)">
                                 <Clock size={10} />
-                                <span>EDT: {order.eta}</span>
+                                <span>EDT: {getDynamicEdt(order, n)}</span>
                               </span>
                             )}
                           </div>

@@ -55,6 +55,46 @@ export default function OfdManagement() {
     setShowDetailModal(true);
   };
 
+  const getDynamicEdt = (order: Order) => {
+    if (order.status === 'Delivered') return null;
+    
+    // For OFD, the delivery is expected today
+    if (order.status === 'OFD') {
+      return new Date().toISOString().split('T')[0];
+    }
+    
+    if (order.futureDeliveryDate) {
+      return order.futureDeliveryDate;
+    }
+    
+    let currentEta = order.eta;
+    const isValidDate = (d: string | undefined): d is string => !!d && /^\d{4}-\d{2}-\d{2}$/.test(d);
+    if (!isValidDate(currentEta)) {
+      try {
+        const createdDate = new Date(order.createdAt);
+        createdDate.setDate(createdDate.getDate() + 3);
+        currentEta = createdDate.toISOString().split('T')[0];
+      } catch (e) {
+        currentEta = new Date().toISOString().split('T')[0];
+      }
+    }
+
+    try {
+      const etaDate = new Date(currentEta);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (etaDate.getTime() < today.getTime()) {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return tomorrow.toISOString().split('T')[0];
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    return currentEta;
+  };
+
   const handleAddOfdRemarkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const target = selectedOrderForRemark || timelineOrder;
@@ -357,6 +397,7 @@ export default function OfdManagement() {
                   </th>
                   <th>Order ID</th>
                   <th>Customer Recipient</th>
+                  <th>Status</th>
                   <th>Courier / AWB</th>
                   <th>Destination Hub</th>
                   <th>Latest Remark</th>
@@ -398,12 +439,14 @@ export default function OfdManagement() {
                       <td style={{ fontWeight: 700, fontFamily: 'monospace' }}>{o.orderId}</td>
                       <td>
                         <div style={{ fontWeight: 500 }}>{o.customerName}</div>
-                        <div style={{ fontSize: '11px', color: '#737373' }}>Primary Tel: {o.phonePrimary}</div>
+                        <div style={{ fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+                          <span style={{ color: '#FAFAFA' }}>📞 {o.phonePrimary} (Primary)</span>
+                          {o.phoneSecondary && <span style={{ color: '#A3A3A3' }}>📞 {o.phoneSecondary} (Secondary)</span>}
+                          {o.phoneTertiary && <span style={{ color: '#A3A3A3' }}>📞 {o.phoneTertiary} (Tertiary)</span>}
+                        </div>
                       </td>
                       <td>
-                        <div style={{ fontWeight: 500 }}>{o.courier}</div>
-                        <div style={{ fontSize: '11px', color: '#8A8A8A', fontFamily: 'monospace' }}>{o.awb}</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
                           <span className={`premium-badge status-${o.status.toLowerCase().replace(' ', '')}`} style={{ fontSize: '9px', padding: '1px 4px' }}>
                             {o.status}
                           </span>
@@ -412,13 +455,19 @@ export default function OfdManagement() {
                               {o.current_status}
                             </span>
                           )}
-                          {o.eta && (
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 500 }}>{o.courier}</div>
+                        <div style={{ fontSize: '11px', color: '#8A8A8A', fontFamily: 'monospace' }}>{o.awb}</div>
+                        {o.status !== 'Delivered' && getDynamicEdt(o) && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px', alignItems: 'center' }}>
                             <span style={{ fontSize: '10px', color: '#10B981', display: 'inline-flex', alignItems: 'center', gap: '2px' }} title="Estimated Delivery Date (EDT)">
                               <Clock size={10} />
-                              <span>EDT: {o.eta}</span>
+                              <span>EDT: {getDynamicEdt(o)}</span>
                             </span>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </td>
                       <td>
                         <div>{o.area}</div>
@@ -489,6 +538,7 @@ export default function OfdManagement() {
                 <tr>
                   <th>Order ID</th>
                   <th>Customer Recipient</th>
+                  <th>Status</th>
                   <th>Courier / AWB</th>
                   <th>Assigned Rider</th>
                   <th>Fulfillment Details</th>
@@ -523,12 +573,14 @@ export default function OfdManagement() {
                       <td style={{ fontWeight: 700, fontFamily: 'monospace' }}>{o.orderId}</td>
                       <td>
                         <div style={{ fontWeight: 500 }}>{o.customerName}</div>
-                        <div style={{ fontSize: '11px', color: '#737373' }}>Tel: {o.phonePrimary}</div>
+                        <div style={{ fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+                          <span style={{ color: '#FAFAFA' }}>📞 {o.phonePrimary} (Primary)</span>
+                          {o.phoneSecondary && <span style={{ color: '#A3A3A3' }}>📞 {o.phoneSecondary} (Secondary)</span>}
+                          {o.phoneTertiary && <span style={{ color: '#A3A3A3' }}>📞 {o.phoneTertiary} (Tertiary)</span>}
+                        </div>
                       </td>
                       <td>
-                        <div style={{ fontWeight: 500 }}>{o.courier}</div>
-                        <div style={{ fontSize: '11px', color: '#8A8A8A', fontFamily: 'monospace' }}>{o.awb}</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
                           <span className={`premium-badge status-${o.status.toLowerCase().replace(' ', '')}`} style={{ fontSize: '9px', padding: '1px 4px' }}>
                             {o.status}
                           </span>
@@ -537,13 +589,19 @@ export default function OfdManagement() {
                               {o.current_status}
                             </span>
                           )}
-                          {o.eta && (
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 500 }}>{o.courier}</div>
+                        <div style={{ fontSize: '11px', color: '#8A8A8A', fontFamily: 'monospace' }}>{o.awb}</div>
+                        {o.status !== 'Delivered' && getDynamicEdt(o) && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px', alignItems: 'center' }}>
                             <span style={{ fontSize: '10px', color: '#10B981', display: 'inline-flex', alignItems: 'center', gap: '2px' }} title="Estimated Delivery Date (EDT)">
                               <Clock size={10} />
-                              <span>EDT: {o.eta}</span>
+                              <span>EDT: {getDynamicEdt(o)}</span>
                             </span>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </td>
                       <td style={{ fontWeight: 'bold', color: '#FAFAFA' }}>
                         👤 {o.assignedTo}

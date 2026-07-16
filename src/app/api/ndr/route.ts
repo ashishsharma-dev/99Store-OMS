@@ -64,6 +64,9 @@ export async function POST(request: Request) {
       if (order) {
         order.status = 'Dispatched';
         order.updatedAt = now;
+        if (reattemptDate) {
+          order.eta = reattemptDate;
+        }
         order.history.push({
           status: 'Dispatched',
           timestamp: now,
