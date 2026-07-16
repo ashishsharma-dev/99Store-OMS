@@ -52,8 +52,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Please enter a valid 6-digit OTP.' }, { status: 400 });
     }
 
-    // Check for standard bypass or real OTP
-    const isBypass = otp === '999999';
+    // Check for standard bypass or real OTP or env variable bypass
+    const isBypass = otp === '999999' || process.env.DISABLE_OTP === 'true';
     if (!isBypass) {
       if (!user.tempOtp || user.tempOtp !== otp) {
         return NextResponse.json({ error: 'Incorrect OTP code.' }, { status: 401 });

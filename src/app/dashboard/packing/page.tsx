@@ -12,6 +12,7 @@ import {
   Barcode
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
+import { ShippingLabel } from '@/components/ShippingLabel';
 
 export default function Packing() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -32,6 +33,7 @@ export default function Packing() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [processingOrderId, setProcessingOrderId] = useState<string | null>(null);
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, activeTask: '', currentOrder: '' });
 
   // Module 4: Bulk Logistics header dropdown filters
   const [courierFilter, setCourierFilter] = useState<string>('all');
@@ -158,37 +160,58 @@ export default function Packing() {
   // BULK ACTIONS
   const handleBulkGenerateLabels = async () => {
     if (selectedIds.length === 0) return;
-    setBulkProcessing(true);
 
     const pendingAWB = orders.filter(o => selectedIds.includes(o.id) && !o.awb);
     if (pendingAWB.length === 0) {
       alert('No selected orders require AWB generation.');
-      setBulkProcessing(false);
       return;
     }
 
-    let successCount = 0;
-    for (const order of pendingAWB) {
-      const selectedCourier = courierOverrides[order.id] || order.courier || 'DTDC';
-      const targetPhone = phoneSelections[order.id] || order.phonePrimary;
+    setBulkProgress({ current: 0, total: pendingAWB.length, activeTask: 'Generating Bulk AWB Labels', currentOrder: '' });
+    setBulkProcessing(true);
 
-      try {
-        const res = await fetch(`/api/orders/${order.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            status: 'Label Generated',
-            courier: selectedCourier,
-            phonePrimary: targetPhone,
-            updatedBy: currentUser?.username || 'packing_operator',
-            remarks: `Bulk Packed items verified. Routing via ${selectedCourier} with phone ${targetPhone}.`
-          })
-        });
-        if (res.ok) successCount++;
-      } catch (err) {
-        console.error(err);
-      }
+    let successCount = 0;
+    const batchSize = 5;
+
+    for (let i = 0; i < pendingAWB.length; i += batchSize) {
+      const chunk = pendingAWB.slice(i, i + batchSize);
+      
+      setBulkProgress(prev => ({
+        ...prev,
+        current: i,
+        currentOrder: chunk.map(o => o.orderId).join(', ')
+      }));
+
+      const results = await Promise.all(
+        chunk.map(async (order) => {
+          const selectedCourier = courierOverrides[order.id] || order.courier || 'DTDC';
+          const targetPhone = phoneSelections[order.id] || order.phonePrimary;
+
+          try {
+            const res = await fetch(`/api/orders/${order.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                status: 'Label Generated',
+                courier: selectedCourier,
+                phonePrimary: targetPhone,
+                updatedBy: currentUser?.username || 'packing_operator',
+                remarks: `Bulk Packed items verified. Routing via ${selectedCourier} with phone ${targetPhone}.`
+              })
+            });
+            return res.ok;
+          } catch (err) {
+            console.error(err);
+            return false;
+          }
+        })
+      );
+
+      successCount += results.filter(Boolean).length;
     }
+
+    setBulkProgress(prev => ({ ...prev, current: pendingAWB.length }));
+    await new Promise(r => setTimeout(r, 600));
 
     alert(`Bulk AWB Generation complete. Successfully generated ${successCount} of ${pendingAWB.length} labels.`);
     setBulkProcessing(false);
@@ -207,32 +230,53 @@ export default function Packing() {
 
   const handleBulkDispatch = async () => {
     if (selectedIds.length === 0) return;
-    setBulkProcessing(true);
 
     const dispatchable = orders.filter(o => selectedIds.includes(o.id) && o.status === 'Label Generated' && o.awb);
     if (dispatchable.length === 0) {
       alert('No selected orders are ready for dispatch (must be "Label Generated" with AWB).');
-      setBulkProcessing(false);
       return;
     }
 
+    setBulkProgress({ current: 0, total: dispatchable.length, activeTask: 'Dispatching Bulk Packages', currentOrder: '' });
+    setBulkProcessing(true);
+
     let successCount = 0;
-    for (const order of dispatchable) {
-      try {
-        const res = await fetch(`/api/orders/${order.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            status: 'Dispatched',
-            updatedBy: currentUser?.username || 'packing_operator',
-            remarks: `Bulk Dispatch: Package marked as Dispatched with AWB ${order.awb}.`
-          })
-        });
-        if (res.ok) successCount++;
-      } catch (err) {
-        console.error(err);
-      }
+    const batchSize = 5;
+
+    for (let i = 0; i < dispatchable.length; i += batchSize) {
+      const chunk = dispatchable.slice(i, i + batchSize);
+      
+      setBulkProgress(prev => ({
+        ...prev,
+        current: i,
+        currentOrder: chunk.map(o => `${o.orderId} (${o.awb})`).join(', ')
+      }));
+
+      const results = await Promise.all(
+        chunk.map(async (order) => {
+          try {
+            const res = await fetch(`/api/orders/${order.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                status: 'Dispatched',
+                updatedBy: currentUser?.username || 'packing_operator',
+                remarks: `Bulk Dispatch: Package marked as Dispatched with AWB ${order.awb}.`
+              })
+            });
+            return res.ok;
+          } catch (err) {
+            console.error(err);
+            return false;
+          }
+        })
+      );
+
+      successCount += results.filter(Boolean).length;
     }
+
+    setBulkProgress(prev => ({ ...prev, current: dispatchable.length }));
+    await new Promise(r => setTimeout(r, 600));
 
     alert(`Bulk Dispatch complete. Successfully dispatched ${successCount} of ${dispatchable.length} packages.`);
     setBulkProcessing(false);
@@ -540,94 +584,11 @@ export default function Packing() {
                 {printingOrders.map((order, idx) => (
                   <div 
                     key={order.id} 
-                    className="thermal-shipping-label"
                     style={{ 
-                      width: '4in', 
-                      height: '6in', 
-                      backgroundColor: '#FFFFFF', 
-                      color: '#000000', 
-                      border: '2px solid #000000',
-                      boxSizing: 'border-box',
-                      padding: '16px',
-                      fontFamily: 'monospace',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '10px',
-                      pageBreakAfter: 'always',
                       marginBottom: idx < printingOrders.length - 1 ? '20px' : '0' // spacing only in dashboard preview
                     }}
                   >
-                    
-                    {/* Header */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #000000', paddingBottom: '6px', alignItems: 'center' }}>
-                      <div>
-                        <h2 style={{ fontSize: '15px', fontWeight: 900, fontFamily: 'sans-serif', letterSpacing: '0.02em', margin: 0 }}>99STORE</h2>
-                        <span style={{ fontSize: '8px' }}>LOGISTICS CENTER</span>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '11px', fontWeight: 'bold', border: '2px solid #000000', padding: '1px 4px', textTransform: 'uppercase' }}>
-                          {order.paymentType}
-                        </div>
-                        {order.isVip && <span style={{ fontSize: '9px', fontWeight: 'bold' }}>⭐ VIP</span>}
-                      </div>
-                    </div>
-
-                    {/* Courier and AWB */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', borderBottom: '2px solid #000000', paddingBottom: '6px', fontSize: '11px' }}>
-                      <div>
-                        <span style={{ fontSize: '8px', display: 'block', color: '#555' }}>COURIER:</span>
-                        <span style={{ fontWeight: 'bold' }}>{order.courier || 'DTDC'}</span>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontSize: '8px', display: 'block', color: '#555' }}>AWB NUMBER:</span>
-                        <span style={{ fontWeight: 'bold' }}>{order.awb || 'N/A'}</span>
-                      </div>
-                    </div>
-
-                    {/* Barcode representation */}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', borderBottom: '2px solid #000000', paddingBottom: '8px' }}>
-                      <div style={{ width: '100%', height: '30px', display: 'flex', gap: '1px', backgroundColor: '#FFFFFF' }}>
-                        {Array.from({ length: 42 }).map((_, i) => {
-                          const widths = [1, 2, 3, 1, 2, 1];
-                          const w = widths[i % widths.length];
-                          return (
-                            <div key={i} style={{ flexGrow: w, height: '100%', backgroundColor: i % 3 === 0 ? '#FFFFFF' : '#000000' }} />
-                          );
-                        })}
-                      </div>
-                      <span style={{ fontSize: '10px', fontWeight: 'bold', letterSpacing: '0.05em' }}>*{order.awb}*</span>
-                    </div>
-
-                    {/* Destination Address */}
-                    <div style={{ borderBottom: '2px solid #000000', paddingBottom: '6px', fontSize: '10.5px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                      <span style={{ fontSize: '8px', display: 'block', color: '#555', marginBottom: '2px' }}>SHIP TO:</span>
-                      <div style={{ fontWeight: 'bold', fontSize: '11px', marginBottom: '2px' }}>{order.customerName}</div>
-                      <div style={{ lineHeight: '1.2', maxHeight: '38px', overflow: 'hidden' }}>{order.address}</div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '4px' }}>
-                        <span>PIN: {order.pincode}</span>
-                        <span>TEL: {phoneSelections[order.id] || order.phonePrimary}</span>
-                      </div>
-                    </div>
-
-                    {/* Footer values and Weight */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', fontSize: '10px', paddingTop: '4px' }}>
-                      <div>
-                        <span style={{ fontSize: '8px', display: 'block', color: '#555' }}>PRODUCT DETAILS:</span>
-                        <span style={{ fontWeight: 'bold', fontSize: '9px', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>
-                          {order.productDetails}
-                        </span>
-                        <span style={{ fontSize: '8px' }}>Weight: {order.weight} kg</span>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontSize: '8px', display: 'block', color: '#555' }}>COLLECT CHARGES:</span>
-                        <span style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                          {order.paymentType === 'COD' 
-                            ? `₹${(order.finalPayableAmount !== undefined ? order.finalPayableAmount : order.orderValue).toFixed(2)}` 
-                            : '₹0.00 (PAID)'}
-                        </span>
-                      </div>
-                    </div>
-
+                    <ShippingLabel order={order} phoneOverride={phoneSelections[order.id]} />
                   </div>
                 ))}
               </div>
@@ -654,6 +615,122 @@ export default function Packing() {
             </div>
 
           </div>
+        </div>
+      )}
+      {bulkProcessing && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'var(--card)',
+            border: '1px solid var(--border)',
+            borderRadius: '16px',
+            padding: '32px',
+            width: '100%',
+            maxWidth: '420px',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.8)',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '20px'
+          }}>
+            {/* Spinning Indicator */}
+            <div style={{ position: 'relative', width: '80px', height: '80px' }}>
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                borderRadius: '50%',
+                border: '4px solid rgba(255, 255, 255, 0.05)',
+                borderTopColor: '#E53E3E'
+              }} className="animate-spin-custom" />
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '16px',
+                fontWeight: 800,
+                color: 'var(--foreground)'
+              }}>
+                {bulkProgress.total > 0 ? Math.round((bulkProgress.current / bulkProgress.total) * 100) : 0}%
+              </div>
+            </div>
+
+            {/* Task Details */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0, color: 'var(--foreground)' }}>
+                {bulkProgress.activeTask}
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--muted-foreground)', margin: 0 }}>
+                Processing {bulkProgress.current} of {bulkProgress.total} orders...
+              </p>
+              {bulkProgress.currentOrder && (
+                <div style={{
+                  fontSize: '11px',
+                  fontFamily: 'monospace',
+                  color: '#E53E3E',
+                  backgroundColor: 'rgba(229, 62, 62, 0.05)',
+                  padding: '4px 10px',
+                  borderRadius: '4px',
+                  marginTop: '4px',
+                  display: 'inline-block'
+                }}>
+                  Current: {bulkProgress.currentOrder}
+                </div>
+              )}
+            </div>
+
+            {/* Progress Bar Track */}
+            <div style={{
+              width: '100%',
+              height: '6px',
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: '3px',
+              overflow: 'hidden',
+              position: 'relative'
+            }}>
+              <div style={{
+                height: '100%',
+                width: `${bulkProgress.total > 0 ? (bulkProgress.current / bulkProgress.total) * 100 : 0}%`,
+                backgroundColor: '#E53E3E',
+                transition: 'width 0.3s ease',
+                borderRadius: '3px'
+              }} />
+            </div>
+
+            <span style={{ fontSize: '11px', color: 'var(--muted-foreground)' }}>
+              Please do not close this tab or refresh the page.
+            </span>
+          </div>
+
+          <style dangerouslySetInnerHTML={{__html: `
+            .animate-spin-custom {
+              animation: spin-custom 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+            }
+            @keyframes spin-custom {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}} />
         </div>
       )}
 

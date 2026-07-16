@@ -5,7 +5,7 @@ const tokenCache: Record<string, { token: string; expiresAt: number }> = {};
  * Retrieves a cached XpressBees JWT login token or fetches a new one if expired.
  * Tokens are cached for 12 hours per account email.
  */
-export async function getXpressBeesToken(rawConfig: any): Promise<string> {
+export async function getXpressBeesToken(rawConfig: any, forceFresh?: boolean): Promise<string> {
   const config = resolveXpressBeesConfig(rawConfig);
   const baseUrl = config.baseUrl || 'https://shipment.xpressbees.com/api';
   const email = config.email;
@@ -21,7 +21,7 @@ export async function getXpressBeesToken(rawConfig: any): Promise<string> {
 
   // Check if token exists in cache and hasn't expired yet
   const now = Date.now();
-  if (tokenCache[email] && now < tokenCache[email].expiresAt) {
+  if (!forceFresh && tokenCache[email] && now < tokenCache[email].expiresAt) {
     return tokenCache[email].token;
   }
 
