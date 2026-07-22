@@ -42,14 +42,14 @@ graph TD
 
         subgraph Core_Services ["Core Library Services"]
             DbAdapter["db.ts (Atomic JSON Adapter)"]
-            WhatsAppService["whatsapp.ts (MetaExperts API Gateway)"]
+            WhatsAppService["whatsapp.ts (Deropo API Gateway)"]
             XpressBeesAuth["xpressbees.ts (JWT Caching service)"]
         end
     end
 
     %% Database & External APIs
     JsonDb[("data/db.json (Atomic File DB)")]
-    MetaExperts[("MetaExperts WhatsApp API")]
+    Deropo[("Deropo WhatsApp API")]
     DelhiveryAPI[("Delhivery REST API")]
     XpressBeesAPI[("XpressBees REST API")]
 
@@ -61,7 +61,7 @@ graph TD
     API_Courier --> DelhiveryAPI
     API_Courier --> XpressBeesAPI
     API_Pincode --> DelhiveryAPI
-    WhatsAppService --> MetaExperts
+    WhatsAppService --> Deropo
 ```
 
 ---
@@ -94,7 +94,7 @@ The project utilizes the following core technology layers:
     *   [types.ts](file:///c:/Users/OMK%20Developer/Downloads/99StoreOMSV2/src/lib/types.ts): Data contract model definitions.
     *   [db.ts](file:///c:/Users/OMK%20Developer/Downloads/99StoreOMSV2/src/lib/db.ts): Atomically synchronized read/write functions for flat-file JSON management.
     *   [mockData.ts](file:///c:/Users/OMK%20Developer/Downloads/99StoreOMSV2/src/lib/mockData.ts): Default seed datasets.
-    *   [whatsapp.ts](file:///c:/Users/OMK%20Developer/Downloads/99StoreOMSV2/src/lib/whatsapp.ts): MetaExperts WhatsApp message dispatcher.
+    *   [whatsapp.ts](file:///c:/Users/OMK%20Developer/Downloads/99StoreOMSV2/src/lib/whatsapp.ts): Deropo WhatsApp message dispatcher.
     *   [xpressbees.ts](file:///c:/Users/OMK%20Developer/Downloads/99StoreOMSV2/src/lib/xpressbees.ts): Auth token retriever with a 12-hour memory cache.
 
 ---
@@ -234,7 +234,7 @@ When an Order Team agent inputs a pincode in the Order Entry form, an API call q
     *   `8xxxx` $\rightarrow$ Bihar/Jharkhand
 
 ### 5.4 WhatsApp Notification Gateway
-Integrated via [whatsapp.ts](file:///c:/Users/OMK%20Developer/Downloads/99StoreOMSV2/src/lib/whatsapp.ts), status transitions trigger automated templates sent to MetaExperts API.
+Integrated via [whatsapp.ts](file:///c:/Users/OMK%20Developer/Downloads/99StoreOMSV2/src/lib/whatsapp.ts), status transitions trigger automated templates sent to Deropo WhatsApp API.
 
 ```
 Recipient Number Sanitization:

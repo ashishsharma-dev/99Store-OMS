@@ -1,11 +1,9 @@
 import { db } from '@/lib/db';
 import { WhatsAppLog } from '@/lib/types';
 
-// MetaExperts WhatsApp API Credentials
-const API_URL = 'https://metaexperts.in/api/send';
-const INSTANCE_ID = '6A4374650741D';
-const ACCESS_TOKEN = '685694fd67a5b';
-const IMAGE_URL = 'https://i.postimg.cc/NjY3VRz6/WEBLOCKIN.png';
+// Deropo WhatsApp API Credentials (configured via environment variables)
+const API_URL = process.env.WHATSAPP_API_URL || 'https://api.deropo.com/api/send';
+const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || '3b2f4ed700862bc1f29cd7eb7f832983';
 
 async function sendWhatsAppMessage(phone: string, messageText: string): Promise<{ success: boolean; error?: string }> {
   try {
@@ -20,18 +18,22 @@ async function sendWhatsAppMessage(phone: string, messageText: string): Promise<
       return { success: false, error: 'Invalid phone number' };
     }
 
-    // 3. Make real fetch request to MetaExperts API
+    // 3. Make fetch request to WhatsApp API
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    if (ACCESS_TOKEN) {
+      headers['X-Access-Token'] = ACCESS_TOKEN;
+    }
+
     const res = await fetch(API_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         number: cleanPhone,
         type: 'text',
         message: messageText,
-        instance_id: INSTANCE_ID,
-        access_token: ACCESS_TOKEN,
       }),
     });
 
@@ -42,7 +44,7 @@ async function sendWhatsAppMessage(phone: string, messageText: string): Promise<
 
     try {
       const data = JSON.parse(responseText);
-      if (data.status && data.status.toLowerCase() === 'success') {
+      if (data.success === true || (data.status && data.status.toLowerCase() === 'success')) {
         return { success: true };
       } else {
         return { success: false, error: data.message || 'Gateway issue' };
@@ -54,6 +56,7 @@ async function sendWhatsAppMessage(phone: string, messageText: string): Promise<
     return { success: false, error: err.message || 'Network request failed' };
   }
 }
+
 
 export interface TriggerWhatsAppParams {
   orderId: string;

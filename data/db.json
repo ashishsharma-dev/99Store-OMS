@@ -2216,7 +2216,7 @@
       "xbKey": "JnueT39994Dyats",
       "vendorCode": "VEND001",
       "serviceType": "NDD",
-      "authType": "new",
+      "authType": "old",
       "tokenUrl": "https://userauthapis.xbees.in/api/auth/generateToken",
       "manifestUrl": "https://apishipmentmanifestation.xbees.in/shipmentmanifestation/forward",
       "awbGenUrl": "https://xbclientapi.xbees.in/POSTShipmentService.svc/AWBNumberSeriesGeneration",
