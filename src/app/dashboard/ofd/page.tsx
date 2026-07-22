@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Order, OrderStatus, User as DbUser } from '@/lib/types';
 import { InspectTooltipButton } from '@/components/InspectTooltipButton';
+import { CourierLogo } from '@/components/CourierLogo';
 
 export default function OfdManagement() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -459,7 +460,9 @@ export default function OfdManagement() {
                         </div>
                       </td>
                       <td>
-                        <div style={{ fontWeight: 500 }}>{o.courier}</div>
+                        <div style={{ fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <CourierLogo courier={o.courier} size={14} />
+                        </div>
                         <div style={{ fontSize: '11px', color: '#8A8A8A', fontFamily: 'monospace' }}>{o.awb}</div>
                         {o.status !== 'Delivered' && getDynamicEdt(o) && (
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px', alignItems: 'center' }}>
@@ -912,7 +915,11 @@ export default function OfdManagement() {
 
                 <div>
                   <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Fulfillment Courier / AWB</span>
-                  <span>{detailOrder.courier || 'Unassigned'} / <span style={{ fontFamily: 'monospace' }}>{detailOrder.awb || 'N/A'}</span></span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <CourierLogo courier={detailOrder.courier} size={14} />
+                    <span>/</span>
+                    <span style={{ fontFamily: 'monospace' }}>{detailOrder.awb || 'N/A'}</span>
+                  </div>
                 </div>
                 <div>
                   <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Delivery Agent contact (FE)</span>

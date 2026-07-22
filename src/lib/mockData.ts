@@ -120,6 +120,7 @@ export const mockSettings: SystemSettings = {
     pincode: '282001',
     phone: '9999999999',
     vendorCode: 'VEND001',
+    businessAccountName: 'Shivay Air',
     serviceType: 'NDD',
     authType: 'new',
     tokenUrl: 'https://userauthapis.xbees.in/api/auth/generateToken',
@@ -136,7 +137,8 @@ export const mockSettings: SystemSettings = {
     apiKey: 'dlv_live_tok_99store_fe839db0',
     priority: 3,
     clientName: 'SOM ENTERPRISES',
-    pickupLocation: 'Default Pickup Location'
+    pickupLocation: 'Default Pickup Location',
+    shippingMode: 'Surface'
   },
   velocityConfig: {
     username: 'shivaynew66@gmail.com',

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
 import { HealvitaShippingLabel } from '@/components/HealvitaShippingLabel';
+import { CourierLogo } from '@/components/CourierLogo';
 
 export default function Tracking() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -270,8 +271,12 @@ export default function Tracking() {
                         </span>
                       </div>
                       
-                      <div style={{ fontSize: '12px', color: '#737373', marginTop: '6px' }}>
-                        {o.customerName} | {o.courier}: <span style={{ fontFamily: 'monospace' }}>{o.awb}</span>
+                      <div style={{ fontSize: '12px', color: '#737373', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                        <span>{o.customerName}</span>
+                        <span>|</span>
+                        <CourierLogo courier={o.courier} size={14} />
+                        <span>:</span>
+                        <span style={{ fontFamily: 'monospace' }}>{o.awb}</span>
                       </div>
 
                       {(o.eta || o.current_status) && (
@@ -335,8 +340,13 @@ export default function Tracking() {
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: '11px', color: '#737373', marginTop: '6px', fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
-                    <span>AWB: {selectedOrder.awb || 'N/A'} ({selectedOrder.courier})</span>
+                  <div style={{ fontSize: '11px', color: '#737373', marginTop: '6px', fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <span>AWB: {selectedOrder.awb || 'N/A'}</span>
+                      <span>(</span>
+                      <CourierLogo courier={selectedOrder.courier} size={12} />
+                      <span>)</span>
+                    </span>
                     {selectedOrder.awb && (
                       <button
                         onClick={() => handlePrintLabel(selectedOrder)}
@@ -371,7 +381,10 @@ export default function Tracking() {
                     <div style={{ width: '13px', height: '13px', borderRadius: '50%', backgroundColor: 'var(--color-paid)', border: '2px solid #000', zIndex: 1 }} />
                     <div>
                       <div style={{ fontSize: '13px', fontWeight: 600, color: '#FAFAFA' }}>Order Created & Verified</div>
-                      <div style={{ fontSize: '11px', color: '#737373', marginTop: '2px' }}>Auto-routed to {selectedOrder.courier || 'assigned courier'}</div>
+                      <div style={{ fontSize: '11px', color: '#737373', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span>Auto-routed to</span>
+                        <CourierLogo courier={selectedOrder.courier} size={12} />
+                      </div>
                     </div>
                   </div>
 

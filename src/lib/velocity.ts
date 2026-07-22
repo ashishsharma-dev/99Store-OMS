@@ -143,7 +143,7 @@ export async function bookVelocityOrder(
     ],
     payment_method: finalPaymentType === 'COD' ? 'COD' : 'PREPAID',
     sub_total: order.orderValue,
-    cod_collectible: finalPaymentType === 'COD' ? order.orderValue : 0,
+    cod_collectible: finalPaymentType === 'COD' ? (order.orderValue - (order.partiallyPaidAmount || 0)) : 0,
     length: 10,
     breadth: 10,
     height: 10,

@@ -212,6 +212,7 @@ export interface SystemSettings {
     pincode?: string;
     phone?: string;
     vendorCode?: string;
+    businessAccountName?: string;
     serviceType?: string;
     authType?: string;
     tokenUrl?: string;
@@ -229,6 +230,7 @@ export interface SystemSettings {
     priority: number;
     clientName?: string;
     pickupLocation?: string;
+    shippingMode?: 'Express' | 'Surface';
   };
   velocityConfig: {
     username?: string;

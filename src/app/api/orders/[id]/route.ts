@@ -94,7 +94,7 @@ export async function PATCH(
             courier: selectedCourier,
             weight: order.weight,
             paymentType: order.paymentType,
-            codAmount: order.orderValue,
+            codAmount: order.orderValue - (order.partiallyPaidAmount || 0),
             customerName: order.customerName,
             pincode: order.pincode
           })

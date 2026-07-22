@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { CourierLogo } from '@/components/CourierLogo';
 
 interface TrackingHistoryItem {
   status: string;
@@ -240,10 +241,11 @@ function TrackingContent() {
               {trackingData.awb && (
                 <div>
                   <span style={{ fontSize: '11px', color: '#8A8A8A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Courier & AWB</span>
-                  <h3 style={{ fontSize: '18px', fontWeight: 850, margin: '2px 0 0 0' }}>
-                    <span style={{ textTransform: 'uppercase', color: '#E53E3E', marginRight: '6px' }}>{trackingData.courier}</span>
-                    {trackingData.awb}
-                  </h3>
+                  <h3 style={{ fontSize: '18px', fontWeight: 850, margin: '2px 0 0 0', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                     <CourierLogo courier={trackingData.courier} size={16} />
+                     <span>-</span>
+                     <span>{trackingData.awb}</span>
+                   </h3>
                 </div>
               )}
               <div>

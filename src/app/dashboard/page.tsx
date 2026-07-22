@@ -14,6 +14,7 @@ import {
   TrendingDown
 } from 'lucide-react';
 import { Order } from '@/lib/types';
+import { CourierLogo } from '@/components/CourierLogo';
 
 export default function Dashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -310,8 +311,10 @@ export default function Dashboard() {
               const pct = (c.count / maxCourierCount) * 100;
               return (
                 <div key={c.name}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
-                    <span style={{ color: '#FAFAFA', fontWeight: 500 }}>{c.name}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px', alignItems: 'center' }}>
+                    <span style={{ color: '#FAFAFA', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <CourierLogo courier={c.name} size={14} />
+                    </span>
                     <span style={{ color: '#737373' }}>{c.count} shipments</span>
                   </div>
                   <div style={{

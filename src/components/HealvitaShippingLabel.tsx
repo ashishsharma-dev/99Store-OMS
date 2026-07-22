@@ -121,7 +121,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
   const invoiceDate = formatDate(order.createdAt);
   const orderDate = formatDate(order.createdAt);
 
-  const amountToCollect = order.paymentType === 'COD' ? order.orderValue : 0;
+  const amountToCollect = order.paymentType === 'COD' ? (order.orderValue - (order.partiallyPaidAmount || 0)) : 0;
 
   // Tax calculations
   const orderVal = order.orderValue || 0;
@@ -300,7 +300,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
             padding: '2px 0',
             borderBottom: '1px solid #E2E8F0'
           }}>
-            ₹{orderVal.toFixed(2)}
+            ₹{amountToCollect.toFixed(2)}
           </div>
 
           {/* Cash collector instructions */}

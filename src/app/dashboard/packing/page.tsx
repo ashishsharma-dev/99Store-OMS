@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
 import { HealvitaShippingLabel } from '@/components/HealvitaShippingLabel';
+import { CourierLogo } from '@/components/CourierLogo';
 
 export default function Packing() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -33,6 +34,14 @@ export default function Packing() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [processingOrderId, setProcessingOrderId] = useState<string | null>(null);
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({
+    total: 0,
+    current: 0,
+    success: 0,
+    failed: 0,
+    activeOrder: '',
+    completedList: [] as { orderId: string; success: boolean; message: string }[]
+  });
 
   // Module 4: Bulk Logistics header dropdown filters
   const [courierFilter, setCourierFilter] = useState<string>('all');
@@ -159,39 +168,99 @@ export default function Packing() {
   // BULK ACTIONS
   const handleBulkGenerateLabels = async () => {
     if (selectedIds.length === 0) return;
-    setBulkProcessing(true);
 
     const pendingAWB = orders.filter(o => selectedIds.includes(o.id) && !o.awb);
     if (pendingAWB.length === 0) {
       alert('No selected orders require AWB generation.');
-      setBulkProcessing(false);
       return;
     }
 
+    setBulkProgress({
+      total: pendingAWB.length,
+      current: 0,
+      success: 0,
+      failed: 0,
+      activeOrder: '',
+      completedList: []
+    });
+    setBulkProcessing(true);
+
+    let currentIdx = 0;
     let successCount = 0;
-    for (const order of pendingAWB) {
-      const selectedCourier = courierOverrides[order.id] || order.courier || 'DTDC';
-      const targetPhone = phoneSelections[order.id] || order.phonePrimary;
+    let failedCount = 0;
+    const completedList: { orderId: string; success: boolean; message: string }[] = [];
 
-      try {
-        const res = await fetch(`/api/orders/${order.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            status: 'Label Generated',
-            courier: selectedCourier,
-            phonePrimary: targetPhone,
-            updatedBy: currentUser?.username || 'packing_operator',
-            remarks: `Bulk Packed items verified. Routing via ${selectedCourier} with phone ${targetPhone}.`
-          })
-        });
-        if (res.ok) successCount++;
-      } catch (err) {
-        console.error(err);
+    const CONCURRENCY_LIMIT = 4;
+
+    const worker = async () => {
+      while (currentIdx < pendingAWB.length) {
+        const idx = currentIdx++;
+        const order = pendingAWB[idx];
+        if (!order) continue;
+
+        setBulkProgress(prev => ({
+          ...prev,
+          activeOrder: order.orderId
+        }));
+
+        const selectedCourier = courierOverrides[order.id] || order.courier || 'DTDC';
+        const targetPhone = phoneSelections[order.id] || order.phonePrimary;
+
+        try {
+          const res = await fetch(`/api/orders/${order.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              status: 'Label Generated',
+              courier: selectedCourier,
+              phonePrimary: targetPhone,
+              updatedBy: currentUser?.username || 'packing_operator',
+              remarks: `Bulk Packed items verified. Routing via ${selectedCourier} with phone ${targetPhone}.`
+            })
+          });
+
+          if (res.ok) {
+            successCount++;
+            completedList.push({
+              orderId: order.orderId,
+              success: true,
+              message: `AWB generated successfully via ${selectedCourier}.`
+            });
+          } else {
+            failedCount++;
+            const data = await res.json().catch(() => ({}));
+            completedList.push({
+              orderId: order.orderId,
+              success: false,
+              message: data.error || `Transition error ${res.status}.`
+            });
+          }
+        } catch (err: any) {
+          failedCount++;
+          completedList.push({
+            orderId: order.orderId,
+            success: false,
+            message: err.message || 'Network connectivity error.'
+          });
+        }
+
+        setBulkProgress(prev => ({
+          ...prev,
+          current: idx + 1,
+          success: successCount,
+          failed: failedCount,
+          completedList: [...completedList]
+        }));
       }
-    }
+    };
 
-    alert(`Bulk AWB Generation complete. Successfully generated ${successCount} of ${pendingAWB.length} labels.`);
+    const workers = Array.from(
+      { length: Math.min(CONCURRENCY_LIMIT, pendingAWB.length) },
+      () => worker()
+    );
+    await Promise.all(workers);
+
+    await new Promise(resolve => setTimeout(resolve, 800));
     setBulkProcessing(false);
     fetchPackingQueue();
   };
@@ -437,7 +506,9 @@ export default function Packing() {
                             <option value="Velocity">Velocity Aggregator</option>
                           </select>
                         ) : (
-                          <span style={{ fontWeight: 500, fontSize: '12px' }}>{o.courier}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <CourierLogo courier={o.courier} size={14} />
+                          </div>
                         )}
 
                         {/* Phone selection dropdown if multiple are available */}
@@ -575,6 +646,202 @@ export default function Packing() {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen Bulk Processing Progress Modal */}
+      {bulkProcessing && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(5, 5, 8, 0.92)',
+            backdropFilter: 'blur(16px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#FAFAFA',
+            fontFamily: 'system-ui, -apple-system, sans-serif'
+          }}
+        >
+          <div 
+            style={{
+              width: '100%',
+              maxWidth: '560px',
+              backgroundColor: '#0E0E11',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '16px',
+              padding: '32px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '24px',
+              boxShadow: '0 24px 64px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Glowing radial gradient backdrop */}
+            <div 
+              style={{
+                position: 'absolute',
+                top: '-20%',
+                left: '-20%',
+                width: '140%',
+                height: '140%',
+                background: 'radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 60%)',
+                pointerEvents: 'none',
+                zIndex: 0
+              }}
+            />
+
+            {/* Circular Progress Section */}
+            <div style={{ position: 'relative', width: '130px', height: '130px', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="130" height="130" style={{ transform: 'rotate(-90deg)' }}>
+                <circle 
+                  cx="65" 
+                  cy="65" 
+                  r="54" 
+                  stroke="rgba(255, 255, 255, 0.03)" 
+                  strokeWidth="8" 
+                  fill="transparent" 
+                />
+                <circle 
+                  cx="65" 
+                  cy="65" 
+                  r="54" 
+                  stroke="#10B981" 
+                  strokeWidth="8" 
+                  fill="transparent" 
+                  strokeDasharray="339.29"
+                  strokeDashoffset={339.29 - (339.29 * (bulkProgress.current / (bulkProgress.total || 1)))}
+                  strokeLinecap="round"
+                  style={{ transition: 'stroke-dashoffset 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}
+                />
+              </svg>
+              <div 
+                style={{
+                  position: 'absolute',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <span style={{ fontSize: '28px', fontWeight: 800, color: '#FAFAFA', letterSpacing: '-0.5px' }}>
+                  {Math.round((bulkProgress.current / (bulkProgress.total || 1)) * 100)}%
+                </span>
+                <span style={{ fontSize: '10.5px', color: '#737373', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '2px' }}>
+                  Complete
+                </span>
+              </div>
+            </div>
+
+            {/* Heading Details */}
+            <div style={{ textAlign: 'center', zIndex: 1 }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: '#FAFAFA' }}>
+                Generating Bulk AWB Labels
+              </h3>
+              <p style={{ fontSize: '13px', color: '#8A8A8A', margin: '6px 0 0 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                {bulkProgress.activeOrder ? (
+                  <>
+                    <span>Processing:</span>
+                    <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#10B981' }}>{bulkProgress.activeOrder}</span>
+                  </>
+                ) : (
+                  <span>Preparing pipeline...</span>
+                )}
+              </p>
+            </div>
+
+            {/* Processing Stats Cards */}
+            <div 
+              style={{
+                width: '100%',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '12px',
+                zIndex: 1
+              }}
+            >
+              <div style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '10px', padding: '12px 8px', textAlign: 'center' }}>
+                <span style={{ fontSize: '11px', color: '#737373', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Queue</span>
+                <span style={{ fontSize: '18px', fontWeight: 750, color: '#FAFAFA', marginTop: '4px', display: 'block' }}>
+                  {bulkProgress.current} / {bulkProgress.total}
+                </span>
+              </div>
+              <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.02)', border: '1px solid rgba(16, 185, 129, 0.1)', borderRadius: '10px', padding: '12px 8px', textAlign: 'center' }}>
+                <span style={{ fontSize: '11px', color: '#10B981', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Success</span>
+                <span style={{ fontSize: '18px', fontWeight: 750, color: '#10B981', marginTop: '4px', display: 'block' }}>
+                  {bulkProgress.success}
+                </span>
+              </div>
+              <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.02)', border: '1px solid rgba(239, 68, 68, 0.1)', borderRadius: '10px', padding: '12px 8px', textAlign: 'center' }}>
+                <span style={{ fontSize: '11px', color: '#EF4444', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Failed</span>
+                <span style={{ fontSize: '18px', fontWeight: 750, color: '#EF4444', marginTop: '4px', display: 'block' }}>
+                  {bulkProgress.failed}
+                </span>
+              </div>
+            </div>
+
+            {/* Time Remaining Counter */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#A1A1AA', zIndex: 1 }}>
+              <span className="spinner spinner-sm" style={{ borderColor: 'rgba(255,255,255,0.2) rgba(255,255,255,0.2) #10B981 #10B981' }} />
+              <span>
+                {bulkProgress.current === bulkProgress.total ? (
+                  'Wrapping up...'
+                ) : (
+                  <>
+                    Estimated time remaining:{' '}
+                    <strong style={{ color: '#FAFAFA' }}>
+                      {Math.max(0, Math.ceil(((bulkProgress.total - bulkProgress.current) * 1.5) / 4))}s
+                    </strong>
+                  </>
+                )}
+              </span>
+            </div>
+
+            {/* Console Log Log Output */}
+            <div 
+              style={{
+                width: '100%',
+                height: '140px',
+                backgroundColor: '#050507',
+                border: '1px solid rgba(255,255,255,0.05)',
+                borderRadius: '10px',
+                padding: '12px',
+                fontFamily: 'monospace',
+                fontSize: '11px',
+                overflowY: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                zIndex: 1,
+                scrollBehavior: 'smooth'
+              }}
+              ref={(el) => {
+                if (el) el.scrollTop = el.scrollHeight;
+              }}
+            >
+              {bulkProgress.completedList.length === 0 ? (
+                <div style={{ color: '#55555A' }}>&gt;_ Awaiting dispatcher signals...</div>
+              ) : (
+                bulkProgress.completedList.map((logItem, idx) => (
+                  <div key={idx} style={{ display: 'flex', gap: '6px', lineHeight: '1.4' }}>
+                    <span style={{ color: logItem.success ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
+                      {logItem.success ? '✓' : '✗'}
+                    </span>
+                    <span style={{ color: '#88888D' }}>[{logItem.orderId}]</span>
+                    <span style={{ color: logItem.success ? '#E4E4E7' : '#EF6868' }}>{logItem.message}</span>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       )}

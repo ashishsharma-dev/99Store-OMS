@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
 import { InspectTooltipButton } from '@/components/InspectTooltipButton';
+import { CourierLogo } from '@/components/CourierLogo';
 
 export default function AllShipments() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -238,7 +239,9 @@ export default function AllShipments() {
                       <td>
                         {o.awb ? (
                           <div>
-                            <div style={{ fontWeight: 500, fontSize: '12.5px' }}>{o.courier}</div>
+                            <div style={{ fontWeight: 500, fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                               <CourierLogo courier={o.courier} size={14} />
+                             </div>
                             <span style={{ fontFamily: 'monospace', fontSize: '11px', color: '#8A8A8A' }}>
                               {o.awb}
                             </span>
@@ -399,7 +402,11 @@ export default function AllShipments() {
 
                 <div>
                   <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Fulfillment Courier / AWB</span>
-                  <span>{selectedOrder.courier || 'Unassigned'} / <span style={{ fontFamily: 'monospace' }}>{selectedOrder.awb || 'N/A'}</span></span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <CourierLogo courier={selectedOrder.courier} size={14} />
+                    <span>/</span>
+                    <span style={{ fontFamily: 'monospace' }}>{selectedOrder.awb || 'N/A'}</span>
+                  </div>
                 </div>
                 <div>
                   <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Delivery Agent contact (FE)</span>

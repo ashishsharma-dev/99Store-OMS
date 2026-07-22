@@ -24,6 +24,7 @@ import {
 import { Order, OrderStatus } from '@/lib/types';
 import { HealvitaShippingLabel } from '@/components/HealvitaShippingLabel';
 import { InspectTooltipButton } from '@/components/InspectTooltipButton';
+import { CourierLogo } from '@/components/CourierLogo';
 
 export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -585,7 +586,9 @@ export default function Orders() {
                       <td>
                         {o.awb ? (
                           <div>
-                            <div style={{ fontSize: '12px', fontWeight: 500 }}>{o.courier}</div>
+                            <div style={{ fontSize: '12px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <CourierLogo courier={o.courier} size={14} />
+                            </div>
                             <div style={{ fontSize: '11px', color: '#737373', fontFamily: 'monospace' }}>{o.awb}</div>
                             {o.eta && (
                               <div style={{ fontSize: '11px', color: '#10B981', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -924,7 +927,9 @@ export default function Orders() {
                 )}
                 <div>
                   <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Fulfillment Courier</span>
-                  <span>{selectedOrder.courier || 'Unassigned'}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                    <CourierLogo courier={selectedOrder.courier} size={14} />
+                  </div>
                 </div>
                 <div>
                   <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>AWB / Tracking</span>

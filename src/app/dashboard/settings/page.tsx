@@ -22,6 +22,7 @@ import {
   XCircle
 } from 'lucide-react';
 import { SystemSettings, WhatsAppLog, CourierApiLog } from '@/lib/types';
+import { CourierLogo } from '@/components/CourierLogo';
 
 export default function IntegrationsSettings() {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
@@ -71,6 +72,7 @@ export default function IntegrationsSettings() {
   const [xpressSecretKey, setXpressSecretKey] = useState('');
   const [xpressXbKey, setXpressXbKey] = useState('');
   const [xpressVendorCode, setXpressVendorCode] = useState('');
+  const [xpressBusinessAccountName, setXpressBusinessAccountName] = useState('Shivay Air');
   const [xpressServiceType, setXpressServiceType] = useState('NDD');
   const [xpressAuthType, setXpressAuthType] = useState('new');
   const [xpressTokenUrl, setXpressTokenUrl] = useState('');
@@ -86,6 +88,7 @@ export default function IntegrationsSettings() {
   const [dlvKey, setDlvKey] = useState('');
   const [dlvClientName, setDlvClientName] = useState('');
   const [dlvPickupLocation, setDlvPickupLocation] = useState('');
+  const [dlvShippingMode, setDlvShippingMode] = useState<'Express' | 'Surface'>('Surface');
 
   // DTDC Extra fields
   const [dtdcCustomerCode, setDtdcCustomerCode] = useState('');
@@ -181,6 +184,7 @@ export default function IntegrationsSettings() {
         setXpressSecretKey(s.xpressbeesConfig.secretKey || '');
         setXpressXbKey(s.xpressbeesConfig.xbKey || '');
         setXpressVendorCode(s.xpressbeesConfig.vendorCode || '');
+        setXpressBusinessAccountName(s.xpressbeesConfig.businessAccountName || 'Shivay Air');
         setXpressServiceType(s.xpressbeesConfig.serviceType || 'NDD');
         setXpressAuthType(s.xpressbeesConfig.authType || 'new');
         setXpressTokenUrl(s.xpressbeesConfig.tokenUrl || '');
@@ -195,6 +199,7 @@ export default function IntegrationsSettings() {
         setDlvKey(s.deliveryConfig.apiKey || '');
         setDlvClientName(s.deliveryConfig.clientName || '');
         setDlvPickupLocation(s.deliveryConfig.pickupLocation || '');
+        setDlvShippingMode(s.deliveryConfig.shippingMode || 'Surface');
       }
 
       if (settingsData.whatsappLogs) setWaLogs(settingsData.whatsappLogs);
@@ -267,6 +272,7 @@ export default function IntegrationsSettings() {
             secretKey: xpressSecretKey,
             xbKey: xpressXbKey,
             vendorCode: xpressVendorCode,
+            businessAccountName: xpressBusinessAccountName,
             serviceType: xpressServiceType,
             authType: xpressAuthType,
             tokenUrl: xpressTokenUrl,
@@ -282,7 +288,8 @@ export default function IntegrationsSettings() {
           deliveryConfig: {
             apiKey: dlvKey,
             clientName: dlvClientName,
-            pickupLocation: dlvPickupLocation
+            pickupLocation: dlvPickupLocation,
+            shippingMode: dlvShippingMode
           },
           velocityConfig: {
             username: velocityUsername,
@@ -706,11 +713,16 @@ export default function IntegrationsSettings() {
                           </div>
 
                           <div>
+                            <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Business Account Name</label>
+                            <input type="text" className="premium-input" placeholder="e.g. Shivay Air" value={xpressBusinessAccountName} onChange={(e) => setXpressBusinessAccountName(e.target.value)} />
+                          </div>
+
+                          <div>
                             <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Service Type</label>
                             <select className="premium-input" value={xpressServiceType} onChange={(e) => setXpressServiceType(e.target.value)}>
                               <option value="NDD">Next Day Delivery (NDD)</option>
-                              <option value="SDD">Same Day Delivery (SDD)</option>
                               <option value="SD">Standard Delivery (SD)</option>
+                              <option value="SDD">Same Day Delivery (SDD)</option>
                               <option value="IntraSDD">Intra Same Day (IntraSDD)</option>
                             </select>
                           </div>
@@ -911,6 +923,19 @@ export default function IntegrationsSettings() {
                     <div>
                       <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Pickup Location Name</label>
                       <input type="text" className="premium-input" placeholder="Default Pickup Location" value={dlvPickupLocation} onChange={(e) => setDlvPickupLocation(e.target.value)} />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Shipping Mode</label>
+                      <select 
+                        className="premium-input" 
+                        value={dlvShippingMode} 
+                        onChange={(e) => setDlvShippingMode(e.target.value as any)}
+                        style={{ height: '38px', padding: '6px 12px' }}
+                      >
+                        <option value="Express">Express (Priority / Air)</option>
+                        <option value="Surface">Surface (Ground)</option>
+                      </select>
                     </div>
                   </div>
                 )}
@@ -1338,8 +1363,8 @@ export default function IntegrationsSettings() {
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#FAFAFA', background: '#18181B', padding: '3px 8px', borderRadius: '4px', border: '1px solid #27272A' }}>
-                          {log.courier}
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#FAFAFA', background: '#18181B', padding: '3px 8px', borderRadius: '4px', border: '1px solid #27272A', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <CourierLogo courier={log.courier} size={12} />
                         </span>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: '#E4E4E7' }}>{log.action}</span>
                       </div>
