@@ -282,10 +282,14 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
             </div>
             <div style={{ lineHeight: '1.1' }}>
               <span style={{ fontSize: '6px', textTransform: 'uppercase', display: 'block' }}>
-                {(order.paymentType === 'COD' || (order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 && order.orderValue > order.partiallyPaidAmount)) ? 'COD Amount' : 'Payment Type'}
+                {order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 && order.orderValue > order.partiallyPaidAmount
+                  ? 'Balance to Collect'
+                  : (order.paymentType === 'COD' ? 'COD Amount' : 'Payment Type')}
               </span>
               <span style={{ fontSize: '8px', fontWeight: 'bold', textTransform: 'uppercase' }}>
-                {(order.paymentType === 'COD' || (order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 && order.orderValue > order.partiallyPaidAmount)) ? 'Collect Cash' : 'Prepaid'}
+                {order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 && order.orderValue > order.partiallyPaidAmount
+                  ? 'Partially Paid'
+                  : (order.paymentType === 'COD' ? 'Collect Cash' : 'Prepaid')}
               </span>
             </div>
           </div>
@@ -316,7 +320,9 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
             justifyContent: 'center',
             gap: '4px'
           }}>
-            💵 {order.paymentType === 'COD' ? (
+            💵 {order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 && order.orderValue > order.partiallyPaidAmount ? (
+              <span style={{ color: '#C05621' }}><strong>PARTIALLY PAID - COLLECT BALANCE CASH</strong><br />PLEASE COLLECT BALANCE ₹{amountToCollect.toFixed(2)}</span>
+            ) : order.paymentType === 'COD' ? (
               <span><strong>COLLECT CASH ONLY</strong><br />PLEASE COLLECT EXACT AMOUNT</span>
             ) : (
               <span style={{ color: '#2F855A' }}><strong>PREPAID - DO NOT COLLECT CASH</strong><br />THANK YOU FOR SHOPPING!</span>
