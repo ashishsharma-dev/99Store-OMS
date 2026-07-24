@@ -311,6 +311,12 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid rgba(245, 158, 11, 0.15);
 }
 
+.badge-partial {
+  background-color: rgba(245, 158, 11, 0.08);
+  color: #F59E0B;
+  border: 1px solid rgba(245, 158, 11, 0.15);
+}
+
 /* Status Badges */
 .status-created { background: rgba(161, 161, 170, 0.08); color: #A1A1AA; border: 1px solid rgba(161, 161, 170, 0.15); }
 .status-packing { background: rgba(59, 130, 246, 0.08); color: #3B82F6; border: 1px solid rgba(59, 130, 246, 0.15); }

@@ -130,18 +130,33 @@ export const InspectTooltipButton = ({
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
             <span style={{ color: '#8A8A8A' }}>Payment Type:</span>
-            <span 
-              style={{ 
-                fontSize: '9.5px', 
-                fontWeight: 600, 
-                padding: '1px 6px', 
-                borderRadius: '4px',
-                backgroundColor: order.paymentType === 'Paid' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                color: order.paymentType === 'Paid' ? '#10B981' : '#EF4444'
-              }}
-            >
-              {order.paymentType}
-            </span>
+            {order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 && order.orderValue > order.partiallyPaidAmount ? (
+              <span 
+                style={{ 
+                  fontSize: '9.5px', 
+                  fontWeight: 600, 
+                  padding: '1px 6px', 
+                  borderRadius: '4px',
+                  backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                  color: '#F59E0B'
+                }}
+              >
+                Partially Paid
+              </span>
+            ) : (
+              <span 
+                style={{ 
+                  fontSize: '9.5px', 
+                  fontWeight: 600, 
+                  padding: '1px 6px', 
+                  borderRadius: '4px',
+                  backgroundColor: order.paymentType === 'Paid' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                  color: order.paymentType === 'Paid' ? '#10B981' : '#EF4444'
+                }}
+              >
+                {order.paymentType}
+              </span>
+            )}
           </div>
           {order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 && (
             <>

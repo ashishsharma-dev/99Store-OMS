@@ -499,7 +499,7 @@ export default function Packing() {
                     <td>
                       <div>{o.productDetails}</div>
                       <span style={{ fontSize: '11px', color: '#737373' }}>
-                        Weight: {o.weight} kg | Pay: {o.paymentType} {isPartiallyPaid && `(Paid ₹${o.partiallyPaidAmount}, Bal ₹${o.finalPayableAmount})`}
+                        Weight: {o.weight} kg | Pay: {isPartiallyPaid ? 'Partially Paid' : o.paymentType} {isPartiallyPaid && `(Paid ₹${o.partiallyPaidAmount}, Bal ₹${o.finalPayableAmount})`}
                       </span>
                     </td>
                     <td>

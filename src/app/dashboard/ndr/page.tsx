@@ -1119,9 +1119,13 @@ export default function NdrManagement() {
                 </div>
                 <div>
                   <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Payment Details</span>
-                  <span className={`premium-badge ${detailOrder.paymentType === 'Paid' ? 'badge-paid' : 'badge-cod'}`} style={{ marginTop: '4px', width: 'fit-content' }}>
-                    {detailOrder.paymentType}
-                  </span>
+                  {detailOrder.partiallyPaidAmount !== undefined && detailOrder.partiallyPaidAmount > 0 && detailOrder.orderValue > detailOrder.partiallyPaidAmount ? (
+                    <span className="premium-badge badge-partial" style={{ marginTop: '4px', width: 'fit-content' }}>Partially Paid</span>
+                  ) : (
+                    <span className={`premium-badge ${detailOrder.paymentType === 'Paid' ? 'badge-paid' : 'badge-cod'}`} style={{ marginTop: '4px', width: 'fit-content' }}>
+                      {detailOrder.paymentType}
+                    </span>
+                  )}
                 </div>
                 <div>
                   <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Total Value</span>

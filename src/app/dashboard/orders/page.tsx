@@ -591,9 +591,13 @@ export default function Orders() {
                         <span style={{ fontSize: '11px', color: '#737373' }}>Weight: {o.weight} kg</span>
                       </td>
                       <td>
-                        <span className={`premium-badge ${isOrderPaid ? 'badge-paid' : 'badge-cod'}`}>
-                          {o.paymentType}
-                        </span>
+                        {isPartiallyPaid ? (
+                          <span className="premium-badge badge-partial">Partially Paid</span>
+                        ) : (
+                          <span className={`premium-badge ${isOrderPaid ? 'badge-paid' : 'badge-cod'}`}>
+                            {o.paymentType}
+                          </span>
+                        )}
                       </td>
                       <td style={{ fontWeight: 600 }}>₹{o.orderValue.toFixed(2)}</td>
                       <td>
@@ -929,9 +933,13 @@ export default function Orders() {
                 </div>
                 <div>
                   <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Payment Type</span>
-                  <span className={`premium-badge ${selectedOrder.paymentType === 'Paid' ? 'badge-paid' : 'badge-cod'}`} style={{ marginTop: '4px' }}>
-                    {selectedOrder.paymentType}
-                  </span>
+                  {selectedOrder.partiallyPaidAmount !== undefined && selectedOrder.partiallyPaidAmount > 0 && selectedOrder.orderValue > selectedOrder.partiallyPaidAmount ? (
+                    <span className="premium-badge badge-partial" style={{ marginTop: '4px' }}>Partially Paid</span>
+                  ) : (
+                    <span className={`premium-badge ${selectedOrder.paymentType === 'Paid' ? 'badge-paid' : 'badge-cod'}`} style={{ marginTop: '4px' }}>
+                      {selectedOrder.paymentType}
+                    </span>
+                  )}
                 </div>
                 <div>
                   <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Total Order Value</span>

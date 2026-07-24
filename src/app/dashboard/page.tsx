@@ -302,9 +302,13 @@ export default function Dashboard() {
                     </td>
                     <td>₹{o.orderValue}</td>
                     <td>
-                      <span className={`premium-badge ${o.paymentType === 'Paid' ? 'badge-paid' : 'badge-cod'}`}>
-                        {o.paymentType}
-                      </span>
+                      {o.partiallyPaidAmount !== undefined && o.partiallyPaidAmount > 0 && o.orderValue > o.partiallyPaidAmount ? (
+                        <span className="premium-badge badge-partial">Partially Paid</span>
+                      ) : (
+                        <span className={`premium-badge ${o.paymentType === 'Paid' ? 'badge-paid' : 'badge-cod'}`}>
+                          {o.paymentType}
+                        </span>
+                      )}
                     </td>
                     <td>
                       <span className={`premium-badge status-${o.status.toLowerCase().replace(' ', '')}`}>

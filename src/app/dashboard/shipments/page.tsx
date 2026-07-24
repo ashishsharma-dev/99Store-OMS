@@ -289,9 +289,13 @@ export default function AllShipments() {
                       </td>
                       <td>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          <span className={`premium-badge ${isPrepaid ? 'badge-paid' : 'badge-cod'}`} style={{ width: 'fit-content' }}>
-                            {o.paymentType}
-                          </span>
+                          {isPartiallyPaid ? (
+                            <span className="premium-badge badge-partial" style={{ width: 'fit-content' }}>Partially Paid</span>
+                          ) : (
+                            <span className={`premium-badge ${isPrepaid ? 'badge-paid' : 'badge-cod'}`} style={{ width: 'fit-content' }}>
+                              {o.paymentType}
+                            </span>
+                          )}
                           <span style={{ fontWeight: 600, fontSize: '13px' }}>
                             ₹{o.orderValue}
                           </span>
@@ -394,9 +398,13 @@ export default function AllShipments() {
                 </div>
                 <div>
                   <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Payment Details</span>
-                  <span className={`premium-badge ${selectedOrder.paymentType === 'Paid' ? 'badge-paid' : 'badge-cod'}`} style={{ marginTop: '4px', width: 'fit-content' }}>
-                    {selectedOrder.paymentType}
-                  </span>
+                  {selectedOrder.partiallyPaidAmount !== undefined && selectedOrder.partiallyPaidAmount > 0 && selectedOrder.orderValue > selectedOrder.partiallyPaidAmount ? (
+                    <span className="premium-badge badge-partial" style={{ marginTop: '4px', width: 'fit-content' }}>Partially Paid</span>
+                  ) : (
+                    <span className={`premium-badge ${selectedOrder.paymentType === 'Paid' ? 'badge-paid' : 'badge-cod'}`} style={{ marginTop: '4px', width: 'fit-content' }}>
+                      {selectedOrder.paymentType}
+                    </span>
+                  )}
                 </div>
                 <div>
                   <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Total Value</span>
