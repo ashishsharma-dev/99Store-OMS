@@ -246,6 +246,7 @@ export interface SystemSettings {
     state?: string;
     pincode?: string;
   };
+  xpressbeesAwbPool?: string[];
 }
 
 export interface Message {

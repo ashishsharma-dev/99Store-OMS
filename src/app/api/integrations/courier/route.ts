@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { CourierApiLog } from '@/lib/types';
+import { CourierApiLog, SystemSettings } from '@/lib/types';
 import { getXpressBeesToken, resolveXpressBeesConfig } from '@/lib/xpressbees';
 import { syncOrderStatus } from '@/lib/courierSync';
 import { bookVelocityOrder, trackVelocityShipment, cancelVelocityShipment } from '@/lib/velocity';
@@ -102,6 +102,79 @@ function cleanStateName(state: string, pincode: string): string {
   }
   
   return clean || 'Uttar Pradesh';
+}
+
+async function replenishAwbPool(settings: SystemSettings, token: string) {
+  try {
+    const xbConfig = settings.xpressbeesConfig;
+    const xbKey = xbConfig.xbKey || '';
+    
+    let currentToken = token;
+    if (!currentToken) {
+      currentToken = await getXpressBeesToken(xbConfig);
+    }
+    
+    const awbGenUrl = xbConfig.awbGenUrl || 'https://xbclientapi.xbees.in/POSTShipmentService.svc/AWBNumberSeriesGeneration';
+    const awbGenRes = await fetch(awbGenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Token': currentToken,
+        'XBKey': xbKey
+      },
+      body: JSON.stringify({
+        BusinessUnit: "ECOM",
+        ServiceType: "FORWARD",
+        DeliveryType: "PREPAID",
+        TokenNumber: currentToken,
+        Token: currentToken
+      })
+    });
+    
+    const awbGenData = await awbGenRes.json();
+    if (!awbGenRes.ok || awbGenData.ReturnCode !== 100 || !awbGenData.BatchID) {
+      console.error("[XpressBees] Replenish AWB: Series generation failed", awbGenData);
+      return;
+    }
+    
+    const batchId = awbGenData.BatchID;
+    
+    const awbRetrieveUrl = xbConfig.awbRetrieveUrl || 'https://xbclientapi.xbees.in/TrackingService.svc/GetAWBNumberGeneratedSeries';
+    const awbRetrieveRes = await fetch(awbRetrieveUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Token': currentToken,
+        'XBKey': xbKey
+      },
+      body: JSON.stringify({
+        BusinessUnit: "ECOM",
+        ServiceType: "FORWARD",
+        BatchID: batchId,
+        TokenNumber: currentToken,
+        Token: currentToken
+      })
+    });
+    
+    const awbRetrieveData = await awbRetrieveRes.json();
+    if (!awbRetrieveRes.ok || awbRetrieveData.ReturnCode !== 100 || !awbRetrieveData.AWBNoSeries || awbRetrieveData.AWBNoSeries.length === 0) {
+      console.error("[XpressBees] Replenish AWB: Retrieval failed", awbRetrieveData);
+      return;
+    }
+    
+    const freshSettings = await db.getSettings();
+    if (!freshSettings.xpressbeesAwbPool) {
+      freshSettings.xpressbeesAwbPool = [];
+    }
+    
+    const newAwbs = awbRetrieveData.AWBNoSeries.filter((a: string) => !freshSettings.xpressbeesAwbPool!.includes(a));
+    freshSettings.xpressbeesAwbPool.push(...newAwbs);
+    
+    await db.saveSettings(freshSettings);
+    console.log(`[XpressBees] Replenished AWB pool with ${newAwbs.length} numbers. Current pool size: ${freshSettings.xpressbeesAwbPool?.length}`);
+  } catch (err) {
+    console.error("[XpressBees] Error replenishing AWB pool in background:", err);
+  }
 }
 
 export async function GET(request: Request) {
@@ -1144,31 +1217,26 @@ export async function POST(request: Request) {
       const authType = xbConfig.authType || 'new';
 
       if (authType === 'new') {
-        try {
-          // Step 1: Generate AWB series batch ID
-          const awbGenUrl = xbConfig.awbGenUrl || 'https://xbclientapi.xbees.in/POSTShipmentService.svc/AWBNumberSeriesGeneration';
-          let awbGenRes = await fetch(awbGenUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Token': token,
-              'XBKey': xbConfig.xbKey || ''
-            },
-            body: JSON.stringify({
-              BusinessUnit: "ECOM",
-              ServiceType: "FORWARD",
-              DeliveryType: order.paymentType === 'COD' ? 'COD' : 'PREPAID',
-              TokenNumber: token,
-              Token: token
-            })
-          });
+        let cachedPool = settings.xpressbeesAwbPool || [];
+        if (cachedPool.length > 0) {
+          finalAwb = cachedPool.shift()!;
+          settings.xpressbeesAwbPool = cachedPool;
+          await db.saveSettings(settings);
+          console.log(`[XpressBees] Pop AWB from pool: ${finalAwb}. Pool size remaining: ${cachedPool.length}`);
 
-          let awbGenData = await awbGenRes.json();
-
-          // Auto-retry once with forced fresh token if XpressBees returns ReturnCode 101 (Invalid Token)
-          if (awbGenData.ReturnCode === 101 || (typeof awbGenData.ReturnMessage === 'string' && awbGenData.ReturnMessage.toLowerCase().includes('token'))) {
-            token = await getXpressBeesToken(xbConfig, true);
-            awbGenRes = await fetch(awbGenUrl, {
+          // Trigger background replenishment if pool size is low (< 20)
+          if (cachedPool.length < 20) {
+            console.log(`[XpressBees] AWB pool size (${cachedPool.length}) is below 20. Replenishing in background...`);
+            replenishAwbPool(settings, token).catch(err => {
+              console.error("[XpressBees] Background replenish error:", err);
+            });
+          }
+        } else {
+          console.log("[XpressBees] AWB pool is empty. Fetching a new batch synchronously...");
+          try {
+            // Step 1: Generate AWB series batch ID
+            const awbGenUrl = xbConfig.awbGenUrl || 'https://xbclientapi.xbees.in/POSTShipmentService.svc/AWBNumberSeriesGeneration';
+            let awbGenRes = await fetch(awbGenUrl, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -1183,79 +1251,108 @@ export async function POST(request: Request) {
                 Token: token
               })
             });
-            awbGenData = await awbGenRes.json();
+
+            let awbGenData = await awbGenRes.json();
+
+            // Auto-retry once with forced fresh token if XpressBees returns ReturnCode 101 (Invalid Token)
+            if (awbGenData.ReturnCode === 101 || (typeof awbGenData.ReturnMessage === 'string' && awbGenData.ReturnMessage.toLowerCase().includes('token'))) {
+              token = await getXpressBeesToken(xbConfig, true);
+              awbGenRes = await fetch(awbGenUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Token': token,
+                  'XBKey': xbConfig.xbKey || ''
+                },
+                body: JSON.stringify({
+                  BusinessUnit: "ECOM",
+                  ServiceType: "FORWARD",
+                  DeliveryType: order.paymentType === 'COD' ? 'COD' : 'PREPAID',
+                  TokenNumber: token,
+                  Token: token
+                })
+              });
+              awbGenData = await awbGenRes.json();
+            }
+
+            await db.addCourierLog({
+              id: `cl-xb-awbgen-${Date.now()}`,
+              timestamp: new Date().toISOString(),
+              courier: 'XpressBees',
+              action: 'AWB Series Generation',
+              requestPayload: JSON.stringify({ BusinessUnit: "ECOM", ServiceType: "FORWARD", DeliveryType: order.paymentType === 'COD' ? 'COD' : 'PREPAID' }, null, 2),
+              responsePayload: JSON.stringify(awbGenData, null, 2),
+              status: awbGenRes.ok && awbGenData.ReturnCode === 100 ? 'Success' : 'Error'
+            });
+
+            if (!awbGenRes.ok || awbGenData.ReturnCode !== 100 || !awbGenData.BatchID) {
+              return NextResponse.json({ error: `XpressBees AWB Series Generation failed: ${awbGenData.ReturnMessage || 'Invalid response'}` }, { status: 400 });
+            }
+
+            const batchId = awbGenData.BatchID;
+
+            // Step 2: Retrieve the generated AWB numbers from batch ID
+            const awbRetrieveUrl = xbConfig.awbRetrieveUrl || 'https://xbclientapi.xbees.in/TrackingService.svc/GetAWBNumberGeneratedSeries';
+            const awbRetrieveRes = await fetch(awbRetrieveUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Token': token,
+                'XBKey': xbConfig.xbKey || ''
+              },
+              body: JSON.stringify({
+                BusinessUnit: "ECOM",
+                ServiceType: "FORWARD",
+                BatchID: batchId,
+                TokenNumber: token,
+                Token: token
+              })
+            });
+
+            const awbRetrieveData = await awbRetrieveRes.json();
+            // Truncate AWB list in log payload to avoid database file bloat
+            const loggedRetrieveData = { ...awbRetrieveData };
+            if (Array.isArray(loggedRetrieveData.AWBNoSeries) && loggedRetrieveData.AWBNoSeries.length > 5) {
+              loggedRetrieveData.AWBNoSeries = [
+                ...loggedRetrieveData.AWBNoSeries.slice(0, 5),
+                `... and ${loggedRetrieveData.AWBNoSeries.length - 5} more AWB numbers (truncated to prevent bloat)`
+              ];
+            }
+
+            await db.addCourierLog({
+              id: `cl-xb-awbretrieve-${Date.now()}`,
+              timestamp: new Date().toISOString(),
+              courier: 'XpressBees',
+              action: 'Get AWB Generated Series',
+              requestPayload: JSON.stringify({ BusinessUnit: "ECOM", ServiceType: "FORWARD", BatchID: batchId }, null, 2),
+              responsePayload: JSON.stringify(loggedRetrieveData, null, 2),
+              status: awbRetrieveRes.ok && awbRetrieveData.ReturnCode === 100 ? 'Success' : 'Error'
+            });
+
+            if (!awbRetrieveRes.ok || awbRetrieveData.ReturnCode !== 100 || !awbRetrieveData.AWBNoSeries || awbRetrieveData.AWBNoSeries.length === 0) {
+              return NextResponse.json({ error: `XpressBees AWB Retrieval failed: ${awbRetrieveData.ReturnMessage || 'No AWB numbers returned'}` }, { status: 400 });
+            }
+
+            finalAwb = awbRetrieveData.AWBNoSeries[0];
+
+            // Cache remaining AWBs in settings
+            if (awbRetrieveData.AWBNoSeries.length > 1) {
+              settings.xpressbeesAwbPool = awbRetrieveData.AWBNoSeries.slice(1);
+              await db.saveSettings(settings);
+              console.log(`[XpressBees] Cached ${settings.xpressbeesAwbPool?.length} AWB numbers in pool.`);
+            }
+          } catch (err: any) {
+            await db.addCourierLog({
+              id: `cl-xb-awbgen-fail-${Date.now()}`,
+              timestamp: new Date().toISOString(),
+              courier: 'XpressBees',
+              action: 'AWB Generation Flow',
+              requestPayload: JSON.stringify({ orderId: order.orderId }, null, 2),
+              responsePayload: JSON.stringify({ error: err.message || err }, null, 2),
+              status: 'Error'
+            });
+            return NextResponse.json({ error: `XpressBees AWB pre-generation flow error: ${err.message}` }, { status: 500 });
           }
-
-          await db.addCourierLog({
-            id: `cl-xb-awbgen-${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            courier: 'XpressBees',
-            action: 'AWB Series Generation',
-            requestPayload: JSON.stringify({ BusinessUnit: "ECOM", ServiceType: "FORWARD", DeliveryType: order.paymentType === 'COD' ? 'COD' : 'PREPAID' }, null, 2),
-            responsePayload: JSON.stringify(awbGenData, null, 2),
-            status: awbGenRes.ok && awbGenData.ReturnCode === 100 ? 'Success' : 'Error'
-          });
-
-          if (!awbGenRes.ok || awbGenData.ReturnCode !== 100 || !awbGenData.BatchID) {
-            return NextResponse.json({ error: `XpressBees AWB Series Generation failed: ${awbGenData.ReturnMessage || 'Invalid response'}` }, { status: 400 });
-          }
-
-          const batchId = awbGenData.BatchID;
-
-          // Step 2: Retrieve the generated AWB numbers from batch ID
-          const awbRetrieveUrl = xbConfig.awbRetrieveUrl || 'https://xbclientapi.xbees.in/TrackingService.svc/GetAWBNumberGeneratedSeries';
-          const awbRetrieveRes = await fetch(awbRetrieveUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Token': token,
-              'XBKey': xbConfig.xbKey || ''
-            },
-            body: JSON.stringify({
-              BusinessUnit: "ECOM",
-              ServiceType: "FORWARD",
-              BatchID: batchId,
-              TokenNumber: token,
-              Token: token
-            })
-          });
-
-          const awbRetrieveData = await awbRetrieveRes.json();
-          // Truncate AWB list in log payload to avoid database file bloat
-          const loggedRetrieveData = { ...awbRetrieveData };
-          if (Array.isArray(loggedRetrieveData.AWBNoSeries) && loggedRetrieveData.AWBNoSeries.length > 5) {
-            loggedRetrieveData.AWBNoSeries = [
-              ...loggedRetrieveData.AWBNoSeries.slice(0, 5),
-              `... and ${loggedRetrieveData.AWBNoSeries.length - 5} more AWB numbers (truncated to prevent bloat)`
-            ];
-          }
-
-          await db.addCourierLog({
-            id: `cl-xb-awbretrieve-${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            courier: 'XpressBees',
-            action: 'Get AWB Generated Series',
-            requestPayload: JSON.stringify({ BusinessUnit: "ECOM", ServiceType: "FORWARD", BatchID: batchId }, null, 2),
-            responsePayload: JSON.stringify(loggedRetrieveData, null, 2),
-            status: awbRetrieveRes.ok && awbRetrieveData.ReturnCode === 100 ? 'Success' : 'Error'
-          });
-
-          if (!awbRetrieveRes.ok || awbRetrieveData.ReturnCode !== 100 || !awbRetrieveData.AWBNoSeries || awbRetrieveData.AWBNoSeries.length === 0) {
-            return NextResponse.json({ error: `XpressBees AWB Retrieval failed: ${awbRetrieveData.ReturnMessage || 'No AWB numbers returned'}` }, { status: 400 });
-          }
-
-          finalAwb = awbRetrieveData.AWBNoSeries[0];
-        } catch (err: any) {
-          await db.addCourierLog({
-            id: `cl-xb-awbgen-fail-${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            courier: 'XpressBees',
-            action: 'AWB Generation Flow',
-            requestPayload: JSON.stringify({ orderId: order.orderId }, null, 2),
-            responsePayload: JSON.stringify({ error: err.message || err }, null, 2),
-            status: 'Error'
-          });
-          return NextResponse.json({ error: `XpressBees AWB pre-generation flow error: ${err.message}` }, { status: 500 });
         }
       }
 
