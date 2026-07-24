@@ -117,6 +117,41 @@ export const InspectTooltipButton = ({
           </div>
         </div>
 
+        {/* Price & Billing */}
+        <div style={{ borderTop: '1px solid #2D2D30', paddingTop: '8px', marginTop: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+            <span style={{ fontWeight: 600, color: '#A1A1AA' }}>Shipment Value:</span>
+            <span style={{ fontWeight: 700, color: '#FAFAFA', fontSize: '11px' }}>₹{order.orderValue.toFixed(2)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+            <span style={{ color: '#8A8A8A' }}>Payment Type:</span>
+            <span 
+              style={{ 
+                fontSize: '9.5px', 
+                fontWeight: 600, 
+                padding: '1px 6px', 
+                borderRadius: '4px',
+                backgroundColor: order.paymentType === 'Paid' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                color: order.paymentType === 'Paid' ? '#10B981' : '#EF4444'
+              }}
+            >
+              {order.paymentType}
+            </span>
+          </div>
+          {order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 && (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', paddingLeft: '8px' }}>
+                <span style={{ color: '#737373' }}>• Partially Paid:</span>
+                <span style={{ color: '#10B981', fontWeight: 500 }}>₹{order.partiallyPaidAmount.toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingLeft: '8px' }}>
+                <span style={{ color: '#737373' }}>• Bal. Payable:</span>
+                <span style={{ color: '#F59E0B', fontWeight: 500 }}>₹{order.finalPayableAmount?.toFixed(2)}</span>
+              </div>
+            </>
+          )}
+        </div>
+
         {/* Address */}
         <div style={{ borderTop: '1px solid #2D2D30', paddingTop: '8px', marginTop: '8px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
