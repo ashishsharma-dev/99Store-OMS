@@ -23,6 +23,7 @@ import { InspectTooltipButton } from '@/components/InspectTooltipButton';
 import { CourierLogo } from '@/components/CourierLogo';
 import { AddressRatingIndicator } from '@/components/AddressRatingIndicator';
 import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
+import { getUserDisplayName } from '@/lib/utils';
 
 export default function OfdManagement() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -917,6 +918,10 @@ export default function OfdManagement() {
                 <div>
                   <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Total Value</span>
                   <span style={{ fontWeight: 'bold' }}>₹{detailOrder.orderValue}</span>
+                </div>
+                <div>
+                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Created By</span>
+                  <span style={{ fontWeight: 600, color: '#FAFAFA' }}>{getUserDisplayName(detailOrder.createdBy)}</span>
                 </div>
 
                 {detailOrder.partiallyPaidAmount !== undefined && detailOrder.partiallyPaidAmount > 0 && (

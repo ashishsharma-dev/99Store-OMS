@@ -248,7 +248,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
               <strong style={{ minWidth: '45px' }}>Address</strong> :
               <span style={{ paddingLeft: '4px', lineHeight: '1.2', flex: 1 }}>
                 {order.address}, {order.area}, {order.state} - <strong>{order.pincode}</strong>
-                <AddressRatingIndicator address={order.address} mode="print" />
+                {/* <AddressRatingIndicator address={order.address} mode="print" /> */}
               </span>
             </div>
             <div style={{ marginTop: '2px' }}><strong>Mobile</strong> : <span style={{ fontWeight: 'bold' }}>{finalPhone}</span></div>

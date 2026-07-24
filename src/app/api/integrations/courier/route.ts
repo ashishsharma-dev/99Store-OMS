@@ -1332,8 +1332,11 @@ export async function POST(request: Request) {
         bookingPayload.AWBNo = finalAwb;
         bookingPayload.awb_number = finalAwb;
         bookingPayload.awb = finalAwb;
+        bookingPayload.AirWayBillNO = finalAwb;
         bookingPayload.TokenNumber = token;
         bookingPayload.Token = token;
+        bookingPayload.PickupVendorCode = vendorCode;
+        bookingPayload.pickup_vendor_code = vendorCode;
 
         const dropAddressObj = {
           Type: "Primary",
@@ -1347,6 +1350,8 @@ export async function POST(request: Request) {
           City: cleanConsigneeCity,
           State: cleanConsigneeState,
           Pincode: order.pincode,
+          PinCode: order.pincode,
+          pincode: order.pincode,
           PhoneNo: cleanConsigneePhone
         };
 
@@ -1354,34 +1359,87 @@ export async function POST(request: Request) {
           Type: "Primary",
           AddressType: "Primary",
           VendorCode: vendorCode,
+          ConsigneeName: xbConfig.warehouseName || 'Main Warehouse',
+          ContactPersonName: xbConfig.contactName || 'Warehouse Manager',
+          Name: xbConfig.warehouseName || 'Main Warehouse',
+          Address: `${xbConfig.address || '140 MG Road'}, ${xbConfig.address2 || 'Near Metro Station'}`,
           Address1: xbConfig.address || '140 MG Road',
           Address2: xbConfig.address2 || 'Near Metro Station',
           City: xbConfig.city || 'Agra',
           State: xbConfig.state || 'Uttar Pradesh',
-          Pincode: xbConfig.pincode || '282001'
+          Pincode: xbConfig.pincode || '282001',
+          PinCode: xbConfig.pincode || '282001',
+          pincode: xbConfig.pincode || '282001'
+        };
+
+        const rtoAddressObj = {
+          Type: "Primary",
+          AddressType: "Primary",
+          VendorCode: vendorCode,
+          ConsigneeName: xbConfig.warehouseName || 'Main Warehouse',
+          ContactPersonName: xbConfig.contactName || 'Warehouse Manager',
+          Name: xbConfig.warehouseName || 'Main Warehouse',
+          Address: `${xbConfig.address || '140 MG Road'}, ${xbConfig.address2 || 'Near Metro Station'}`,
+          Address1: xbConfig.address || '140 MG Road',
+          Address2: xbConfig.address2 || 'Near Metro Station',
+          City: xbConfig.city || 'Agra',
+          State: xbConfig.state || 'Uttar Pradesh',
+          Pincode: xbConfig.pincode || '282001',
+          PinCode: xbConfig.pincode || '282001',
+          pincode: xbConfig.pincode || '282001'
         };
 
         bookingPayload.DropDetails = {
           ConsigneeName: order.customerName,
           ContactPersonName: order.customerName,
           Name: order.customerName,
-          PhoneNo: cleanConsigneePhone,
-          MobileNo: cleanConsigneePhone,
           DropAddressesDetails: [dropAddressObj],
-          Addresses: [dropAddressObj]
+          Addresses: [dropAddressObj],
+          ContactDetails: [
+            {
+              Type: "Primary",
+              PhoneNo: cleanConsigneePhone,
+              MobileNo: cleanConsigneePhone
+            }
+          ]
         };
 
         bookingPayload.DropAddressesDetails = [dropAddressObj];
 
         bookingPayload.PickupDetails = {
           VendorCode: vendorCode,
-          Name: xbConfig.contactName || 'Warehouse Manager',
-          PhoneNo: xbConfig.phone || '9999999999',
+          PickupVendorCode: vendorCode,
+          Name: xbConfig.warehouseName || 'Main Warehouse',
           PickupAddressesDetails: [pickupAddressObj],
-          Addresses: [pickupAddressObj]
+          Addresses: [pickupAddressObj],
+          ContactDetails: [
+            {
+              Type: "Primary",
+              PhoneNo: xbConfig.phone || '9999999999',
+              MobileNo: xbConfig.phone || '9999999999'
+            }
+          ]
         };
 
         bookingPayload.PickupAddressesDetails = [pickupAddressObj];
+
+        bookingPayload.RTODetails = {
+          VendorCode: vendorCode,
+          PickupVendorCode: vendorCode,
+          Name: xbConfig.warehouseName || 'Main Warehouse',
+          RTODetailsAddresses: [rtoAddressObj],
+          RTOAddressesDetails: [rtoAddressObj],
+          Addresses: [rtoAddressObj],
+          ContactDetails: [
+            {
+              Type: "Primary",
+              PhoneNo: xbConfig.phone || '9999999999',
+              MobileNo: xbConfig.phone || '9999999999'
+            }
+          ]
+        };
+
+        bookingPayload.RTOAddressesDetails = [rtoAddressObj];
       }
 
       let bookingResponseData: any = null;

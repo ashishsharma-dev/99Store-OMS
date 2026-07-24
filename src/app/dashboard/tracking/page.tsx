@@ -21,6 +21,7 @@ import { HealvitaShippingLabel } from '@/components/HealvitaShippingLabel';
 import { CourierLogo } from '@/components/CourierLogo';
 import { AddressRatingIndicator } from '@/components/AddressRatingIndicator';
 import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
+import { getUserDisplayName } from '@/lib/utils';
 
 export default function Tracking() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -332,7 +333,7 @@ export default function Tracking() {
                     Shipment: {selectedOrder.orderId}
                   </h3>
                   <div style={{ fontSize: '12.5px', color: '#8A8A8A', marginTop: '4px' }}>
-                    Recipient: {selectedOrder.customerName} | Phone: {selectedOrder.phonePrimary}
+                    Recipient: {selectedOrder.customerName} | Phone: {selectedOrder.phonePrimary} | Created By: {getUserDisplayName(selectedOrder.createdBy)}
                   </div>
                   <div style={{ fontSize: '12.5px', color: '#8A8A8A', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                     <span>Shipping Address: {selectedOrder.address}, {selectedOrder.pincode}</span>

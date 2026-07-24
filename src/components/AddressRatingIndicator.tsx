@@ -6,12 +6,14 @@ export interface AddressRatingIndicatorProps {
   address: string;
   mode?: 'dashboard' | 'print';
   style?: React.CSSProperties;
+  showCharCount?: boolean;
 }
 
 export const AddressRatingIndicator = ({ 
   address, 
   mode = 'dashboard', 
-  style 
+  style,
+  showCharCount = false 
 }: AddressRatingIndicatorProps) => {
   const len = (address || '').trim().length;
 
@@ -55,7 +57,7 @@ export const AddressRatingIndicator = ({
         }}
         title={`${ratingText} (Length: ${len} chars)`}
       >
-        ADR: {label} ({len} Chars)
+        ADR: {label}{showCharCount ? ` (${len} Chars)` : ''}
       </span>
     );
   }
@@ -81,7 +83,7 @@ export const AddressRatingIndicator = ({
       title={`${ratingText} (Length: ${len} chars)`}
     >
       <span>📍</span>
-      <span>{label} ({len} Chars)</span>
+      <span>{label}{showCharCount ? ` (${len} Chars)` : ''}</span>
     </span>
   );
 };

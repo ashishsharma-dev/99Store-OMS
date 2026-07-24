@@ -25,6 +25,7 @@ import { NdrRecord, Order, User as DbUser } from '@/lib/types';
 import { InspectTooltipButton } from '@/components/InspectTooltipButton';
 import { AddressRatingIndicator } from '@/components/AddressRatingIndicator';
 import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
+import { getUserDisplayName } from '@/lib/utils';
 
 export default function NdrManagement() {
   const [ndrRecords, setNdrRecords] = useState<NdrRecord[]>([]);
@@ -1125,6 +1126,10 @@ export default function NdrManagement() {
                 <div>
                   <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Total Value</span>
                   <span style={{ fontWeight: 'bold' }}>₹{detailOrder.orderValue}</span>
+                </div>
+                <div>
+                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Created By</span>
+                  <span style={{ fontWeight: 600, color: '#FAFAFA' }}>{getUserDisplayName(detailOrder.createdBy)}</span>
                 </div>
 
                 {detailOrder.partiallyPaidAmount !== undefined && detailOrder.partiallyPaidAmount > 0 && (

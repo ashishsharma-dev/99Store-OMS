@@ -19,6 +19,7 @@ import { InspectTooltipButton } from '@/components/InspectTooltipButton';
 import { CourierLogo } from '@/components/CourierLogo';
 import { AddressRatingIndicator } from '@/components/AddressRatingIndicator';
 import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
+import { getUserDisplayName } from '@/lib/utils';
 
 export default function AllShipments() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -400,6 +401,10 @@ export default function AllShipments() {
                 <div>
                   <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Total Value</span>
                   <span style={{ fontWeight: 'bold' }}>₹{selectedOrder.orderValue}</span>
+                </div>
+                <div>
+                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Created By</span>
+                  <span style={{ fontWeight: 600, color: '#FAFAFA' }}>{getUserDisplayName(selectedOrder.createdBy)}</span>
                 </div>
 
                 {selectedOrder.partiallyPaidAmount !== undefined && selectedOrder.partiallyPaidAmount > 0 && (

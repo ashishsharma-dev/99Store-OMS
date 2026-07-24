@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Eye, Copy, Check } from 'lucide-react';
 import { Order } from '@/lib/types';
 import { AddressRatingIndicator } from './AddressRatingIndicator';
+import { getUserDisplayName } from '@/lib/utils';
 
 interface InspectTooltipButtonProps {
   order: Order;
@@ -122,6 +123,10 @@ export const InspectTooltipButton = ({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
             <span style={{ fontWeight: 600, color: '#A1A1AA' }}>Shipment Value:</span>
             <span style={{ fontWeight: 700, color: '#FAFAFA', fontSize: '11px' }}>₹{order.orderValue.toFixed(2)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+            <span style={{ color: '#8A8A8A' }}>Created By:</span>
+            <span style={{ fontWeight: 500, color: '#FAFAFA' }}>{getUserDisplayName(order.createdBy)}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
             <span style={{ color: '#8A8A8A' }}>Payment Type:</span>

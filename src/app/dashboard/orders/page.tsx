@@ -27,6 +27,7 @@ import { InspectTooltipButton } from '@/components/InspectTooltipButton';
 import { CourierLogo } from '@/components/CourierLogo';
 import { AddressRatingIndicator } from '@/components/AddressRatingIndicator';
 import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
+import { getUserDisplayName } from '@/lib/utils';
 
 export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -570,7 +571,12 @@ export default function Orders() {
                             </span>
                           )}
                         </div>
-                        <span style={{ fontSize: '11px', color: '#737373' }}>{o.createdAt.split('T')[0]}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '2px' }}>
+                          <span style={{ fontSize: '11px', color: '#737373' }}>{o.createdAt.split('T')[0]}</span>
+                          {o.createdBy && (
+                            <span style={{ fontSize: '10.5px', color: '#A1A1AA' }}>By: {getUserDisplayName(o.createdBy)}</span>
+                          )}
+                        </div>
                       </td>
                       <td>
                         <div style={{ fontWeight: 500 }}>{o.customerName}</div>
@@ -780,7 +786,10 @@ export default function Orders() {
                 </div>
 
                 <div style={{ marginBottom: '12px' }}>
-                  <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '4px', textTransform: 'uppercase' }}>Complete Address *</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label style={{ fontSize: '11px', color: '#737373', textTransform: 'uppercase' }}>Complete Address *</label>
+                    <AddressRatingIndicator address={address} showCharCount={true} style={{ fontSize: '10px', padding: '1px 4px' }} />
+                  </div>
                   <input type="text" className="premium-input" placeholder="Flat 402, Sunset Heights, Bandra West" value={address} onChange={(e) => setAddress(e.target.value)} required />
                 </div>
 
@@ -927,6 +936,10 @@ export default function Orders() {
                 <div>
                   <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Total Order Value</span>
                   <span style={{ fontWeight: 'bold' }}>₹{selectedOrder.orderValue}</span>
+                </div>
+                <div>
+                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Created By</span>
+                  <span style={{ fontWeight: 600, color: '#FAFAFA' }}>{getUserDisplayName(selectedOrder.createdBy)}</span>
                 </div>
                 {selectedOrder.partiallyPaidAmount !== undefined && selectedOrder.partiallyPaidAmount > 0 && (
                   <>
