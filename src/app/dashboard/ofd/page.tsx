@@ -153,6 +153,13 @@ export default function OfdManagement() {
     fetchOfdOrders();
   }, [dateRange]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchOfdOrders(true);
+    }, 20000);
+    return () => clearInterval(interval);
+  }, [dateRange]);
+
   const fetchUsers = async () => {
     try {
       const res = await fetch('/api/users');
@@ -170,9 +177,12 @@ export default function OfdManagement() {
     }
   };
 
-  const fetchOfdOrders = async () => {
-    setLoading(true);
-    setSelectedOrderIds([]);
+  const fetchOfdOrders = async (isBackground: any = false) => {
+    const isBg = isBackground === true;
+    if (!isBg) {
+      setLoading(true);
+      setSelectedOrderIds([]);
+    }
     try {
       let url = '/api/orders?limit=150';
       if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;

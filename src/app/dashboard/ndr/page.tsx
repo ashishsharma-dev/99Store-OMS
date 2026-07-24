@@ -181,6 +181,13 @@ export default function NdrManagement() {
     fetchData();
   }, [dateRange]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchData(true);
+    }, 20000);
+    return () => clearInterval(interval);
+  }, [dateRange]);
+
   const fetchUsers = async () => {
     try {
       const res = await fetch('/api/users');
@@ -198,9 +205,12 @@ export default function NdrManagement() {
     }
   };
 
-  const fetchData = async () => {
-    setLoading(true);
-    setSelectedNdrIds([]);
+  const fetchData = async (isBackground: any = false) => {
+    const isBg = isBackground === true;
+    if (!isBg) {
+      setLoading(true);
+      setSelectedNdrIds([]);
+    }
     try {
       // 1. Fetch NDR Records
       let ndrUrl = '/api/ndr';

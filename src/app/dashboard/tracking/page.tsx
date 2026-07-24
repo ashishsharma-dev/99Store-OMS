@@ -94,8 +94,15 @@ export default function Tracking() {
     fetchActiveShipments();
   }, [dateRange]);
 
-  const fetchActiveShipments = async () => {
-    setLoading(true);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchActiveShipments(true);
+    }, 20000);
+    return () => clearInterval(interval);
+  }, [dateRange]);
+
+  const fetchActiveShipments = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       let url = '/api/orders?limit=100';
       if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;

@@ -205,6 +205,13 @@ export default function Orders() {
     fetchOrdersList();
   }, [search, statusFilter, paymentFilter, vipFilter, sortField, sortOrder, page, limit, dateRange]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchOrdersList(true);
+    }, 20000);
+    return () => clearInterval(interval);
+  }, [search, statusFilter, paymentFilter, vipFilter, sortField, sortOrder, page, limit, dateRange]);
+
   // Autofetch State/Area via Pincode API when 6 digits are typed
   useEffect(() => {
     if (pincode.length === 6 && /^\d+$/.test(pincode)) {
@@ -231,8 +238,8 @@ export default function Orders() {
     }
   };
 
-  const fetchOrdersList = async () => {
-    setLoading(true);
+  const fetchOrdersList = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       let url = `/api/orders?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}&status=${statusFilter}&payment=${paymentFilter}&vip=${vipFilter}&sortField=${sortField}&sortOrder=${sortOrder}`;
       if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;

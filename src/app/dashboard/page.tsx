@@ -44,8 +44,15 @@ export default function Dashboard() {
     fetchOrders(dateRange.startDate, dateRange.endDate);
   }, [dateRange]);
 
-  const fetchOrders = async (start?: string, end?: string) => {
-    setLoading(true);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchOrders(dateRange.startDate, dateRange.endDate, true);
+    }, 20000);
+    return () => clearInterval(interval);
+  }, [dateRange]);
+
+  const fetchOrders = async (start?: string, end?: string, isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       let url = '/api/orders?limit=100';
       if (start) url += `&startDate=${encodeURIComponent(start)}`;

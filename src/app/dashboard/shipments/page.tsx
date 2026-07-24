@@ -50,8 +50,15 @@ export default function AllShipments() {
     fetchShipmentsList();
   }, [search, statusFilter, courierFilter, sortField, sortOrder, page, dateRange]);
 
-  const fetchShipmentsList = async () => {
-    setLoading(true);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchShipmentsList(true);
+    }, 20000);
+    return () => clearInterval(interval);
+  }, [search, statusFilter, courierFilter, sortField, sortOrder, page, dateRange]);
+
+  const fetchShipmentsList = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       // Fetch all dispatches. We can query `/api/orders`
       // We pass filters and pagination parameters.
