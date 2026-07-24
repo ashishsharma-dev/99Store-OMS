@@ -19,8 +19,25 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
 
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
     let orders = await db.getOrders();
     orders = orders.filter(o => !o.isDeleted);
+
+    // Apply Date Range Filter
+    if (startDate) {
+      const start = new Date(startDate).getTime();
+      orders = orders.filter(o => new Date(o.createdAt).getTime() >= start);
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      if (endDate.length === 10) {
+        end.setHours(23, 59, 59, 999);
+      }
+      const endTime = end.getTime();
+      orders = orders.filter(o => new Date(o.createdAt).getTime() <= endTime);
+    }
 
     // 1. Global search by Name, Phone, Order ID, AWB, Address, Pincode
     if (search) {

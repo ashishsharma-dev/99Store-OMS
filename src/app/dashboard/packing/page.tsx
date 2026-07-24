@@ -14,10 +14,16 @@ import {
 import { Order, OrderStatus } from '@/lib/types';
 import { HealvitaShippingLabel } from '@/components/HealvitaShippingLabel';
 import { CourierLogo } from '@/components/CourierLogo';
+import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
 
 export default function Packing() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<DateRange>({
+    preset: 'all',
+    startDate: '',
+    endDate: ''
+  });
   const [currentUser, setCurrentUser] = useState<any>(null);
   
   // Printing label popup state (can print single or multiple)
@@ -52,14 +58,20 @@ export default function Packing() {
     if (session) {
       setCurrentUser(JSON.parse(session));
     }
-    fetchPackingQueue();
   }, []);
+
+  useEffect(() => {
+    fetchPackingQueue();
+  }, [dateRange]);
 
   const fetchPackingQueue = async () => {
     setLoading(true);
     setSelectedIds([]);
     try {
-      const res = await fetch('/api/orders?limit=100');
+      let url = '/api/orders?limit=100';
+      if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
+      if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
+      const res = await fetch(url);
       const data = await res.json();
       if (res.ok && data.orders) {
         // Only show orders in 'Created', 'Packing' or 'Label Generated' states
@@ -325,10 +337,13 @@ export default function Packing() {
           </p>
         </div>
 
-        <button onClick={fetchPackingQueue} className="premium-btn premium-btn-secondary" disabled={loading || bulkProcessing}>
-          <RefreshCcw size={14} />
-          <span>Reload Queue</span>
-        </button>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <DateRangeFilter value={dateRange} onChange={setDateRange} />
+          <button onClick={fetchPackingQueue} className="premium-btn premium-btn-secondary" disabled={loading || bulkProcessing}>
+            <RefreshCcw size={14} />
+            <span>Reload Queue</span>
+          </button>
+        </div>
       </div>
 
       {/* Queue Counter Dashboard banner & Module 4 Bulk Header Filters */}

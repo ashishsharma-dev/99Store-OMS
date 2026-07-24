@@ -25,10 +25,17 @@ import { Order, OrderStatus } from '@/lib/types';
 import { HealvitaShippingLabel } from '@/components/HealvitaShippingLabel';
 import { InspectTooltipButton } from '@/components/InspectTooltipButton';
 import { CourierLogo } from '@/components/CourierLogo';
+import { AddressRatingIndicator } from '@/components/AddressRatingIndicator';
+import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
 
 export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<DateRange>({
+    preset: 'all',
+    startDate: '',
+    endDate: ''
+  });
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -195,7 +202,7 @@ export default function Orders() {
 
   useEffect(() => {
     fetchOrdersList();
-  }, [search, statusFilter, paymentFilter, vipFilter, sortField, sortOrder, page, limit]);
+  }, [search, statusFilter, paymentFilter, vipFilter, sortField, sortOrder, page, limit, dateRange]);
 
   // Autofetch State/Area via Pincode API when 6 digits are typed
   useEffect(() => {
@@ -226,7 +233,9 @@ export default function Orders() {
   const fetchOrdersList = async () => {
     setLoading(true);
     try {
-      const url = `/api/orders?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}&status=${statusFilter}&payment=${paymentFilter}&vip=${vipFilter}&sortField=${sortField}&sortOrder=${sortOrder}`;
+      let url = `/api/orders?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}&status=${statusFilter}&payment=${paymentFilter}&vip=${vipFilter}&sortField=${sortField}&sortOrder=${sortOrder}`;
+      if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
+      if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
       const res = await fetch(url);
       const data = await res.json();
       if (res.ok && data.orders) {
@@ -337,7 +346,9 @@ export default function Orders() {
   };
 
   const handleExportCsv = () => {
-    const url = `/api/reports?status=${statusFilter}&payment=${paymentFilter}&vip=${vipFilter}`;
+    let url = `/api/reports?status=${statusFilter}&payment=${paymentFilter}&vip=${vipFilter}`;
+    if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
+    if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
     window.open(url);
   };
 
@@ -361,7 +372,8 @@ export default function Orders() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <DateRangeFilter value={dateRange} onChange={(range) => { setDateRange(range); setPage(1); }} />
           <button onClick={handleExportCsv} className="premium-btn premium-btn-secondary">
             <Download size={14} />
             <span>Download CSV (Filtered)</span>
@@ -896,7 +908,10 @@ export default function Orders() {
                   <span>{selectedOrder.pincode}</span>
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>
-                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Shipping Address</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span style={{ color: '#737373', fontSize: '11px', textTransform: 'uppercase' }}>Shipping Address</span>
+                    <AddressRatingIndicator address={selectedOrder.address} />
+                  </div>
                   <span>{selectedOrder.address}</span>
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Order } from '@/lib/types';
+import { AddressRatingIndicator } from './AddressRatingIndicator';
 
 // Simple Code 39 Barcode Map
 const CODE39_MAP: { [key: string]: string } = {
@@ -121,7 +122,9 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
   const invoiceDate = formatDate(order.createdAt);
   const orderDate = formatDate(order.createdAt);
 
-  const amountToCollect = order.paymentType === 'COD' ? (order.orderValue - (order.partiallyPaidAmount || 0)) : 0;
+  const amountToCollect = (order.paymentType === 'COD' || (order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 && order.orderValue > order.partiallyPaidAmount))
+    ? (order.orderValue - (order.partiallyPaidAmount || 0))
+    : 0;
 
   // Tax calculations
   const orderVal = order.orderValue || 0;
@@ -134,7 +137,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
   const sgst = isHaryana ? parseFloat((totalTax / 2).toFixed(2)) : 0;
   const igst = !isHaryana ? totalTax : 0;
 
-  const amountInWords = numberToWords(orderVal);
+  const amountInWords = numberToWords(amountToCollect > 0 ? amountToCollect : orderVal);
 
   const trackingAwb = order.awb || 'TRKID250620123456';
   const trackingUrl = `https://99-store-oms.vercel.app/track?id=${trackingAwb}`;
@@ -223,9 +226,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
           <span style={{ fontSize: '8px', fontWeight: 'bold', margin: '4px 0 2px 0', display: 'block' }}>
             GSTIN: 09GQCPS4557N1ZX
           </span>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', color: '#2F855A', fontSize: '7.5px', fontWeight: 'bold' }}>
-            <span style={{ fontSize: '10px' }}>✔</span> COMPLIANT
-          </div>
+
           <span style={{ fontSize: '6px', color: '#555555', marginTop: '1px' }}>THANK YOU FOR SHOPPING WITH US!</span>
         </div>
       </div>
@@ -243,10 +244,11 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
           </div>
           <div style={{ fontSize: '8.5px', marginTop: '2px' }}>
             <div><strong>Name</strong> : <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>{order.customerName}</span></div>
-            <div style={{ display: 'flex', marginTop: '2px' }}>
+            <div style={{ display: 'flex', marginTop: '2px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
               <strong style={{ minWidth: '45px' }}>Address</strong> :
-              <span style={{ paddingLeft: '4px', lineHeight: '1.2' }}>
+              <span style={{ paddingLeft: '4px', lineHeight: '1.2', flex: 1 }}>
                 {order.address}, {order.area}, {order.state} - <strong>{order.pincode}</strong>
+                <AddressRatingIndicator address={order.address} mode="print" />
               </span>
             </div>
             <div style={{ marginTop: '2px' }}><strong>Mobile</strong> : <span style={{ fontWeight: 'bold' }}>{finalPhone}</span></div>
@@ -280,10 +282,10 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
             </div>
             <div style={{ lineHeight: '1.1' }}>
               <span style={{ fontSize: '6px', textTransform: 'uppercase', display: 'block' }}>
-                {order.paymentType === 'COD' ? 'COD Amount' : 'Payment Type'}
+                {(order.paymentType === 'COD' || (order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 && order.orderValue > order.partiallyPaidAmount)) ? 'COD Amount' : 'Payment Type'}
               </span>
               <span style={{ fontSize: '8px', fontWeight: 'bold', textTransform: 'uppercase' }}>
-                {order.paymentType === 'COD' ? 'Collect Cash' : 'Prepaid'}
+                {(order.paymentType === 'COD' || (order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 && order.orderValue > order.partiallyPaidAmount)) ? 'Collect Cash' : 'Prepaid'}
               </span>
             </div>
           </div>
@@ -532,10 +534,31 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
               <td colSpan={4} style={{ borderRight: '1px solid #000000', padding: '2px 4px', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>Shipping Charges</td>
               <td style={{ padding: '2px 4px', textAlign: 'right', borderBottom: '1px solid #E2E8F0' }}>₹0.00</td>
             </tr>
-            <tr style={{ backgroundColor: '#E53E3E', color: '#FFFFFF', fontWeight: 'bold' }}>
-              <td colSpan={4} style={{ borderRight: '1px solid #FFFFFF', padding: '3px 4px', textAlign: 'left' }}>TOTAL AMOUNT</td>
-              <td style={{ padding: '3px 4px', textAlign: 'right' }}>₹{orderVal.toFixed(2)}</td>
-            </tr>
+            {order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 ? (
+              <>
+                <tr style={{ fontWeight: 'bold' }}>
+                  <td colSpan={4} style={{ borderRight: '1px solid #000000', padding: '2px 4px', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>TOTAL AMOUNT</td>
+                  <td style={{ padding: '2px 4px', textAlign: 'right', borderBottom: '1px solid #E2E8F0' }}>₹{orderVal.toFixed(2)}</td>
+                </tr>
+                <tr style={{ color: '#10B981', fontWeight: 'bold' }}>
+                  <td colSpan={4} style={{ borderRight: '1px solid #000000', padding: '2px 4px', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>LESS: PAID AMOUNT</td>
+                  <td style={{ padding: '2px 4px', textAlign: 'right', borderBottom: '1px solid #E2E8F0' }}>-₹{order.partiallyPaidAmount.toFixed(2)}</td>
+                </tr>
+                <tr style={{ backgroundColor: '#E53E3E', color: '#FFFFFF', fontWeight: 'bold' }}>
+                  <td colSpan={4} style={{ borderRight: '1px solid #FFFFFF', padding: '3px 4px', textAlign: 'left' }}>
+                    {(order.paymentType === 'COD' || (order.partiallyPaidAmount > 0 && order.orderValue > order.partiallyPaidAmount)) ? 'BALANCE TO COLLECT (COD)' : 'TOTAL AMOUNT'}
+                  </td>
+                  <td style={{ padding: '3px 4px', textAlign: 'right' }}>
+                    ₹{amountToCollect.toFixed(2)}
+                  </td>
+                </tr>
+              </>
+            ) : (
+              <tr style={{ backgroundColor: '#E53E3E', color: '#FFFFFF', fontWeight: 'bold' }}>
+                <td colSpan={4} style={{ borderRight: '1px solid #FFFFFF', padding: '3px 4px', textAlign: 'left' }}>TOTAL AMOUNT</td>
+                <td style={{ padding: '3px 4px', textAlign: 'right' }}>₹{orderVal.toFixed(2)}</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, Copy, Check } from 'lucide-react';
 import { Order } from '@/lib/types';
+import { AddressRatingIndicator } from './AddressRatingIndicator';
 
 interface InspectTooltipButtonProps {
   order: Order;
@@ -54,7 +55,8 @@ export const InspectTooltipButton = ({
           visibility: 'hidden',
           opacity: 0,
           position: 'absolute',
-          bottom: '125%',
+          top: '100%',
+          marginTop: '6px',
           right: 0,
           width: '260px',
           backgroundColor: '#161618',
@@ -118,7 +120,10 @@ export const InspectTooltipButton = ({
         {/* Address */}
         <div style={{ borderTop: '1px solid #2D2D30', paddingTop: '8px', marginTop: '8px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-            <span style={{ fontWeight: 600, color: '#A1A1AA' }}>Delivery Address:</span>
+            <span style={{ fontWeight: 600, color: '#A1A1AA', display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              Delivery Address:
+              <AddressRatingIndicator address={order.address} style={{ fontSize: '9px', padding: '1px 4px' }} />
+            </span>
             <button
               onClick={(e) => copyToClipboard(fullAddress, 'addr', e)}
               style={{ background: 'none', border: 'none', color: copiedType === 'addr' ? '#10B981' : '#737373', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px' }}

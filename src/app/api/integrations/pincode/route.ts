@@ -63,11 +63,17 @@ export async function GET(request: Request) {
       const pincodeUrl = settings.xpressbeesConfig.pincodeUrl || 'https://xbmasterapi.xbees.in/expose/get/serviceabilitypincode/details';
       
       const res = await fetch(`${pincodeUrl}?pincode=${encodeURIComponent(pincode)}`, {
-        method: 'GET',
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Token': token,
           'XBKey': settings.xpressbeesConfig.xbKey || ''
-        }
+        },
+        body: JSON.stringify({
+          BusinessUnit: 'B2C',
+          BusinessFlow: 'Forward',
+          BusinessService: settings.xpressbeesConfig.serviceType || 'Air'
+        })
       });
       if (res.ok) {
         const data = await res.json();

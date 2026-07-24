@@ -23,11 +23,18 @@ import {
 } from 'lucide-react';
 import { NdrRecord, Order, User as DbUser } from '@/lib/types';
 import { InspectTooltipButton } from '@/components/InspectTooltipButton';
+import { AddressRatingIndicator } from '@/components/AddressRatingIndicator';
+import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
 
 export default function NdrManagement() {
   const [ndrRecords, setNdrRecords] = useState<NdrRecord[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<DateRange>({
+    preset: 'all',
+    startDate: '',
+    endDate: ''
+  });
   const [activeTab, setActiveTab] = useState<'ndr' | 'working_sheet'>('ndr');
   
   // Selection for bulk transfer
@@ -166,9 +173,12 @@ export default function NdrManagement() {
     if (session) {
       setCurrentUser(JSON.parse(session));
     }
-    fetchData();
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [dateRange]);
 
   const fetchUsers = async () => {
     try {
@@ -192,7 +202,14 @@ export default function NdrManagement() {
     setSelectedNdrIds([]);
     try {
       // 1. Fetch NDR Records
-      const ndrRes = await fetch('/api/ndr');
+      let ndrUrl = '/api/ndr';
+      const params: string[] = [];
+      if (dateRange.startDate) params.push(`startDate=${encodeURIComponent(dateRange.startDate)}`);
+      if (dateRange.endDate) params.push(`endDate=${encodeURIComponent(dateRange.endDate)}`);
+      if (params.length > 0) {
+        ndrUrl += `?${params.join('&')}`;
+      }
+      const ndrRes = await fetch(ndrUrl);
       const ndrData = await ndrRes.json();
       if (ndrRes.ok && ndrData.records) {
         const sorted = [...(ndrData.records as NdrRecord[])].sort((a, b) => {
@@ -208,7 +225,10 @@ export default function NdrManagement() {
       }
 
       // 2. Fetch Orders to determine which are in working sheet
-      const ordersRes = await fetch('/api/orders?limit=150');
+      let ordersUrl = '/api/orders?limit=150';
+      if (dateRange.startDate) ordersUrl += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
+      if (dateRange.endDate) ordersUrl += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
+      const ordersRes = await fetch(ordersUrl);
       const ordersData = await ordersRes.json();
       if (ordersRes.ok && ordersData.orders) {
         setOrders(ordersData.orders);
@@ -475,10 +495,13 @@ export default function NdrManagement() {
           </p>
         </div>
 
-        <button onClick={fetchData} className="premium-btn premium-btn-secondary" disabled={loading || bulkLoading}>
-          <RefreshCcw size={14} />
-          <span>Reload Queue</span>
-        </button>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <DateRangeFilter value={dateRange} onChange={setDateRange} />
+          <button onClick={fetchData} className="premium-btn premium-btn-secondary" disabled={loading || bulkLoading}>
+            <RefreshCcw size={14} />
+            <span>Reload Queue</span>
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -1083,7 +1106,10 @@ export default function NdrManagement() {
                   <span>{detailOrder.pincode}</span>
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>
-                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Shipping Destination Address</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span style={{ color: '#737373', fontSize: '11px', textTransform: 'uppercase' }}>Shipping Destination Address</span>
+                    <AddressRatingIndicator address={detailOrder.address} />
+                  </div>
                   <span>{detailOrder.address}</span>
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>

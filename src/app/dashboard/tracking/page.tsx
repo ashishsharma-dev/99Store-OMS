@@ -19,10 +19,17 @@ import {
 import { Order, OrderStatus } from '@/lib/types';
 import { HealvitaShippingLabel } from '@/components/HealvitaShippingLabel';
 import { CourierLogo } from '@/components/CourierLogo';
+import { AddressRatingIndicator } from '@/components/AddressRatingIndicator';
+import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
 
 export default function Tracking() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<DateRange>({
+    preset: 'all',
+    startDate: '',
+    endDate: ''
+  });
   const [syncLoading, setSyncLoading] = useState(false);
   const [search, setSearch] = useState('');
   
@@ -80,13 +87,19 @@ export default function Tracking() {
     if (session) {
       setCurrentUser(JSON.parse(session));
     }
-    fetchActiveShipments();
   }, []);
+
+  useEffect(() => {
+    fetchActiveShipments();
+  }, [dateRange]);
 
   const fetchActiveShipments = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/orders?limit=100');
+      let url = '/api/orders?limit=100';
+      if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
+      if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
+      const res = await fetch(url);
       const data = await res.json();
       if (res.ok && data.orders) {
         // Show only active shipments that have been generated labels/dispatched
@@ -199,15 +212,18 @@ export default function Tracking() {
           </p>
         </div>
 
-        <button 
-          onClick={handleBulkSync} 
-          className="premium-btn premium-btn-secondary"
-          disabled={syncLoading}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-        >
-          {syncLoading ? <span className="spinner spinner-sm" /> : <RefreshCcw size={14} />}
-          <span>{syncLoading ? 'Syncing...' : 'Sync Tracking API'}</span>
-        </button>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <DateRangeFilter value={dateRange} onChange={setDateRange} />
+          <button 
+            onClick={handleBulkSync} 
+            className="premium-btn premium-btn-secondary"
+            disabled={syncLoading}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            {syncLoading ? <span className="spinner spinner-sm" /> : <RefreshCcw size={14} />}
+            <span>{syncLoading ? 'Syncing...' : 'Sync Tracking API'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Grid: Search and Main lists */}
@@ -318,8 +334,9 @@ export default function Tracking() {
                   <div style={{ fontSize: '12.5px', color: '#8A8A8A', marginTop: '4px' }}>
                     Recipient: {selectedOrder.customerName} | Phone: {selectedOrder.phonePrimary}
                   </div>
-                  <div style={{ fontSize: '12.5px', color: '#8A8A8A', marginTop: '2px' }}>
-                    Shipping Address: {selectedOrder.address}, {selectedOrder.pincode}
+                  <div style={{ fontSize: '12.5px', color: '#8A8A8A', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <span>Shipping Address: {selectedOrder.address}, {selectedOrder.pincode}</span>
+                    <AddressRatingIndicator address={selectedOrder.address} style={{ fontSize: '9px', padding: '1px 4px' }} />
                   </div>
                 </div>
 

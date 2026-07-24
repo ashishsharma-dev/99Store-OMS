@@ -7,6 +7,8 @@ export async function GET(request: Request) {
     const status = searchParams.get('status');
     const payment = searchParams.get('payment');
     const vip = searchParams.get('vip');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
 
     let orders = await db.getOrders();
 
@@ -20,6 +22,18 @@ export async function GET(request: Request) {
     if (vip && vip !== 'all') {
       const isVip = vip === 'true';
       orders = orders.filter(o => o.isVip === isVip);
+    }
+    if (startDate) {
+      const start = new Date(startDate).getTime();
+      orders = orders.filter(o => new Date(o.createdAt).getTime() >= start);
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      if (endDate.length === 10) {
+        end.setHours(23, 59, 59, 999);
+      }
+      const endTime = end.getTime();
+      orders = orders.filter(o => new Date(o.createdAt).getTime() <= endTime);
     }
 
     // Sort descending by creation date

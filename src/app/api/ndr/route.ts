@@ -4,10 +4,29 @@ import { NdrRecord } from '@/lib/types';
 import { triggerWhatsAppNotification } from '@/lib/whatsapp';
 import { getXpressBeesToken } from '@/lib/xpressbees';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
     let records = await db.getNdrRecords();
     records = records.filter(r => !r.isDeleted);
+
+    // Apply Date Range Filter
+    if (startDate) {
+      const start = new Date(startDate).getTime();
+      records = records.filter(r => new Date(r.createdAt).getTime() >= start);
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      if (endDate.length === 10) {
+        end.setHours(23, 59, 59, 999);
+      }
+      const endTime = end.getTime();
+      records = records.filter(r => new Date(r.createdAt).getTime() <= endTime);
+    }
+
     // Sort so most recent NDRs are at the top
     records.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return NextResponse.json({ success: true, records });

@@ -17,10 +17,17 @@ import {
 import { Order, OrderStatus } from '@/lib/types';
 import { InspectTooltipButton } from '@/components/InspectTooltipButton';
 import { CourierLogo } from '@/components/CourierLogo';
+import { AddressRatingIndicator } from '@/components/AddressRatingIndicator';
+import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
 
 export default function AllShipments() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<DateRange>({
+    preset: 'all',
+    startDate: '',
+    endDate: ''
+  });
   const [search, setSearch] = useState('');
   
   // Selected Order for detailing
@@ -40,14 +47,16 @@ export default function AllShipments() {
 
   useEffect(() => {
     fetchShipmentsList();
-  }, [search, statusFilter, courierFilter, sortField, sortOrder, page]);
+  }, [search, statusFilter, courierFilter, sortField, sortOrder, page, dateRange]);
 
   const fetchShipmentsList = async () => {
     setLoading(true);
     try {
       // Fetch all dispatches. We can query `/api/orders`
       // We pass filters and pagination parameters.
-      const url = `/api/orders?page=${page}&limit=50&search=${encodeURIComponent(search)}&status=${statusFilter}&sortField=${sortField}&sortOrder=${sortOrder}`;
+      let url = `/api/orders?page=${page}&limit=50&search=${encodeURIComponent(search)}&status=${statusFilter}&sortField=${sortField}&sortOrder=${sortOrder}`;
+      if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
+      if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
       const res = await fetch(url);
       const data = await res.json();
       
@@ -87,10 +96,13 @@ export default function AllShipments() {
           </p>
         </div>
 
-        <button onClick={fetchShipmentsList} className="premium-btn premium-btn-secondary" style={{ padding: '8px 14px' }}>
-          <RefreshCcw size={14} />
-          <span>Sync Feeds</span>
-        </button>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <DateRangeFilter value={dateRange} onChange={(range) => { setDateRange(range); setPage(1); }} />
+          <button onClick={() => fetchShipmentsList()} className="premium-btn premium-btn-secondary" style={{ padding: '8px 14px' }}>
+            <RefreshCcw size={14} />
+            <span>Sync Feeds</span>
+          </button>
+        </div>
       </div>
 
       {/* Global Search & Filters Toolboard */}
@@ -369,7 +381,10 @@ export default function AllShipments() {
                   <span>{selectedOrder.pincode}</span>
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>
-                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Shipping Destination Address</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span style={{ color: '#737373', fontSize: '11px', textTransform: 'uppercase' }}>Shipping Destination Address</span>
+                    <AddressRatingIndicator address={selectedOrder.address} />
+                  </div>
                   <span>{selectedOrder.address}</span>
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>

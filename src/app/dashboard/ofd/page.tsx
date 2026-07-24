@@ -21,10 +21,17 @@ import {
 import { Order, OrderStatus, User as DbUser } from '@/lib/types';
 import { InspectTooltipButton } from '@/components/InspectTooltipButton';
 import { CourierLogo } from '@/components/CourierLogo';
+import { AddressRatingIndicator } from '@/components/AddressRatingIndicator';
+import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
 
 export default function OfdManagement() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<DateRange>({
+    preset: 'all',
+    startDate: '',
+    endDate: ''
+  });
   const [activeTab, setActiveTab] = useState<'all_ofd' | 'working_sheet'>('all_ofd');
 
   // Multi-select for assigning riders
@@ -138,9 +145,12 @@ export default function OfdManagement() {
     if (session) {
       setCurrentUser(JSON.parse(session));
     }
-    fetchOfdOrders();
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    fetchOfdOrders();
+  }, [dateRange]);
 
   const fetchUsers = async () => {
     try {
@@ -163,7 +173,10 @@ export default function OfdManagement() {
     setLoading(true);
     setSelectedOrderIds([]);
     try {
-      const res = await fetch('/api/orders?limit=150');
+      let url = '/api/orders?limit=150';
+      if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
+      if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
+      const res = await fetch(url);
       const data = await res.json();
       if (res.ok && data.orders) {
         // Filter orders in OFD state and sort by latest remark timestamp
@@ -290,10 +303,13 @@ export default function OfdManagement() {
           </p>
         </div>
 
-        <button onClick={fetchOfdOrders} className="premium-btn premium-btn-secondary" disabled={loading || actionLoading}>
-          <RefreshCcw size={14} />
-          <span>Reload Feeds</span>
-        </button>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <DateRangeFilter value={dateRange} onChange={setDateRange} />
+          <button onClick={fetchOfdOrders} className="premium-btn premium-btn-secondary" disabled={loading || actionLoading}>
+            <RefreshCcw size={14} />
+            <span>Reload Feeds</span>
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -882,7 +898,10 @@ export default function OfdManagement() {
                   <span>{detailOrder.pincode}</span>
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>
-                  <span style={{ color: '#737373', display: 'block', fontSize: '11px', textTransform: 'uppercase' }}>Shipping Destination Address</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span style={{ color: '#737373', fontSize: '11px', textTransform: 'uppercase' }}>Shipping Destination Address</span>
+                    <AddressRatingIndicator address={detailOrder.address} />
+                  </div>
                   <span>{detailOrder.address}</span>
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>

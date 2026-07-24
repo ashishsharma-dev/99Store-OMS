@@ -15,10 +15,16 @@ import {
 } from 'lucide-react';
 import { Order } from '@/lib/types';
 import { CourierLogo } from '@/components/CourierLogo';
+import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
 
 export default function Dashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<DateRange>({
+    preset: 'all',
+    startDate: '',
+    endDate: ''
+  });
   const [stats, setStats] = useState({
     total: 0,
     cod: 0,
@@ -35,13 +41,16 @@ export default function Dashboard() {
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
 
   useEffect(() => {
-    fetchOrders();
-  }, []);
+    fetchOrders(dateRange.startDate, dateRange.endDate);
+  }, [dateRange]);
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (start?: string, end?: string) => {
     setLoading(true);
     try {
-      const res = await fetch('/api/orders?limit=100');
+      let url = '/api/orders?limit=100';
+      if (start) url += `&startDate=${encodeURIComponent(start)}`;
+      if (end) url += `&endDate=${encodeURIComponent(end)}`;
+      const res = await fetch(url);
       const data = await res.json();
       if (res.ok && data.orders) {
         const allOrders: Order[] = data.orders;
@@ -104,7 +113,14 @@ export default function Dashboard() {
   };
 
   const handleExportCsv = () => {
-    window.open('/api/reports');
+    let url = '/api/reports';
+    const params: string[] = [];
+    if (dateRange.startDate) params.push(`startDate=${encodeURIComponent(dateRange.startDate)}`);
+    if (dateRange.endDate) params.push(`endDate=${encodeURIComponent(dateRange.endDate)}`);
+    if (params.length > 0) {
+      url += `?${params.join('&')}`;
+    }
+    window.open(url);
   };
 
   if (loading) {
@@ -142,8 +158,9 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button onClick={fetchOrders} className="premium-btn premium-btn-secondary" style={{ padding: '8px 12px' }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <DateRangeFilter value={dateRange} onChange={setDateRange} />
+          <button onClick={() => fetchOrders(dateRange.startDate, dateRange.endDate)} className="premium-btn premium-btn-secondary" style={{ padding: '8px 12px' }}>
             <RefreshCcw size={14} />
             <span>Reload Stream</span>
           </button>

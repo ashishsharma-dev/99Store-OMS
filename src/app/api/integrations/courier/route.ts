@@ -22,6 +22,88 @@ function isDtdcStaging(apiKey?: string, username?: string): boolean {
   );
 }
 
+function cleanCityName(area: string, state: string, pincode: string): string {
+  let clean = (area || '').trim();
+  
+  // If it has a comma, take the last part (e.g. "Bandra West, Mumbai" -> "Mumbai")
+  if (clean.includes(',')) {
+    clean = clean.split(',').pop()!.trim();
+  }
+  
+  // Remove trailing details, parentheses, etc.
+  clean = clean.replace(/\(.*\)/g, '').trim();
+
+  // If it is a zone fallback or doesn't look like a real city name, map based on state/pincode prefix
+  const isFallback = clean.toLowerCase().includes('zone') || 
+                     clean.toLowerCase().includes('default') || 
+                     clean.toLowerCase().includes('pincode') || 
+                     clean.toLowerCase().includes('region') || 
+                     clean.toLowerCase().includes('serviced') || 
+                     clean.length < 3;
+                     
+  if (isFallback && pincode) {
+    const prefix2 = pincode.slice(0, 2);
+    const prefix1 = pincode.charAt(0);
+    
+    if (prefix2 === '11') return 'New Delhi';
+    if (prefix2 === '12' || prefix2 === '13') return 'Gurugram';
+    if (prefix2 === '14' || prefix2 === '15' || prefix2 === '16') return 'Ludhiana';
+    if (prefix1 === '2') return 'Noida';
+    if (prefix2 === '30' || prefix2 === '31' || prefix2 === '32' || prefix2 === '33' || prefix2 === '34') return 'Jaipur';
+    if (prefix1 === '3') return 'Ahmedabad';
+    if (prefix1 === '4') return 'Mumbai';
+    if (prefix2 === '50') return 'Hyderabad';
+    if (prefix2 === '51' || prefix2 === '52' || prefix2 === '53') return 'Vijayawada';
+    if (prefix1 === '5') return 'Bengaluru';
+    if (prefix2 === '67' || prefix2 === '68' || prefix2 === '69') return 'Kochi';
+    if (prefix1 === '6') return 'Chennai';
+    if (prefix1 === '7') return 'Kolkata';
+    if (prefix1 === '8') return 'Patna';
+  }
+  
+  if (isFallback) {
+    return 'Mumbai'; // Default fallback
+  }
+  
+  return clean;
+}
+
+function cleanStateName(state: string, pincode: string): string {
+  let clean = (state || '').trim();
+  
+  clean = clean
+    .replace(/^HR$/i, 'Haryana')
+    .replace(/^UP$/i, 'Uttar Pradesh')
+    .replace(/^DL$/i, 'Delhi')
+    .replace(/^RJ$/i, 'Rajasthan')
+    .replace(/^MH$/i, 'Maharashtra');
+
+  if (clean.includes('/')) {
+    const parts = clean.split('/');
+    const zone = pincode ? pincode.slice(0, 2) : '';
+    
+    if (clean.toLowerCase().includes('delhi')) {
+      return 'Delhi';
+    }
+    if (clean.toLowerCase().includes('karnataka')) {
+      return (zone.startsWith('56') || zone.startsWith('57') || zone.startsWith('58') || zone.startsWith('59')) ? 'Karnataka' : 'Andhra Pradesh';
+    }
+    if (clean.toLowerCase().includes('tamil')) {
+      return (zone.startsWith('60') || zone.startsWith('61') || zone.startsWith('62') || zone.startsWith('63') || zone.startsWith('64')) ? 'Tamil Nadu' : 'Kerala';
+    }
+    if (clean.toLowerCase().includes('west bengal')) {
+      return 'West Bengal';
+    }
+    if (clean.toLowerCase().includes('bihar')) {
+      return (zone.startsWith('80') || zone.startsWith('81') || zone.startsWith('82') || zone.startsWith('83') || zone.startsWith('84') || zone.startsWith('85')) ? 'Bihar' : 'Jharkhand';
+    }
+    
+    return parts[0].trim();
+  }
+  
+  return clean || 'Uttar Pradesh';
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -187,7 +269,8 @@ export async function GET(request: Request) {
               'token': token,
               'TokenNumber': token,
               'XBKey': xbConfig.xbKey || '',
-              'xb-key': xbConfig.xbKey || ''
+              'xb-key': xbConfig.xbKey || '',
+              'versionnumber': 'v1'
             },
             body: JSON.stringify({
               awb: waybill,
@@ -1182,7 +1265,8 @@ export async function POST(request: Request) {
       const vendorCode = xbConfig.vendorCode || 'VEND001';
 
       const cleanConsigneePhone = (order.phonePrimary || '').replace(/\D/g, '').slice(-10) || '9999999999';
-      const cleanConsigneeState = (order.state || 'Uttar Pradesh').replace(/^HR$/i, 'Haryana').replace(/^UP$/i, 'Uttar Pradesh').replace(/^DL$/i, 'Delhi').replace(/^RJ$/i, 'Rajasthan').replace(/^MH$/i, 'Maharashtra');
+      const cleanConsigneeState = cleanStateName(order.state || 'Uttar Pradesh', order.pincode);
+      const cleanConsigneeCity = cleanCityName(order.area, order.state, order.pincode);
       const bizAccountName = xbConfig.businessAccountName || xbConfig.accountName || 'Shivay Air';
 
       const bookingPayload: any = {
@@ -1204,7 +1288,7 @@ export async function POST(request: Request) {
           name: order.customerName,
           address: order.address,
           address_2: order.area || '',
-          city: order.area || 'Agra',
+          city: cleanConsigneeCity,
           state: cleanConsigneeState,
           pincode: order.pincode,
           phone: cleanConsigneePhone
@@ -1229,7 +1313,7 @@ export async function POST(request: Request) {
           }
         ],
         courier_id: serviceType.toUpperCase() === 'NDD' ? '12939' : (serviceType.toUpperCase() === 'SDD' ? '12938' : '1'),
-        collectable_amount: order.paymentType === 'COD' ? String(order.orderValue - (order.partiallyPaidAmount || 0)) : "0"
+        collectable_amount: (order.paymentType === 'COD' || (order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 && order.orderValue > order.partiallyPaidAmount)) ? String(order.orderValue - (order.partiallyPaidAmount || 0)) : "0"
       };
 
       if (authType === 'new') {
@@ -1237,8 +1321,8 @@ export async function POST(request: Request) {
         bookingPayload.OrderNo = order.orderId;
         bookingPayload.SubOrderNo = order.orderId;
         bookingPayload.DeclaredValue = Number(order.orderValue || 100);
-        bookingPayload.OrderType = order.paymentType === 'COD' ? 'COD' : 'PREPAID';
-        bookingPayload.CollectibleAmount = order.paymentType === 'COD' ? Number(order.orderValue - (order.partiallyPaidAmount || 0)) : 0;
+        bookingPayload.OrderType = (order.paymentType === 'COD' || (order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 && order.orderValue > order.partiallyPaidAmount)) ? 'COD' : 'PREPAID';
+        bookingPayload.CollectibleAmount = (order.paymentType === 'COD' || (order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 && order.orderValue > order.partiallyPaidAmount)) ? Number(order.orderValue - (order.partiallyPaidAmount || 0)) : 0;
         bookingPayload.ServiceType = serviceType;
         bookingPayload.Quantity = 1;
         bookingPayload.Weight = Number(order.weight || 0.5);
@@ -1251,45 +1335,53 @@ export async function POST(request: Request) {
         bookingPayload.TokenNumber = token;
         bookingPayload.Token = token;
 
+        const dropAddressObj = {
+          Type: "Primary",
+          AddressType: "Primary",
+          ConsigneeName: order.customerName,
+          ContactPersonName: order.customerName,
+          Name: order.customerName,
+          Address: order.address,
+          Address1: order.address,
+          Address2: order.area || '',
+          City: cleanConsigneeCity,
+          State: cleanConsigneeState,
+          Pincode: order.pincode,
+          PhoneNo: cleanConsigneePhone
+        };
+
+        const pickupAddressObj = {
+          Type: "Primary",
+          AddressType: "Primary",
+          VendorCode: vendorCode,
+          Address1: xbConfig.address || '140 MG Road',
+          Address2: xbConfig.address2 || 'Near Metro Station',
+          City: xbConfig.city || 'Agra',
+          State: xbConfig.state || 'Uttar Pradesh',
+          Pincode: xbConfig.pincode || '282001'
+        };
+
         bookingPayload.DropDetails = {
           ConsigneeName: order.customerName,
           ContactPersonName: order.customerName,
           Name: order.customerName,
           PhoneNo: cleanConsigneePhone,
-          MobileNo: cleanConsigneePhone
+          MobileNo: cleanConsigneePhone,
+          DropAddressesDetails: [dropAddressObj],
+          Addresses: [dropAddressObj]
         };
 
-        bookingPayload.DropAddressesDetails = [
-          {
-            ConsigneeName: order.customerName,
-            ContactPersonName: order.customerName,
-            Name: order.customerName,
-            Address: order.address,
-            Address1: order.address,
-            Address2: order.area || '',
-            City: order.area || 'Agra',
-            State: cleanConsigneeState,
-            Pincode: order.pincode,
-            PhoneNo: cleanConsigneePhone
-          }
-        ];
+        bookingPayload.DropAddressesDetails = [dropAddressObj];
 
         bookingPayload.PickupDetails = {
           VendorCode: vendorCode,
           Name: xbConfig.contactName || 'Warehouse Manager',
-          PhoneNo: xbConfig.phone || '9999999999'
+          PhoneNo: xbConfig.phone || '9999999999',
+          PickupAddressesDetails: [pickupAddressObj],
+          Addresses: [pickupAddressObj]
         };
 
-        bookingPayload.PickupAddressesDetails = [
-          {
-            VendorCode: vendorCode,
-            Address1: xbConfig.address || '140 MG Road',
-            Address2: xbConfig.address2 || 'Near Metro Station',
-            City: xbConfig.city || 'Agra',
-            State: xbConfig.state || 'Uttar Pradesh',
-            Pincode: xbConfig.pincode || '282001'
-          }
-        ];
+        bookingPayload.PickupAddressesDetails = [pickupAddressObj];
       }
 
       let bookingResponseData: any = null;
@@ -1536,8 +1628,8 @@ export async function POST(request: Request) {
               state: order.state || 'Delhi'
             },
             customer_reference_number: order.orderId,
-            cod_collection_mode: order.paymentType === 'COD' ? 'cash' : '',
-            cod_amount: order.paymentType === 'COD' ? String(order.orderValue - (order.partiallyPaidAmount || 0)) : '',
+            cod_collection_mode: (order.paymentType === 'COD' || (order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 && order.orderValue > order.partiallyPaidAmount)) ? 'cash' : '',
+            cod_amount: (order.paymentType === 'COD' || (order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 && order.orderValue > order.partiallyPaidAmount)) ? String(order.orderValue - (order.partiallyPaidAmount || 0)) : '',
             commodity_id: commodityId,
             description: order.productDetails || 'Fulfillment parcel',
             reference_number: ''
@@ -1721,7 +1813,7 @@ export async function POST(request: Request) {
       }
 
       // Step B: Create CMU Manifest Shipment
-      const paymentMode = order.paymentType === 'COD' ? 'COD' : 'Prepaid';
+      const paymentMode = (order.paymentType === 'COD' || (order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 && order.orderValue > order.partiallyPaidAmount)) ? 'COD' : 'Prepaid';
 
       const shipment: any = {
         name: order.customerName,
@@ -1741,7 +1833,7 @@ export async function POST(request: Request) {
         return_country: "",
         products_desc: order.productDetails || "",
         hsn_code: "",
-        cod_amount: order.paymentType === 'COD' ? String(order.orderValue - (order.partiallyPaidAmount || 0)) : "",
+        cod_amount: (order.paymentType === 'COD' || (order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 && order.orderValue > order.partiallyPaidAmount)) ? String(order.orderValue - (order.partiallyPaidAmount || 0)) : "",
         order_date: null,
         total_amount: String(order.orderValue),
         seller_add: "",
