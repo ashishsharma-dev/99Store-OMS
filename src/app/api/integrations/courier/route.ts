@@ -414,8 +414,9 @@ export async function GET(request: Request) {
         // Auto-sync status to database
         const courierStatus = unifiedData?.ShipmentData?.[0]?.Shipment?.Status?.Status;
         const scanLocation = unifiedData?.ShipmentData?.[0]?.Shipment?.Status?.StatusLocation;
+        const liveEta = data?.expected_delivery_date || data?.data?.expected_delivery_date || data?.ExpectedDeliveryDate || data?.edd || null;
         if (courierStatus) {
-          await syncOrderStatus(waybill, courierStatus, scanLocation);
+          await syncOrderStatus(waybill, courierStatus, scanLocation, undefined, liveEta);
         }
 
         return NextResponse.json(unifiedData);
@@ -593,8 +594,9 @@ export async function GET(request: Request) {
           };
 
           // Auto-sync status to database
+          const liveEta = trackData?.expected_delivery_date || trackData?.expectedDeliveryDate || trackData?.edd || (trackData?.data && (trackData.data.expected_delivery_date || trackData.data.expectedDeliveryDate)) || null;
           if (currentStatus) {
-            await syncOrderStatus(waybill, currentStatus, currentLocation);
+            await syncOrderStatus(waybill, currentStatus, currentLocation, undefined, liveEta);
           }
 
           return NextResponse.json(unifiedData);
@@ -747,8 +749,9 @@ export async function GET(request: Request) {
       // Auto-sync status to database
       const courierStatus = data?.ShipmentData?.[0]?.Shipment?.Status?.Status;
       const scanLocation = data?.ShipmentData?.[0]?.Shipment?.Status?.StatusLocation;
+      const liveEta = data?.ShipmentData?.[0]?.Shipment?.ExpectedDeliveryDate || data?.ShipmentData?.[0]?.Shipment?.expected_delivery_date || data?.expected_delivery_date || null;
       if (courierStatus) {
-        await syncOrderStatus(waybill, courierStatus, scanLocation);
+        await syncOrderStatus(waybill, courierStatus, scanLocation, undefined, liveEta);
       }
 
       return NextResponse.json(data);
@@ -2079,10 +2082,19 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: `Delhivery CMU Manifest network error: ${err.message}` }, { status: 500 });
       }
 
-      const etaDays = 3;
-      const etaDate = new Date();
-      etaDate.setDate(etaDate.getDate() + etaDays);
-      const etaString = etaDate.toISOString().split('T')[0];
+      let etaString = '';
+      if (manifestResponseData && manifestResponseData.packages && manifestResponseData.packages.length > 0) {
+        const pkg = manifestResponseData.packages[0];
+        if (pkg.expected_delivery_date || pkg.etd || pkg.edd) {
+          etaString = (pkg.expected_delivery_date || pkg.etd || pkg.edd).split(' ')[0].split('T')[0];
+        }
+      }
+      if (!etaString) {
+        const etaDays = 3;
+        const etaDate = new Date();
+        etaDate.setDate(etaDate.getDate() + etaDays);
+        etaString = etaDate.toISOString().split('T')[0];
+      }
       const charge = 70 + weight * 20 + (paymentType === 'COD' ? 30 : 0);
 
       return NextResponse.json({ success: true, awb: finalAwb, eta: etaString, courier: 'Delhivery', charge });

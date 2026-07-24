@@ -82,7 +82,8 @@ export async function syncOrderStatus(
   waybill: string,
   courierStatus: string,
   scanLocation?: string,
-  customRemarks?: string
+  customRemarks?: string,
+  eta?: string
 ): Promise<{ updated: boolean; order?: Order; error?: string }> {
   try {
     const orders = await db.getOrders();
@@ -101,30 +102,45 @@ export async function syncOrderStatus(
       return { updated: false, error: `Unable to map courier status: "${courierStatus}"` };
     }
 
-    // If the status is the same, no need to update
-    if (order.status === mappedStatus) {
-      return { updated: false, order };
-    }
-
-    const previousStatus = order.status;
     const now = new Date().toISOString();
     const locStr = scanLocation ? ` [Hub: ${scanLocation}]` : '';
     const sysRemarks = customRemarks || `Auto-synced status from ${order.courier} tracking API. Courier Status: "${courierStatus}"${locStr}.`;
+    let hasChanges = false;
 
-    // 1. Update Order Object
-    order.status = mappedStatus;
-    order.updatedAt = now;
-    
-    // 2. Add history record
-    order.history.push({
-      status: mappedStatus,
-      timestamp: now,
-      updatedBy: 'courier_api_sync',
-      remarks: sysRemarks
-    });
+    // 1. Update Order Status
+    if (order.status !== mappedStatus) {
+      order.status = mappedStatus;
+      order.updatedAt = now;
+      order.history.push({
+        status: mappedStatus,
+        timestamp: now,
+        updatedBy: 'courier_api_sync',
+        remarks: sysRemarks
+      });
+      hasChanges = true;
+    }
 
-    // 3. Save to database
-    await db.saveOrder(order);
+    // 2. Update Live ETA if provided
+    if (eta) {
+      const cleanEta = eta.split(' ')[0].split('T')[0];
+      if (cleanEta && cleanEta.length >= 8 && order.eta !== cleanEta) {
+        order.eta = cleanEta;
+        order.updatedAt = now;
+        order.history.push({
+          status: order.status,
+          timestamp: now,
+          updatedBy: 'courier_api_sync',
+          remarks: `Updated live estimated delivery date (ETD): ${cleanEta}`
+        });
+        hasChanges = true;
+      }
+    }
+
+    if (hasChanges) {
+      await db.saveOrder(order);
+    } else {
+      return { updated: false, order };
+    }
 
     // 4. NDR Side Effect Trigger
     if (mappedStatus === 'NDR') {
