@@ -376,11 +376,6 @@ export default function Orders() {
     setPage(1);
   };
 
-  const activeFiltersCount = 
-    (statusFilter !== 'all' ? 1 : 0) +
-    (paymentFilter !== 'all' ? 1 : 0) +
-    (vipFilter !== 'all' ? 1 : 0);
-
   const handlePrintLabel = (order: Order) => {
     setPrintingOrder(order);
     setShowPrintLabel(true);
@@ -448,32 +443,6 @@ export default function Orders() {
         </div>
 
         <Filter size={14} style={{ color: '#737373', flexShrink: 0 }} />
-
-        {/* Active Filters Pill */}
-        <button
-          onClick={handleResetFilters}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            border: '1px solid rgba(59, 130, 246, 0.2)',
-            backgroundColor: 'rgba(59, 130, 246, 0.08)',
-            color: '#93C5FD',
-            fontSize: '12.5px',
-            padding: '6px 12px',
-            borderRadius: '6px',
-            fontWeight: 500,
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            outline: 'none',
-            height: '34px',
-            flexShrink: 0
-          }}
-          title={activeFiltersCount > 0 ? "Click to clear filters" : undefined}
-        >
-          <span>Active Filters ({activeFiltersCount})</span>
-          <ChevronDown size={12} style={{ color: '#60A5FA' }} />
-        </button>
 
         {/* Filter Status */}
         <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
@@ -562,24 +531,37 @@ export default function Orders() {
           <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
         </div>
 
-        {/* Sort Select */}
-        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', marginLeft: 'auto' }}>
+        {/* Sort Select (Icon Only) */}
+        <div 
+          style={{ 
+            position: 'relative', 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            marginLeft: 'auto',
+            width: '34px',
+            height: '34px',
+            backgroundColor: '#18181B',
+            border: '1px solid #27272A',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            flexShrink: 0
+          }}
+          title="Sort Options"
+        >
+          <ArrowUpDown size={14} style={{ color: '#FAFAFA' }} />
           <select
-            className="premium-input"
             style={{ 
-              width: 'auto', 
-              minWidth: '220px', 
-              padding: '6px 28px 6px 12px',
-              height: '34px',
-              fontSize: '13px',
-              backgroundColor: '#18181B',
-              borderColor: '#27272A',
-              appearance: 'none',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              opacity: 0,
               cursor: 'pointer',
               outline: 'none',
-              color: '#3B82F6',
-              fontWeight: 500,
-              border: '1px solid rgba(59, 130, 246, 0.3)'
+              appearance: 'none'
             }}
             value={`${sortField}-${sortOrder}`}
             onChange={(e) => handleSortChange(e.target.value)}
@@ -591,7 +573,6 @@ export default function Orders() {
             <option value="weight-desc">Package Weight: Heavy to Light</option>
             <option value="weight-asc">Package Weight: Light to Heavy</option>
           </select>
-          <ArrowUpDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#3B82F6' }} />
         </div>
       </div>
 
