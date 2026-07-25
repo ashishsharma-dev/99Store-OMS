@@ -12,7 +12,9 @@ import {
   Star,
   RefreshCcw,
   Clock,
-  Printer
+  Printer,
+  ChevronDown,
+  ArrowUpDown
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
 import { InspectTooltipButton } from '@/components/InspectTooltipButton';
@@ -87,6 +89,13 @@ export default function AllShipments() {
     }
   };
 
+  const handleSortChange = (combinedValue: string) => {
+    const [field, order] = combinedValue.split('-');
+    setSortField(field);
+    setSortOrder(order);
+    setPage(1);
+  };
+
   const openOrderDetail = (order: Order) => {
     setSelectedOrder(order);
     setShowDetailModal(true);
@@ -114,35 +123,60 @@ export default function AllShipments() {
       </div>
 
       {/* Global Search & Filters Toolboard */}
-      <div className="premium-card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div 
+        className="premium-card" 
+        style={{ 
+          padding: '8px 12px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px',
+          flexWrap: 'wrap',
+          backgroundColor: '#09090B',
+          borderColor: '#27272A',
+          minHeight: '50px'
+        }}
+      >
         {/* Search */}
-        <div style={{ position: 'relative', width: '100%' }}>
-          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#737373' }} />
+        <div style={{ position: 'relative', minWidth: '240px', maxWidth: '300px', flex: 1 }}>
+          <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#737373' }} />
           <input
             type="text"
             className="premium-input"
-            style={{ paddingLeft: '38px' }}
+            style={{ 
+              paddingLeft: '32px', 
+              height: '34px', 
+              fontSize: '13px', 
+              backgroundColor: '#18181B', 
+              borderColor: '#27272A' 
+            }}
             placeholder="Search shipments by Name, Phone, AWB, Order ID, Pincode..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
         </div>
 
-        {/* Filters */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Filter size={14} style={{ color: '#737373' }} />
-            <span style={{ fontSize: '12px', color: '#737373', textTransform: 'uppercase' }}>Filter criteria:</span>
-          </div>
+        <Filter size={14} style={{ color: '#737373', flexShrink: 0 }} />
 
-          {/* Status filter */}
+        {/* Status filter */}
+        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
           <select
             className="premium-input"
-            style={{ width: 'auto', minWidth: '130px', padding: '6px 12px' }}
+            style={{ 
+              width: 'auto', 
+              minWidth: '120px', 
+              padding: '6px 28px 6px 12px',
+              height: '34px',
+              fontSize: '13px',
+              backgroundColor: '#18181B',
+              borderColor: '#27272A',
+              appearance: 'none',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
           >
-            <option value="all">All Statuses</option>
+            <option value="all">Status (All)</option>
             <option value="Created">Created</option>
             <option value="Packing">Packing</option>
             <option value="Courier Selected">Courier Selected</option>
@@ -156,43 +190,79 @@ export default function AllShipments() {
             <option value="RDC">RDC Update</option>
             <option value="NDR">NDR Failure</option>
           </select>
+          <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
+        </div>
 
-          {/* Courier filter */}
+        {/* Courier filter */}
+        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
           <select
             className="premium-input"
-            style={{ width: 'auto', minWidth: '120px', padding: '6px 12px' }}
+            style={{ 
+              width: 'auto', 
+              minWidth: '120px', 
+              padding: '6px 28px 6px 12px',
+              height: '34px',
+              fontSize: '13px',
+              backgroundColor: '#18181B',
+              borderColor: '#27272A',
+              appearance: 'none',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
             value={courierFilter}
             onChange={(e) => { setCourierFilter(e.target.value); setPage(1); }}
           >
-            <option value="all">All Couriers</option>
+            <option value="all">Courier (All)</option>
             <option value="DTDC">DTDC</option>
             <option value="XpressBees">XpressBees</option>
             <option value="Delhivery">Delhivery</option>
             <option value="Aggregator">Aggregator</option>
             <option value="Velocity">Velocity</option>
           </select>
+          <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
+        </div>
 
-          {/* Sort field */}
+        {/* Sort Select (Icon Only) */}
+        <div 
+          style={{ 
+            position: 'relative', 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            marginLeft: 'auto',
+            width: '34px',
+            height: '34px',
+            backgroundColor: '#18181B',
+            border: '1px solid #27272A',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            flexShrink: 0
+          }}
+          title="Sort Options"
+        >
+          <ArrowUpDown size={14} style={{ color: '#FAFAFA' }} />
           <select
-            className="premium-input"
-            style={{ width: 'auto', minWidth: '140px', padding: '6px 12px', marginLeft: 'auto' }}
-            value={sortField}
-            onChange={(e) => setSortField(e.target.value)}
+            style={{ 
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              opacity: 0,
+              cursor: 'pointer',
+              outline: 'none',
+              appearance: 'none'
+            }}
+            value={`${sortField}-${sortOrder}`}
+            onChange={(e) => handleSortChange(e.target.value)}
           >
-            <option value="createdAt">Sort: Created Date</option>
-            <option value="orderValue">Sort: Order Value</option>
-            <option value="weight">Sort: Package Weight</option>
-          </select>
-
-          {/* Sort order */}
-          <select
-            className="premium-input"
-            style={{ width: 'auto', minWidth: '100px', padding: '6px 12px' }}
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-          >
-            <option value="desc">Descending</option>
-            <option value="asc">Ascending</option>
+            <option value="createdAt-desc">Created Date: Descending</option>
+            <option value="createdAt-asc">Created Date: Ascending</option>
+            <option value="orderValue-desc">Order Value: High to Low</option>
+            <option value="orderValue-asc">Order Value: Low to High</option>
+            <option value="weight-desc">Package Weight: Heavy to Light</option>
+            <option value="weight-asc">Package Weight: Light to Heavy</option>
           </select>
         </div>
       </div>
