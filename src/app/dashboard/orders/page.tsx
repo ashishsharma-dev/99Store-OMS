@@ -19,7 +19,9 @@ import {
   Copy,
   MessageSquare,
   Trash2,
-  Clock
+  Clock,
+  ChevronDown,
+  ArrowUpDown
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
 import { HealvitaShippingLabel } from '@/components/HealvitaShippingLabel';
@@ -360,6 +362,25 @@ export default function Orders() {
     window.open(url);
   };
 
+  const handleSortChange = (combinedValue: string) => {
+    const [field, order] = combinedValue.split('-');
+    setSortField(field);
+    setSortOrder(order);
+    setPage(1);
+  };
+
+  const handleResetFilters = () => {
+    setStatusFilter('all');
+    setPaymentFilter('all');
+    setVipFilter('all');
+    setPage(1);
+  };
+
+  const activeFiltersCount = 
+    (statusFilter !== 'all' ? 1 : 0) +
+    (paymentFilter !== 'all' ? 1 : 0) +
+    (vipFilter !== 'all' ? 1 : 0);
+
   const handlePrintLabel = (order: Order) => {
     setPrintingOrder(order);
     setShowPrintLabel(true);
@@ -394,37 +415,86 @@ export default function Orders() {
       </div>
 
       {/* Search & Filter Toolbar Card */}
-      <div className="premium-card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* Row 1: Global Search */}
-        <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
-          <div style={{ position: 'relative', flex: 1 }}>
-            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#737373' }} />
-            <input
-              type="text"
-              className="premium-input"
-              style={{ paddingLeft: '38px' }}
-              placeholder="Global Search: Name, Phone, Order ID, AWB, Address..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            />
-          </div>
+      <div 
+        className="premium-card" 
+        style={{ 
+          padding: '8px 12px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px',
+          flexWrap: 'wrap',
+          backgroundColor: '#09090B',
+          borderColor: '#27272A',
+          minHeight: '50px'
+        }}
+      >
+        {/* Global Search */}
+        <div style={{ position: 'relative', minWidth: '240px', maxWidth: '300px', flex: 1 }}>
+          <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#737373' }} />
+          <input
+            type="text"
+            className="premium-input"
+            style={{ 
+              paddingLeft: '32px', 
+              height: '34px', 
+              fontSize: '13px', 
+              backgroundColor: '#18181B', 
+              borderColor: '#27272A' 
+            }}
+            placeholder="Search: Name, Phone, Order ID, AWB, Address..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          />
         </div>
 
-        {/* Row 2: Dropdown Filters */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Filter size={14} style={{ color: '#737373' }} />
-            <span style={{ fontSize: '12px', color: '#737373', textTransform: 'uppercase' }}>Filters:</span>
-          </div>
+        <Filter size={14} style={{ color: '#737373', flexShrink: 0 }} />
 
-          {/* Filter Status */}
+        {/* Active Filters Pill */}
+        <button
+          onClick={handleResetFilters}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            border: '1px solid rgba(59, 130, 246, 0.2)',
+            backgroundColor: 'rgba(59, 130, 246, 0.08)',
+            color: '#93C5FD',
+            fontSize: '12.5px',
+            padding: '6px 12px',
+            borderRadius: '6px',
+            fontWeight: 500,
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            outline: 'none',
+            height: '34px',
+            flexShrink: 0
+          }}
+          title={activeFiltersCount > 0 ? "Click to clear filters" : undefined}
+        >
+          <span>Active Filters ({activeFiltersCount})</span>
+          <ChevronDown size={12} style={{ color: '#60A5FA' }} />
+        </button>
+
+        {/* Filter Status */}
+        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
           <select
             className="premium-input"
-            style={{ width: 'auto', minWidth: '130px', padding: '6px 12px' }}
+            style={{ 
+              width: 'auto', 
+              minWidth: '120px', 
+              padding: '6px 28px 6px 12px',
+              height: '34px',
+              fontSize: '13px',
+              backgroundColor: '#18181B',
+              borderColor: '#27272A',
+              appearance: 'none',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
           >
-            <option value="all">All Statuses</option>
+            <option value="all">Status (All)</option>
             <option value="Created">Created</option>
             <option value="Packing">Packing</option>
             <option value="Courier Selected">Courier Selected</option>
@@ -437,53 +507,91 @@ export default function Orders() {
             <option value="RDC">RDC Update</option>
             <option value="NDR">NDR Failure</option>
           </select>
+          <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
+        </div>
 
-          {/* Filter Payment */}
+        {/* Filter Payment */}
+        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
           <select
             className="premium-input"
-            style={{ width: 'auto', minWidth: '120px', padding: '6px 12px' }}
+            style={{ 
+              width: 'auto', 
+              minWidth: '120px', 
+              padding: '6px 28px 6px 12px',
+              height: '34px',
+              fontSize: '13px',
+              backgroundColor: '#18181B',
+              borderColor: '#27272A',
+              appearance: 'none',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
             value={paymentFilter}
             onChange={(e) => { setPaymentFilter(e.target.value); setPage(1); }}
           >
-            <option value="all">All Payments</option>
+            <option value="all">Payment (All)</option>
             <option value="Paid">Prepaid (Paid)</option>
             <option value="COD">Cash on Delivery (COD)</option>
           </select>
+          <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
+        </div>
 
-          {/* Filter VIP */}
+        {/* Filter VIP */}
+        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
           <select
             className="premium-input"
-            style={{ width: 'auto', minWidth: '120px', padding: '6px 12px' }}
+            style={{ 
+              width: 'auto', 
+              minWidth: '120px', 
+              padding: '6px 28px 6px 12px',
+              height: '34px',
+              fontSize: '13px',
+              backgroundColor: '#18181B',
+              borderColor: '#27272A',
+              appearance: 'none',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
             value={vipFilter}
             onChange={(e) => { setVipFilter(e.target.value); setPage(1); }}
           >
-            <option value="all">All VIP Tags</option>
+            <option value="all">VIP Tags (All)</option>
             <option value="true">⭐ VIP Only</option>
             <option value="false">Non-VIP</option>
           </select>
+          <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
+        </div>
 
-          {/* Sort By Field */}
+        {/* Sort Select */}
+        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', marginLeft: 'auto' }}>
           <select
             className="premium-input"
-            style={{ width: 'auto', minWidth: '140px', padding: '6px 12px' }}
-            value={sortField}
-            onChange={(e) => setSortField(e.target.value)}
+            style={{ 
+              width: 'auto', 
+              minWidth: '220px', 
+              padding: '6px 28px 6px 12px',
+              height: '34px',
+              fontSize: '13px',
+              backgroundColor: '#18181B',
+              borderColor: '#27272A',
+              appearance: 'none',
+              cursor: 'pointer',
+              outline: 'none',
+              color: '#3B82F6',
+              fontWeight: 500,
+              border: '1px solid rgba(59, 130, 246, 0.3)'
+            }}
+            value={`${sortField}-${sortOrder}`}
+            onChange={(e) => handleSortChange(e.target.value)}
           >
-            <option value="createdAt">Sort: Created Date</option>
-            <option value="orderValue">Sort: Order Value</option>
-            <option value="weight">Sort: Package Weight</option>
+            <option value="createdAt-desc">Created Date: Descending</option>
+            <option value="createdAt-asc">Created Date: Ascending</option>
+            <option value="orderValue-desc">Order Value: High to Low</option>
+            <option value="orderValue-asc">Order Value: Low to High</option>
+            <option value="weight-desc">Package Weight: Heavy to Light</option>
+            <option value="weight-asc">Package Weight: Light to Heavy</option>
           </select>
-
-          {/* Sort Direction */}
-          <select
-            className="premium-input"
-            style={{ width: 'auto', minWidth: '100px', padding: '6px 12px' }}
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-          >
-            <option value="desc">Descending</option>
-            <option value="asc">Ascending</option>
-          </select>
+          <ArrowUpDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#3B82F6' }} />
         </div>
       </div>
 
