@@ -3,7 +3,8 @@ import { WhatsAppLog } from '@/lib/types';
 
 // Deropo WhatsApp API Credentials (configured via environment variables)
 const API_URL = process.env.WHATSAPP_API_URL || 'https://api.deropo.com/api/send';
-const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || '3b2f4ed700862bc1f29cd7eb7f832983';
+const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || '8861d6ac2ad21c0ec4602a5f3057c332';
+const DEVICE_ID = process.env.WHATSAPP_DEVICE_ID || '2211';
 
 async function sendWhatsAppMessage(phone: string, messageText: string): Promise<{ success: boolean; error?: string }> {
   try {
@@ -27,7 +28,14 @@ async function sendWhatsAppMessage(phone: string, messageText: string): Promise<
       headers['X-Access-Token'] = ACCESS_TOKEN;
     }
 
-    const res = await fetch(API_URL, {
+    // Construct request URL by appending device_id if not already present in the URL
+    let requestUrl = API_URL;
+    if (DEVICE_ID && !requestUrl.includes('device_id=') && !requestUrl.includes('device=')) {
+      const separator = requestUrl.includes('?') ? '&' : '?';
+      requestUrl = `${requestUrl}${separator}device_id=${DEVICE_ID}`;
+    }
+
+    const res = await fetch(requestUrl, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -173,12 +181,12 @@ ${brandName}`;
 • ऑर्डर आईडी: ${orderId}
 • ट्रैकिंग आईडी (AWB): ${awb || 'N/A'}
 • कूरियर पार्टनर: ${courier || 'N/A'}
-• भुगतान राशि${paymentType === 'COD' ? ' (COD)' : ''}: ${paymentType === 'COD' ? `₹${orderValue}` : 'Prepaid' }
+• भुगतान राशि${paymentType === 'COD' ? ' (COD)' : ''}: ${paymentType === 'COD' ? `₹${orderValue}` : 'Prepaid'}
 
 आपका ऑर्डर आपके नज़दीकी डिलीवरी सेंटर (RDC) पर पहुँच चुका है और डिलीवरी की प्रक्रिया में है।
-${paymentType === 'COD' 
-  ? `संभावना है कि आपका ऑर्डर आज या कल तक आपको प्राप्त हो जाएगा।\nकृपया डिलीवरी के समय ₹${orderValue} की राशि तैयार रखें।` 
-  : 'संभावना है कि आपका ऑर्डर आज या कल तक आपको प्राप्त हो जाएगा।'}
+${paymentType === 'COD'
+          ? `संभावना है कि आपका ऑर्डर आज या कल तक आपको प्राप्त हो जाएगा।\nकृपया डिलीवरी के समय ₹${orderValue} की राशि तैयार रखें।`
+          : 'संभावना है कि आपका ऑर्डर आज या कल तक आपको प्राप्त हो जाएगा।'}
 
 यदि किसी भी प्रकार की सहायता चाहिए, तो कृपया हमसे संपर्क करें।
 
@@ -208,12 +216,12 @@ ${paymentType === 'COD'
 • ऑर्डर आईडी: ${orderId}
 • ट्रैकिंग आईडी (AWB): ${awb || 'N/A'}
 • कूरियर पार्टनर: ${courier || 'N/A'}
-• भुगतान राशि${paymentType === 'COD' ? ' (COD)' : ''}: ${paymentType === 'COD' ? `₹${orderValue}` : 'Prepaid' }
+• भुगतान राशि${paymentType === 'COD' ? ' (COD)' : ''}: ${paymentType === 'COD' ? `₹${orderValue}` : 'Prepaid'}
 
 आपका ऑर्डर आज ही डिलीवर होने की पूरी संभावना है।
 ${paymentType === 'COD'
-  ? `कृपया डिलीवरी के समय ₹${orderValue} की राशि तैयार रखें। साथ ही अपना मोबाइल फ़ोन उपलब्ध रखें ताकि डिलीवरी पार्टनर आवश्यकता पड़ने पर आपसे संपर्क कर सके।`
-  : 'कृपया अपना मोबाइल फ़ोन उपलब्ध रखें ताकि डिलीवरी पार्टनर आवश्यकता पड़ने पर आपसे संपर्क कर सके।'}
+          ? `कृपया डिलीवरी के समय ₹${orderValue} की राशि तैयार रखें। साथ ही अपना मोबाइल फ़ोन उपलब्ध रखें ताकि डिलीवरी पार्टनर आवश्यकता पड़ने पर आपसे संपर्क कर सके।`
+          : 'कृपया अपना मोबाइल फ़ोन उपलब्ध रखें ताकि डिलीवरी पार्टनर आवश्यकता पड़ने पर आपसे संपर्क कर सके।'}
 
 यदि किसी भी प्रकार की सहायता चाहिए, तो कृपया हमसे संपर्क करें।
 
@@ -331,7 +339,7 @@ ${paymentType === 'COD'
 export async function sendLoginOTP(phone: string, otp: string): Promise<{ success: boolean; error?: string }> {
   const messageText = `🔐 Your 99Store login verification code is: ${otp}. It is valid for 5 minutes. Do not share this code with anyone.`;
   const result = await sendWhatsAppMessage(phone, messageText);
-  
+
   const otpLog: WhatsAppLog = {
     id: `wa-otp-${Date.now()}`,
     timestamp: new Date().toISOString(),
@@ -340,7 +348,7 @@ export async function sendLoginOTP(phone: string, otp: string): Promise<{ succes
     message: result.success ? messageText : `${messageText}\n\n❌ Error: ${result.error}`,
     status: result.success ? 'Sent' : 'Failed'
   };
-  
+
   await db.addWhatsAppLog(otpLog);
   return result;
 }

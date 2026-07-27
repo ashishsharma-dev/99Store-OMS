@@ -1,27 +1,131 @@
 import { getDatabase } from './mongodb';
 import { User, Order, NdrRecord, SystemSettings, WhatsAppLog, CourierApiLog, Message } from './types';
 import { mockUsers, mockSettings, mockOrders, mockNdrs, mockWhatsAppLogs, mockCourierLogs, mockMessages } from './mockData';
+import fs from 'fs';
+import path from 'path';
 
 // Helper to escape regex characters
 function escapeRegExp(string: string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// In-memory fallback state in case MongoDB is unreachable
-let memoryUsers: User[] = [...mockUsers];
-let memoryOrders: Order[] = [...mockOrders];
-let memoryNdrs: NdrRecord[] = [...mockNdrs];
-let memoryWhatsAppLogs: WhatsAppLog[] = [...mockWhatsAppLogs];
-let memoryCourierLogs: CourierApiLog[] = [...mockCourierLogs];
-let memorySettings: SystemSettings = { ...mockSettings };
-let memoryMessages: Message[] = [...mockMessages];
-let memoryTrackingEvents: any[] = [];
+const DB_FILE_PATH = path.join(process.cwd(), 'data', 'db.json');
+
+// Helper to read database file
+function readLocalDbFile(): any {
+  try {
+    if (fs.existsSync(DB_FILE_PATH)) {
+      const raw = fs.readFileSync(DB_FILE_PATH, 'utf-8');
+      return JSON.parse(raw);
+    }
+  } catch (err) {
+    console.error('Error reading local db.json:', err);
+  }
+  return null;
+}
+
+// Helper to write database file atomically (write to temp first, then rename)
+function writeLocalDbFile(data: any): void {
+  try {
+    const dir = path.dirname(DB_FILE_PATH);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    const tempPath = `${DB_FILE_PATH}.tmp`;
+    fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), 'utf-8');
+    fs.renameSync(tempPath, DB_FILE_PATH);
+  } catch (err) {
+    console.error('Error writing local db.json:', err);
+  }
+}
 
 async function safeGetDb() {
   try {
     return await getDatabase();
   } catch (err) {
     return null;
+  }
+}
+
+// Load local DB on startup
+const localDb = readLocalDbFile() || {};
+
+let memoryUsers: User[] = localDb.users || [...mockUsers];
+let memoryOrders: Order[] = localDb.orders || [...mockOrders];
+let memoryNdrs: NdrRecord[] = localDb.ndr || [...mockNdrs];
+let memoryWhatsAppLogs: WhatsAppLog[] = localDb.whatsappLogs || [...mockWhatsAppLogs];
+let memoryCourierLogs: CourierApiLog[] = localDb.courierLogs || [...mockCourierLogs];
+let memorySettings: SystemSettings = localDb.settings ? { ...mockSettings, ...localDb.settings } : { ...mockSettings };
+let memoryMessages: Message[] = localDb.messages || [...mockMessages];
+let memoryTrackingEvents: any[] = localDb.tracking_events || [];
+
+// Helper to sync memory state to db.json
+function saveMemoryToLocalFile() {
+  const data = {
+    users: memoryUsers,
+    orders: memoryOrders,
+    ndr: memoryNdrs,
+    whatsappLogs: memoryWhatsAppLogs,
+    courierLogs: memoryCourierLogs,
+    settings: memorySettings,
+    messages: memoryMessages,
+    tracking_events: memoryTrackingEvents
+  };
+  writeLocalDbFile(data);
+}
+
+// Helper to perform weekly backup if 7 days have passed since the last backup
+async function performWeeklyBackupIfDue() {
+  try {
+    const backupDir = path.join(process.cwd(), 'data', 'backups');
+    if (!fs.existsSync(backupDir)) {
+      fs.mkdirSync(backupDir, { recursive: true });
+    }
+
+    // List existing backups
+    const files = fs.readdirSync(backupDir);
+    const backupFiles = files.filter(f => f.startsWith('db-backup-') && f.endsWith('.json'));
+
+    let lastBackupTime = 0;
+    if (backupFiles.length > 0) {
+      const timestamps = backupFiles.map(f => {
+        const match = f.match(/db-backup-(?:local-|mongo-)?(\d+)\.json/);
+        return match ? parseInt(match[1]) : 0;
+      });
+      lastBackupTime = Math.max(...timestamps);
+    }
+
+    const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+
+    if (now - lastBackupTime >= oneWeekMs) {
+      const database = await safeGetDb();
+      let dataToBackup: any = null;
+
+      if (database) {
+        dataToBackup = {
+          users: await database.collection('users').find({}).toArray(),
+          orders: await database.collection('orders').find({}).toArray(),
+          ndr: await database.collection('ndr').find({}).toArray(),
+          whatsappLogs: await database.collection('whatsappLogs').find({}).toArray(),
+          courierLogs: await database.collection('courierLogs').find({}).toArray(),
+          settings: await database.collection('settings').findOne({ key: 'system-settings' }),
+          messages: await database.collection('messages').find({}).toArray(),
+          tracking_events: await database.collection('tracking_events').find({}).toArray()
+        };
+      } else {
+        dataToBackup = readLocalDbFile();
+      }
+
+      if (dataToBackup) {
+        const backupName = database ? `db-backup-mongo-${now}.json` : `db-backup-local-${now}.json`;
+        const backupPath = path.join(backupDir, backupName);
+        fs.writeFileSync(backupPath, JSON.stringify(dataToBackup, null, 2), 'utf-8');
+        console.log(`Weekly database backup created at ${backupPath}`);
+      }
+    }
+  } catch (err) {
+    console.error('Weekly database backup failed:', err);
   }
 }
 
@@ -48,6 +152,8 @@ export const db = {
     memorySettings = { ...mockSettings };
     memoryMessages = [...mockMessages];
     memoryTrackingEvents = [];
+    saveMemoryToLocalFile();
+    performWeeklyBackupIfDue().catch(console.error);
 
     const database = await safeGetDb();
     if (database) {
@@ -86,6 +192,7 @@ export const db = {
 
   // Users Operations
   getUsers: async (): Promise<User[]> => {
+    performWeeklyBackupIfDue().catch(console.error);
     const database = await safeGetDb();
     if (database) {
       try {
@@ -97,6 +204,8 @@ export const db = {
         console.warn('MongoDB getUsers error, using memory:', e);
       }
     }
+    const local = readLocalDbFile() || {};
+    if (local.users) memoryUsers = local.users;
     return memoryUsers.map(u => enrichUser(u));
   },
   getUserById: async (id: string): Promise<User | undefined> => {
@@ -109,6 +218,8 @@ export const db = {
         console.warn('MongoDB getUserById error, using memory:', e);
       }
     }
+    const local = readLocalDbFile() || {};
+    if (local.users) memoryUsers = local.users;
     const u = memoryUsers.find(usr => usr.id === id);
     return u ? enrichUser(u) : undefined;
   },
@@ -124,17 +235,23 @@ export const db = {
         console.warn('MongoDB getUserByUsername error, using memory:', e);
       }
     }
+    const local = readLocalDbFile() || {};
+    if (local.users) memoryUsers = local.users;
     const u = memoryUsers.find(usr => usr.username.toLowerCase() === username.toLowerCase());
     return u ? enrichUser(u) : undefined;
   },
   saveUser: async (user: User): Promise<User> => {
     const enriched = enrichUser(user);
+    const local = readLocalDbFile() || {};
+    if (local.users) memoryUsers = local.users;
     const idx = memoryUsers.findIndex(u => u.id === user.id);
     if (idx >= 0) {
       memoryUsers[idx] = enriched;
     } else {
       memoryUsers.push(enriched);
     }
+    saveMemoryToLocalFile();
+    performWeeklyBackupIfDue().catch(console.error);
 
     const database = await safeGetDb();
     if (database) {
@@ -148,7 +265,12 @@ export const db = {
     return enriched;
   },
   deleteUser: async (id: string): Promise<boolean> => {
+    const local = readLocalDbFile() || {};
+    if (local.users) memoryUsers = local.users;
     memoryUsers = memoryUsers.filter(u => u.id !== id);
+    saveMemoryToLocalFile();
+    performWeeklyBackupIfDue().catch(console.error);
+
     const database = await safeGetDb();
     if (database) {
       try {
@@ -163,6 +285,7 @@ export const db = {
 
   // Orders Operations
   getOrders: async (): Promise<Order[]> => {
+    performWeeklyBackupIfDue().catch(console.error);
     const database = await safeGetDb();
     if (database) {
       try {
@@ -174,6 +297,8 @@ export const db = {
         console.warn('MongoDB getOrders error, using memory:', e);
       }
     }
+    const local = readLocalDbFile() || {};
+    if (local.orders) memoryOrders = local.orders;
     return memoryOrders;
   },
   getOrderById: async (id: string): Promise<Order | undefined> => {
@@ -186,6 +311,8 @@ export const db = {
         console.warn('MongoDB getOrderById error, using memory:', e);
       }
     }
+    const local = readLocalDbFile() || {};
+    if (local.orders) memoryOrders = local.orders;
     return memoryOrders.find(o => o.id === id);
   },
   getOrderByOrderId: async (orderId: string): Promise<Order | undefined> => {
@@ -200,12 +327,18 @@ export const db = {
         console.warn('MongoDB getOrderByOrderId error, using memory:', e);
       }
     }
+    const local = readLocalDbFile() || {};
+    if (local.orders) memoryOrders = local.orders;
     return memoryOrders.find(o => o.orderId.toLowerCase() === orderId.toLowerCase());
   },
   saveOrder: async (order: Order): Promise<Order> => {
+    const local = readLocalDbFile() || {};
+    if (local.orders) memoryOrders = local.orders;
     const idx = memoryOrders.findIndex(o => o.id === order.id);
     if (idx >= 0) memoryOrders[idx] = order;
     else memoryOrders.push(order);
+    saveMemoryToLocalFile();
+    performWeeklyBackupIfDue().catch(console.error);
 
     const database = await safeGetDb();
     if (database) {
@@ -219,7 +352,12 @@ export const db = {
     return order;
   },
   deleteOrder: async (id: string): Promise<boolean> => {
+    const local = readLocalDbFile() || {};
+    if (local.orders) memoryOrders = local.orders;
     memoryOrders = memoryOrders.filter(o => o.id !== id);
+    saveMemoryToLocalFile();
+    performWeeklyBackupIfDue().catch(console.error);
+
     const database = await safeGetDb();
     if (database) {
       try {
@@ -245,6 +383,8 @@ export const db = {
         console.warn('MongoDB getNdrRecords error, using memory:', e);
       }
     }
+    const local = readLocalDbFile() || {};
+    if (local.ndr) memoryNdrs = local.ndr;
     return memoryNdrs;
   },
   getNdrRecordById: async (id: string): Promise<NdrRecord | undefined> => {
@@ -257,6 +397,8 @@ export const db = {
         console.warn('MongoDB getNdrRecordById error, using memory:', e);
       }
     }
+    const local = readLocalDbFile() || {};
+    if (local.ndr) memoryNdrs = local.ndr;
     return memoryNdrs.find(n => n.id === id);
   },
   getNdrRecordByOrderId: async (orderId: string): Promise<NdrRecord | undefined> => {
@@ -271,12 +413,18 @@ export const db = {
         console.warn('MongoDB getNdrRecordByOrderId error, using memory:', e);
       }
     }
+    const local = readLocalDbFile() || {};
+    if (local.ndr) memoryNdrs = local.ndr;
     return memoryNdrs.find(n => n.orderId.toLowerCase() === orderId.toLowerCase());
   },
   saveNdrRecord: async (record: NdrRecord): Promise<NdrRecord> => {
+    const local = readLocalDbFile() || {};
+    if (local.ndr) memoryNdrs = local.ndr;
     const idx = memoryNdrs.findIndex(n => n.id === record.id);
     if (idx >= 0) memoryNdrs[idx] = record;
     else memoryNdrs.push(record);
+    saveMemoryToLocalFile();
+    performWeeklyBackupIfDue().catch(console.error);
 
     const database = await safeGetDb();
     if (database) {
@@ -301,11 +449,17 @@ export const db = {
         console.warn('MongoDB getWhatsAppLogs error, using memory:', e);
       }
     }
+    const local = readLocalDbFile() || {};
+    if (local.whatsappLogs) memoryWhatsAppLogs = local.whatsappLogs;
     return memoryWhatsAppLogs;
   },
   addWhatsAppLog: async (log: WhatsAppLog): Promise<void> => {
+    const local = readLocalDbFile() || {};
+    if (local.whatsappLogs) memoryWhatsAppLogs = local.whatsappLogs;
     memoryWhatsAppLogs.unshift(log);
     if (memoryWhatsAppLogs.length > 500) memoryWhatsAppLogs.pop();
+    saveMemoryToLocalFile();
+    performWeeklyBackupIfDue().catch(console.error);
 
     const database = await safeGetDb();
     if (database) {
@@ -329,11 +483,17 @@ export const db = {
         console.warn('MongoDB getCourierLogs error, using memory:', e);
       }
     }
+    const local = readLocalDbFile() || {};
+    if (local.courierLogs) memoryCourierLogs = local.courierLogs;
     return memoryCourierLogs;
   },
   addCourierLog: async (log: CourierApiLog): Promise<void> => {
+    const local = readLocalDbFile() || {};
+    if (local.courierLogs) memoryCourierLogs = local.courierLogs;
     memoryCourierLogs.unshift(log);
     if (memoryCourierLogs.length > 500) memoryCourierLogs.pop();
+    saveMemoryToLocalFile();
+    performWeeklyBackupIfDue().catch(console.error);
 
     const database = await safeGetDb();
     if (database) {
@@ -348,6 +508,7 @@ export const db = {
 
   // Settings Operations
   getSettings: async (): Promise<SystemSettings> => {
+    performWeeklyBackupIfDue().catch(console.error);
     const database = await safeGetDb();
     if (database) {
       try {
@@ -403,10 +564,14 @@ export const db = {
         console.warn('MongoDB getSettings error, using memory:', e);
       }
     }
+    const local = readLocalDbFile() || {};
+    if (local.settings) memorySettings = local.settings;
     return memorySettings;
   },
   saveSettings: async (settings: SystemSettings): Promise<SystemSettings> => {
     memorySettings = { ...settings };
+    saveMemoryToLocalFile();
+    performWeeklyBackupIfDue().catch(console.error);
     const database = await safeGetDb();
     if (database) {
       try {
@@ -430,12 +595,18 @@ export const db = {
         console.warn('MongoDB getMessages error, using memory:', e);
       }
     }
+    const local = readLocalDbFile() || {};
+    if (local.messages) memoryMessages = local.messages;
     return memoryMessages;
   },
   saveMessage: async (msg: Message): Promise<Message> => {
+    const local = readLocalDbFile() || {};
+    if (local.messages) memoryMessages = local.messages;
     const idx = memoryMessages.findIndex(m => m.id === msg.id);
     if (idx >= 0) memoryMessages[idx] = msg;
     else memoryMessages.push(msg);
+    saveMemoryToLocalFile();
+    performWeeklyBackupIfDue().catch(console.error);
 
     const database = await safeGetDb();
     if (database) {
@@ -449,6 +620,8 @@ export const db = {
     return msg;
   },
   markMessagesAsRead: async (userId: string, senderIdOrAll: string): Promise<void> => {
+    const local = readLocalDbFile() || {};
+    if (local.messages) memoryMessages = local.messages;
     memoryMessages.forEach(m => {
       if (senderIdOrAll === 'all') {
         if (m.isBroadcast && !m.isReadBy.includes(userId)) m.isReadBy.push(userId);
@@ -456,6 +629,8 @@ export const db = {
         if (m.senderId === senderIdOrAll && m.recipientId === userId && !m.isReadBy.includes(userId)) m.isReadBy.push(userId);
       }
     });
+    saveMemoryToLocalFile();
+    performWeeklyBackupIfDue().catch(console.error);
 
     const database = await safeGetDb();
     if (database) {
@@ -487,10 +662,16 @@ export const db = {
         console.warn('MongoDB getTrackingEvents error, using memory:', e);
       }
     }
+    const local = readLocalDbFile() || {};
+    if (local.tracking_events) memoryTrackingEvents = local.tracking_events;
     return memoryTrackingEvents.filter(e => e.shipment === shipment);
   },
   addTrackingEvent: async (event: any): Promise<void> => {
+    const local = readLocalDbFile() || {};
+    if (local.tracking_events) memoryTrackingEvents = local.tracking_events;
     memoryTrackingEvents.push(event);
+    saveMemoryToLocalFile();
+    performWeeklyBackupIfDue().catch(console.error);
     const database = await safeGetDb();
     if (database) {
       try {
@@ -501,4 +682,3 @@ export const db = {
     }
   }
 };
-

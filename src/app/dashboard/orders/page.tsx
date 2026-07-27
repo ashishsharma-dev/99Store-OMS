@@ -69,6 +69,10 @@ export default function Orders() {
   const [formError, setFormError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
 
+  // Duplicate Check States
+  const [duplicateMatches, setDuplicateMatches] = useState<any[]>([]);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+
   // Module 1: On-Demand WhatsApp Tracking
   const handleOnDemandWhatsAppTrack = async (orderId: string) => {
     try {
@@ -260,16 +264,9 @@ export default function Orders() {
     }
   };
 
-  const handleCreateOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError('');
-
-    if (!customerName || !phonePrimary || !address || !pincode || !productDetails || !orderValue || !weight) {
-      setFormError('Please enter all required fields.');
-      return;
-    }
-
+  const executeOrderCreation = async () => {
     setFormLoading(true);
+    setFormError('');
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
@@ -304,12 +301,42 @@ export default function Orders() {
 
       // Reset Form and refresh
       setShowAddModal(false);
+      setShowDuplicateModal(false);
       resetForm();
       fetchOrdersList();
     } catch (err) {
       setFormLoading(false);
       setFormError('Network connection failure.');
     }
+  };
+
+  const handleCreateOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError('');
+
+    if (!customerName || !phonePrimary || !address || !pincode || !productDetails || !orderValue || !weight) {
+      setFormError('Please enter all required fields.');
+      return;
+    }
+
+    setFormLoading(true);
+    try {
+      const checkRes = await fetch(
+        `/api/orders/check-duplicate?phone=${encodeURIComponent(phonePrimary)}&name=${encodeURIComponent(customerName)}&pincode=${encodeURIComponent(pincode)}&address=${encodeURIComponent(address)}`
+      );
+      const checkData = await checkRes.json();
+      setFormLoading(false);
+
+      if (checkRes.ok && checkData.isDuplicate) {
+        setDuplicateMatches(checkData.matches);
+        setShowDuplicateModal(true);
+        return;
+      }
+    } catch (err) {
+      console.error('Duplicate check failed, proceeding anyway:', err);
+    }
+
+    await executeOrderCreation();
   };
 
   const resetForm = () => {
@@ -1127,6 +1154,111 @@ export default function Orders() {
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: Duplicate Warning Popup */}
+      {showDuplicateModal && (
+        <div className="premium-modal-backdrop" style={{ zIndex: 1100 }}>
+          <div className="premium-modal" style={{ maxWidth: '580px', maxHeight: '85vh', overflowY: 'auto', border: '1px solid #EF4444' }}>
+            <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ 
+                width: '40px', height: '40px', borderRadius: '8px', 
+                backgroundColor: 'rgba(239, 68, 68, 0.1)', 
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#EF4444' 
+              }}>
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '18px', color: '#FAFAFA', fontWeight: 600 }}>Duplicate Order Detected</h3>
+                <p style={{ fontSize: '12.5px', color: '#A1A1AA', marginTop: '2px' }}>Similar details were found in the database. Please review before proceeding.</p>
+              </div>
+            </div>
+
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ fontSize: '13px', color: '#E4E4E7', lineHeight: '1.5' }}>
+                We found <strong>{duplicateMatches.length} matching order(s)</strong> in the system that share details with your new order:
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {duplicateMatches.map((match, idx) => (
+                  <div key={match.id || idx} style={{ 
+                    backgroundColor: '#18181B', 
+                    border: '1px solid #27272A', 
+                    borderRadius: '8px', 
+                    padding: '14px', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '8px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 700, color: '#FAFAFA', fontSize: '13px', fontFamily: 'monospace' }}>
+                        Order #{match.orderId}
+                      </span>
+                      <span className={`premium-badge status-${match.status.toLowerCase().replace(' ', '')}`} style={{ fontSize: '11px' }}>
+                        {match.status}
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: '12.5px', color: '#D4D4D8' }}>
+                      <strong>{match.customerName}</strong> ({match.phonePrimary})
+                    </div>
+
+                    <div style={{ fontSize: '12px', color: '#71717A' }}>
+                      Address: {match.address}, {match.pincode}
+                    </div>
+
+                    <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {match.reasons.map((r: string, rIdx: number) => (
+                        <div key={rIdx} style={{ fontSize: '11px', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#EF4444' }} />
+                          <span>{r}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ fontSize: '11px', color: '#71717A', textAlign: 'right', marginTop: '4px' }}>
+                      Created on: {new Date(match.createdAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ 
+              padding: '16px 24px', 
+              backgroundColor: '#111113', 
+              borderTop: '1px solid var(--border)', 
+              display: 'flex', 
+              gap: '12px', 
+              justifyContent: 'flex-end'
+            }}>
+              <button 
+                type="button" 
+                onClick={() => setShowDuplicateModal(false)} 
+                className="premium-btn premium-btn-secondary"
+                style={{ padding: '8px 16px', fontSize: '13px' }}
+              >
+                Go Back & Edit
+              </button>
+              
+              <button 
+                type="button" 
+                onClick={executeOrderCreation} 
+                className="premium-btn premium-btn-primary" 
+                style={{ 
+                  backgroundColor: '#EF4444', 
+                  borderColor: '#EF4444', 
+                  color: '#FFFFFF',
+                  padding: '8px 16px', 
+                  fontSize: '13px' 
+                }}
+              >
+                Create Order Anyway
+              </button>
             </div>
           </div>
         </div>
