@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Download, 
-  Star, 
-  Check, 
+import {
+  Plus,
+  Search,
+  Filter,
+  Download,
+  Star,
+  Check,
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
@@ -63,7 +63,7 @@ export default function Orders() {
   const [weight, setWeight] = useState('0.2');
   const [internalRemarks, setInternalRemarks] = useState('');
   const [isVip, setIsVip] = useState(false);
-  
+
   const [pincodeFetching, setPincodeFetching] = useState(false);
   const [pincodeSuccess, setPincodeSuccess] = useState(false);
   const [formError, setFormError] = useState('');
@@ -322,7 +322,7 @@ export default function Orders() {
     setFormLoading(true);
     try {
       const checkRes = await fetch(
-        `/api/orders/check-duplicate?phone=${encodeURIComponent(phonePrimary)}&name=${encodeURIComponent(customerName)}&pincode=${encodeURIComponent(pincode)}&address=${encodeURIComponent(address)}`
+        `/api/orders/check-duplicate?phone=${encodeURIComponent(phoneTertiary)}&name=${encodeURIComponent(customerName)}&pincode=${encodeURIComponent(pincode)}&address=${encodeURIComponent(address)}`
       );
       const checkData = await checkRes.json();
       setFormLoading(false);
@@ -437,12 +437,12 @@ export default function Orders() {
       </div>
 
       {/* Search & Filter Toolbar Card */}
-      <div 
-        className="premium-card" 
-        style={{ 
-          padding: '8px 12px', 
-          display: 'flex', 
-          alignItems: 'center', 
+      <div
+        className="premium-card"
+        style={{
+          padding: '8px 12px',
+          display: 'flex',
+          alignItems: 'center',
           gap: '8px',
           flexWrap: 'wrap',
           backgroundColor: '#09090B',
@@ -456,12 +456,12 @@ export default function Orders() {
           <input
             type="text"
             className="premium-input"
-            style={{ 
-              paddingLeft: '32px', 
-              height: '34px', 
-              fontSize: '13px', 
-              backgroundColor: '#18181B', 
-              borderColor: '#27272A' 
+            style={{
+              paddingLeft: '32px',
+              height: '34px',
+              fontSize: '13px',
+              backgroundColor: '#18181B',
+              borderColor: '#27272A'
             }}
             placeholder="Search: Name, Phone, Order ID, AWB, Address..."
             value={search}
@@ -475,9 +475,9 @@ export default function Orders() {
         <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
           <select
             className="premium-input"
-            style={{ 
-              width: 'auto', 
-              minWidth: '120px', 
+            style={{
+              width: 'auto',
+              minWidth: '120px',
               padding: '6px 28px 6px 12px',
               height: '34px',
               fontSize: '13px',
@@ -510,9 +510,9 @@ export default function Orders() {
         <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
           <select
             className="premium-input"
-            style={{ 
-              width: 'auto', 
-              minWidth: '120px', 
+            style={{
+              width: 'auto',
+              minWidth: '120px',
               padding: '6px 28px 6px 12px',
               height: '34px',
               fontSize: '13px',
@@ -536,9 +536,9 @@ export default function Orders() {
         <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
           <select
             className="premium-input"
-            style={{ 
-              width: 'auto', 
-              minWidth: '120px', 
+            style={{
+              width: 'auto',
+              minWidth: '120px',
               padding: '6px 28px 6px 12px',
               height: '34px',
               fontSize: '13px',
@@ -559,12 +559,12 @@ export default function Orders() {
         </div>
 
         {/* Sort Select (Icon Only) */}
-        <div 
-          style={{ 
-            position: 'relative', 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
+        <div
+          style={{
+            position: 'relative',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             marginLeft: 'auto',
             width: '34px',
             height: '34px',
@@ -579,7 +579,7 @@ export default function Orders() {
         >
           <ArrowUpDown size={14} style={{ color: '#FAFAFA' }} />
           <select
-            style={{ 
+            style={{
               position: 'absolute',
               top: 0,
               left: 0,
@@ -669,7 +669,7 @@ export default function Orders() {
                   }
 
                   return (
-                    <tr 
+                    <tr
                       key={o.id}
                       style={{
                         borderLeft: borderLeftStyle,
@@ -974,12 +974,12 @@ export default function Orders() {
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '4px', textTransform: 'uppercase' }}>Final Payable Amount (Autocalculated)</label>
-                    <input 
-                      type="text" 
-                      className="premium-input" 
-                      style={{ backgroundColor: '#111113', color: '#10B981', fontWeight: 'bold' }} 
-                      value={`₹${(parseFloat(orderValue || '0') - parseFloat(partiallyPaidAmount || '0')).toFixed(2)}`} 
-                      disabled 
+                    <input
+                      type="text"
+                      className="premium-input"
+                      style={{ backgroundColor: '#111113', color: '#10B981', fontWeight: 'bold' }}
+                      value={`₹${(parseFloat(orderValue || '0') - parseFloat(partiallyPaidAmount || '0')).toFixed(2)}`}
+                      disabled
                     />
                   </div>
                 </div>
@@ -1127,7 +1127,7 @@ export default function Orders() {
                       {idx < selectedOrder.history.length - 1 && (
                         <div style={{ position: 'absolute', left: '6px', top: '16px', bottom: '-16px', width: '1px', backgroundColor: 'var(--border)' }} />
                       )}
-                      
+
                       {/* Timeline Dot */}
                       <div style={{
                         width: '13px',
@@ -1164,11 +1164,11 @@ export default function Orders() {
         <div className="premium-modal-backdrop" style={{ zIndex: 1100 }}>
           <div className="premium-modal" style={{ maxWidth: '580px', maxHeight: '85vh', overflowY: 'auto', border: '1px solid #EF4444' }}>
             <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ 
-                width: '40px', height: '40px', borderRadius: '8px', 
-                backgroundColor: 'rgba(239, 68, 68, 0.1)', 
+              <div style={{
+                width: '40px', height: '40px', borderRadius: '8px',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#EF4444' 
+                color: '#EF4444'
               }}>
                 <AlertTriangle size={24} />
               </div>
@@ -1180,18 +1180,18 @@ export default function Orders() {
 
             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ fontSize: '13px', color: '#E4E4E7', lineHeight: '1.5' }}>
-                We found <strong>{duplicateMatches.length} matching order(s)</strong> in the system that share details with your new order:
+                Found <strong>{duplicateMatches.length} matching order(s)</strong> in the system that share details with your new order:
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {duplicateMatches.map((match, idx) => (
-                  <div key={match.id || idx} style={{ 
-                    backgroundColor: '#18181B', 
-                    border: '1px solid #27272A', 
-                    borderRadius: '8px', 
-                    padding: '14px', 
-                    display: 'flex', 
-                    flexDirection: 'column', 
+                  <div key={match.id || idx} style={{
+                    backgroundColor: '#18181B',
+                    border: '1px solid #27272A',
+                    borderRadius: '8px',
+                    padding: '14px',
+                    display: 'flex',
+                    flexDirection: 'column',
                     gap: '8px'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1228,33 +1228,33 @@ export default function Orders() {
               </div>
             </div>
 
-            <div style={{ 
-              padding: '16px 24px', 
-              backgroundColor: '#111113', 
-              borderTop: '1px solid var(--border)', 
-              display: 'flex', 
-              gap: '12px', 
+            <div style={{
+              padding: '16px 24px',
+              backgroundColor: '#111113',
+              borderTop: '1px solid var(--border)',
+              display: 'flex',
+              gap: '12px',
               justifyContent: 'flex-end'
             }}>
-              <button 
-                type="button" 
-                onClick={() => setShowDuplicateModal(false)} 
+              <button
+                type="button"
+                onClick={() => setShowDuplicateModal(false)}
                 className="premium-btn premium-btn-secondary"
                 style={{ padding: '8px 16px', fontSize: '13px' }}
               >
                 Go Back & Edit
               </button>
-              
-              <button 
-                type="button" 
-                onClick={executeOrderCreation} 
-                className="premium-btn premium-btn-primary" 
-                style={{ 
-                  backgroundColor: '#EF4444', 
-                  borderColor: '#EF4444', 
+
+              <button
+                type="button"
+                onClick={executeOrderCreation}
+                className="premium-btn premium-btn-primary"
+                style={{
+                  backgroundColor: '#EF4444',
+                  borderColor: '#EF4444',
                   color: '#FFFFFF',
-                  padding: '8px 16px', 
-                  fontSize: '13px' 
+                  padding: '8px 16px',
+                  fontSize: '13px'
                 }}
               >
                 Create Order Anyway
@@ -1275,17 +1275,17 @@ export default function Orders() {
 
             {/* Print operations bar */}
             <div style={{ padding: '16px', backgroundColor: '#F4F4F5', borderTop: '2px solid #000000', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button 
-                onClick={() => setShowPrintLabel(false)} 
-                className="premium-btn premium-btn-secondary" 
+              <button
+                onClick={() => setShowPrintLabel(false)}
+                className="premium-btn premium-btn-secondary"
                 style={{ color: '#000', borderColor: '#000', padding: '6px 12px' }}
               >
                 Close Print Queue
               </button>
-              
-              <button 
-                onClick={handlePrint} 
-                className="premium-btn premium-btn-primary" 
+
+              <button
+                onClick={handlePrint}
+                className="premium-btn premium-btn-primary"
                 style={{ backgroundColor: '#000', color: '#FFF', border: 'none', padding: '6px 12px' }}
               >
                 <Printer size={14} />

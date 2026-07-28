@@ -9,12 +9,14 @@ import {
   Check, 
   RefreshCcw, 
   ArrowRight,
-  Barcode
+  Barcode,
+  Calendar
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
 import { HealvitaShippingLabel } from '@/components/HealvitaShippingLabel';
 import { CourierLogo } from '@/components/CourierLogo';
 import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
+import { checkCourierServiceability } from '@/lib/utils';
 
 export default function Packing() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -53,6 +55,13 @@ export default function Packing() {
   const [courierFilter, setCourierFilter] = useState<string>('all');
   const [contactBindingFilter, setContactBindingFilter] = useState<string>('Primary');
 
+  // Reschedule Modal States
+  const [rescheduleOrder, setRescheduleOrder] = useState<Order | null>(null);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState('');
+  const [rescheduleRemark, setRescheduleRemark] = useState('');
+  const [rescheduleLoading, setRescheduleLoading] = useState(false);
+
   useEffect(() => {
     const session = localStorage.getItem('99store_user');
     if (session) {
@@ -74,10 +83,13 @@ export default function Packing() {
       const res = await fetch(url);
       const data = await res.json();
       if (res.ok && data.orders) {
-        // Only show orders in 'Created', 'Packing' or 'Label Generated' states
-        const queue = (data.orders as Order[]).filter(o => 
-          o.status === 'Created' || o.status === 'Packing' || o.status === 'Label Generated'
-        );
+        const todayStr = new Date().toISOString().split('T')[0];
+        const queue = (data.orders as Order[]).filter(o => {
+          const isCorrectStatus = o.status === 'Created' || o.status === 'Packing' || o.status === 'Label Generated';
+          if (!isCorrectStatus) return false;
+          if (o.futureDeliveryDate && o.futureDeliveryDate > todayStr) return false;
+          return true;
+        });
         setOrders(queue);
       }
       setLoading(false);
@@ -325,6 +337,50 @@ export default function Packing() {
     window.print();
   };
 
+  const handleOpenReschedule = (order: Order) => {
+    const activeCourier = courierOverrides[order.id] || order.courier || 'DTDC';
+    setRescheduleOrder(order);
+    
+    // Set tomorrow as default date
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setRescheduleDate(tomorrow.toISOString().split('T')[0]);
+    
+    setRescheduleRemark(`Pincode ${order.pincode} is not serviceable with ${activeCourier}. Rescheduled order.`);
+    setShowRescheduleModal(true);
+  };
+
+  const handleConfirmReschedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rescheduleOrder || !rescheduleDate || !rescheduleRemark) return;
+
+    setRescheduleLoading(true);
+    try {
+      const res = await fetch(`/api/orders/${rescheduleOrder.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          futureDeliveryDate: rescheduleDate,
+          remarks: rescheduleRemark,
+          updatedBy: currentUser?.username || 'packing_operator'
+        })
+      });
+
+      if (res.ok) {
+        setShowRescheduleModal(false);
+        setRescheduleOrder(null);
+        fetchPackingQueue();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to reschedule order.');
+      }
+    } catch (err) {
+      alert('Network error when rescheduling.');
+    } finally {
+      setRescheduleLoading(false);
+    }
+  };
+
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
@@ -469,6 +525,9 @@ export default function Packing() {
                 // Color highlights for partially paid amount
                 const isPartiallyPaid = o.partiallyPaidAmount !== undefined && o.partiallyPaidAmount > 0;
                 
+                // Courier serviceability check
+                const isServiceable = checkCourierServiceability(o.pincode, activeCourier);
+                
                 return (
                   <tr 
                     key={o.id}
@@ -506,20 +565,27 @@ export default function Packing() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         {/* Courier Selection Dropdown */}
                         {o.status === 'Created' || o.status === 'Packing' ? (
-                          <select
-                            className="premium-input"
-                            style={{ padding: '4px 8px', fontSize: '11.5px', width: '100%' }}
-                            value={activeCourier}
-                            onChange={(e) => handleCourierSelectChange(o.id, e.target.value as any)}
-                            disabled={isProcessing}
-                          >
-                            <option value="DTDC">DTDC (Priority 1)</option>
-                            <option value="XpressBees Air">XpressBees Air</option>
-                            <option value="XpressBees Surface">XpressBees Surface</option>
-                            <option value="Delhivery">Delhivery (Priority 3)</option>
-                            <option value="Aggregator">Aggregator API</option>
-                            <option value="Velocity">Velocity Aggregator</option>
-                          </select>
+                          <>
+                            <select
+                              className="premium-input"
+                              style={{ padding: '4px 8px', fontSize: '11.5px', width: '100%', borderColor: !isServiceable ? '#EF4444' : 'var(--border)' }}
+                              value={activeCourier}
+                              onChange={(e) => handleCourierSelectChange(o.id, e.target.value as any)}
+                              disabled={isProcessing}
+                            >
+                              <option value="DTDC">DTDC (Priority 1)</option>
+                              <option value="XpressBees Air">XpressBees Air</option>
+                              <option value="XpressBees Surface">XpressBees Surface</option>
+                              <option value="Delhivery">Delhivery (Priority 3)</option>
+                              <option value="Aggregator">Aggregator API</option>
+                              <option value="Velocity">Velocity Aggregator</option>
+                            </select>
+                            {!isServiceable && (
+                              <span style={{ color: '#EF4444', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                                ⚠️ Unserviceable with {activeCourier}
+                              </span>
+                            )}
+                          </>
                         ) : (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <CourierLogo courier={o.courier} size={14} />
@@ -556,17 +622,38 @@ export default function Packing() {
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'inline-flex', gap: '8px' }}>
-                        {/* Phase 1: Generated AWB Label */}
+                        {/* Phase 1: Generated AWB Label or Reschedule */}
                         {!o.awb && (
-                          <button
-                            onClick={() => handleGenerateLabel(o)}
-                            className="premium-btn premium-btn-primary animate-fade-in"
-                            style={{ padding: '6px 12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                            disabled={isProcessing}
-                          >
-                            {isProcessing ? <span className="spinner spinner-sm" /> : <Tag size={12} />}
-                            <span>{isProcessing ? 'Generating...' : 'Generate AWB'}</span>
-                          </button>
+                          isServiceable ? (
+                            <button
+                              onClick={() => handleGenerateLabel(o)}
+                              className="premium-btn premium-btn-primary animate-fade-in"
+                              style={{ padding: '6px 12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                              disabled={isProcessing}
+                            >
+                              {isProcessing ? <span className="spinner spinner-sm" /> : <Tag size={12} />}
+                              <span>{isProcessing ? 'Generating...' : 'Generate AWB'}</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleOpenReschedule(o)}
+                              className="premium-btn animate-fade-in"
+                              style={{ 
+                                padding: '6px 12px', 
+                                fontSize: '12px', 
+                                borderColor: '#EF4444', 
+                                color: '#EF4444', 
+                                backgroundColor: 'rgba(239, 68, 68, 0.05)', 
+                                display: 'inline-flex', 
+                                alignItems: 'center', 
+                                gap: '6px' 
+                              }}
+                              disabled={isProcessing}
+                            >
+                              <Calendar size={12} />
+                              <span>Reschedule</span>
+                            </button>
+                          )
                         )}
 
                         {/* Phase 2: AWB Generated, ready to Print Shipping Label & Dispatch */}
@@ -857,6 +944,50 @@ export default function Packing() {
                 ))
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Reschedule Order (Unserviceable Pincode) */}
+      {showRescheduleModal && rescheduleOrder && (
+        <div className="premium-modal-backdrop" style={{ zIndex: 1100 }}>
+          <div className="premium-modal" style={{ maxWidth: '520px' }}>
+            <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '17px', color: '#FAFAFA' }}>Reschedule Order: {rescheduleOrder.orderId}</h3>
+              <button onClick={() => { setShowRescheduleModal(false); setRescheduleOrder(null); }} style={{ background: 'none', border: 'none', color: '#8A8A8A', cursor: 'pointer' }}>Close</button>
+            </div>
+
+            <form onSubmit={handleConfirmReschedule} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '6px', textTransform: 'uppercase' }}>Selected Reschedule Date *</label>
+                <input
+                  type="date"
+                  className="premium-input"
+                  value={rescheduleDate}
+                  onChange={(e) => setRescheduleDate(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '6px', textTransform: 'uppercase' }}>Reschedule Reason / Remark *</label>
+                <textarea
+                  className="premium-input"
+                  placeholder="Enter details explaining why this order is rescheduled..."
+                  value={rescheduleRemark}
+                  onChange={(e) => setRescheduleRemark(e.target.value)}
+                  style={{ minHeight: '80px' }}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '20px', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => { setShowRescheduleModal(false); setRescheduleOrder(null); }} className="premium-btn premium-btn-secondary">Close</button>
+                <button type="submit" className="premium-btn premium-btn-primary" disabled={rescheduleLoading}>
+                  {rescheduleLoading ? 'Scheduling...' : 'Confirm Reschedule'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -181,7 +181,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
             </div>
           </div>
           <div style={{
-            backgroundColor: '#E53E3E',
+            backgroundColor: '#000000',
             color: '#FFFFFF',
             fontSize: '6.5px',
             fontWeight: 'bold',
@@ -199,7 +199,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
         {/* Tax invoice */}
         <div style={{ padding: '0 6px', borderRight: '1px solid #000000', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div style={{
-            backgroundColor: '#E53E3E',
+            backgroundColor: '#000000',
             color: '#FFFFFF',
             fontSize: '8px',
             fontWeight: 'bold',
@@ -227,7 +227,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
             GSTIN: 09GQCPS4557N1ZX
           </span>
 
-          <span style={{ fontSize: '6px', color: '#555555', marginTop: '1px' }}>THANK YOU FOR SHOPPING WITH US!</span>
+          <span style={{ fontSize: '6px', color: '#000000', marginTop: '1px' }}>THANK YOU FOR SHOPPING WITH US!</span>
         </div>
       </div>
 
@@ -259,7 +259,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {/* Header */}
           <div style={{
-            backgroundColor: '#E53E3E',
+            backgroundColor: '#000000',
             color: '#FFFFFF',
             display: 'flex',
             alignItems: 'center',
@@ -271,7 +271,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
               height: '18px',
               borderRadius: '50%',
               backgroundColor: '#FFFFFF',
-              color: '#E53E3E',
+              color: '#000000',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -302,9 +302,9 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
             justifyContent: 'center',
             fontSize: '28px',
             fontWeight: 900,
-            color: '#E53E3E',
+            color: '#000000',
             padding: '2px 0',
-            borderBottom: '1px solid #E2E8F0'
+            borderBottom: '1px solid #000000'
           }}>
             ₹{amountToCollect.toFixed(2)}
           </div>
@@ -321,11 +321,11 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
             gap: '4px'
           }}>
             💵 {order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 && order.orderValue > order.partiallyPaidAmount ? (
-              <span style={{ color: '#C05621' }}><strong>PARTIALLY PAID - COLLECT BALANCE CASH</strong><br />PLEASE COLLECT BALANCE ₹{amountToCollect.toFixed(2)}</span>
+              <span style={{ color: '#000000' }}><strong>PARTIALLY PAID - COLLECT BALANCE CASH</strong><br />PLEASE COLLECT BALANCE ₹{amountToCollect.toFixed(2)}</span>
             ) : order.paymentType === 'COD' ? (
               <span><strong>COLLECT CASH ONLY</strong><br />PLEASE COLLECT EXACT AMOUNT</span>
             ) : (
-              <span style={{ color: '#2F855A' }}><strong>PREPAID - DO NOT COLLECT CASH</strong><br />THANK YOU FOR SHOPPING!</span>
+              <span style={{ color: '#000000' }}><strong>PREPAID - DO NOT COLLECT CASH</strong><br />THANK YOU FOR SHOPPING!</span>
             )}
           </div>
         </div>
@@ -393,7 +393,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', paddingLeft: '4px' }}>
-            <img src={qrCodeUrl} alt="Scan QR" loading="eager" style={{ width: '56px', height: '56px', border: '1px solid #E2E8F0' }} />
+            <img src={qrCodeUrl} alt="Scan QR" loading="eager" style={{ width: '56px', height: '56px', border: '1px solid #000000' }} />
           </div>
         </div>
       </div>
@@ -420,7 +420,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
 
         {/* Order Id details text */}
         <div style={{ paddingLeft: '6px' }}>
-          <span style={{ fontSize: '7px', color: '#555555', display: 'block' }}>Order ID:</span>
+          <span style={{ fontSize: '7px', color: '#000000', display: 'block' }}>Order ID:</span>
           <span style={{ fontSize: '11px', fontWeight: 'bold' }}>{order.orderId}</span>
         </div>
       </div>
@@ -481,7 +481,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
 
         <table style={{ width: '100%', fontSize: '7.5px', borderCollapse: 'collapse', border: '1px solid #000000' }}>
           <thead>
-            <tr style={{ backgroundColor: '#F7FAFC', borderBottom: '1px solid #000000', fontWeight: 'bold', fontSize: '6.5px' }}>
+            <tr style={{ backgroundColor: '#FFFFFF', borderBottom: '2px solid #000000', fontWeight: 'bold', fontSize: '6.5px' }}>
               <th style={{ borderRight: '1px solid #000000', padding: '2px', textAlign: 'left' }}>DESCRIPTION</th>
               <th style={{ borderRight: '1px solid #000000', padding: '2px', textAlign: 'center' }}>HSN CODE</th>
               <th style={{ borderRight: '1px solid #000000', padding: '2px', textAlign: 'center' }}>QTY.</th>
@@ -525,32 +525,32 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
                   </div>
                 </div>
               </td>
-              <td colSpan={4} style={{ borderRight: '1px solid #000000', padding: '2px 4px', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>Taxable Value</td>
-              <td style={{ padding: '2px 4px', textAlign: 'right', borderBottom: '1px solid #E2E8F0' }}>₹{taxableValue.toFixed(2)}</td>
+              <td colSpan={4} style={{ borderRight: '1px solid #000000', padding: '2px 4px', textAlign: 'left', borderBottom: '1px solid #000000' }}>Taxable Value</td>
+              <td style={{ padding: '2px 4px', textAlign: 'right', borderBottom: '1px solid #000000' }}>₹{taxableValue.toFixed(2)}</td>
             </tr>
             <tr>
-              <td colSpan={4} style={{ borderRight: '1px solid #000000', padding: '2px 4px', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>CGST (9%)</td>
-              <td style={{ padding: '2px 4px', textAlign: 'right', borderBottom: '1px solid #E2E8F0' }}>₹{cgst.toFixed(2)}</td>
+              <td colSpan={4} style={{ borderRight: '1px solid #000000', padding: '2px 4px', textAlign: 'left', borderBottom: '1px solid #000000' }}>CGST (9%)</td>
+              <td style={{ padding: '2px 4px', textAlign: 'right', borderBottom: '1px solid #000000' }}>₹{cgst.toFixed(2)}</td>
             </tr>
             <tr>
-              <td colSpan={4} style={{ borderRight: '1px solid #000000', padding: '2px 4px', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>SGST (9%)</td>
-              <td style={{ padding: '2px 4px', textAlign: 'right', borderBottom: '1px solid #E2E8F0' }}>₹{sgst.toFixed(2)}</td>
+              <td colSpan={4} style={{ borderRight: '1px solid #000000', padding: '2px 4px', textAlign: 'left', borderBottom: '1px solid #000000' }}>SGST (9%)</td>
+              <td style={{ padding: '2px 4px', textAlign: 'right', borderBottom: '1px solid #000000' }}>₹{sgst.toFixed(2)}</td>
             </tr>
             <tr>
-              <td colSpan={4} style={{ borderRight: '1px solid #000000', padding: '2px 4px', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>Shipping Charges</td>
-              <td style={{ padding: '2px 4px', textAlign: 'right', borderBottom: '1px solid #E2E8F0' }}>₹0.00</td>
+              <td colSpan={4} style={{ borderRight: '1px solid #000000', padding: '2px 4px', textAlign: 'left', borderBottom: '1px solid #000000' }}>Shipping Charges</td>
+              <td style={{ padding: '2px 4px', textAlign: 'right', borderBottom: '1px solid #000000' }}>₹0.00</td>
             </tr>
             {order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 ? (
               <>
                 <tr style={{ fontWeight: 'bold' }}>
-                  <td colSpan={4} style={{ borderRight: '1px solid #000000', padding: '2px 4px', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>TOTAL AMOUNT</td>
-                  <td style={{ padding: '2px 4px', textAlign: 'right', borderBottom: '1px solid #E2E8F0' }}>₹{orderVal.toFixed(2)}</td>
+                  <td colSpan={4} style={{ borderRight: '1px solid #000000', padding: '2px 4px', textAlign: 'left', borderBottom: '1px solid #000000' }}>TOTAL AMOUNT</td>
+                  <td style={{ padding: '2px 4px', textAlign: 'right', borderBottom: '1px solid #000000' }}>₹{orderVal.toFixed(2)}</td>
                 </tr>
-                <tr style={{ color: '#10B981', fontWeight: 'bold' }}>
-                  <td colSpan={4} style={{ borderRight: '1px solid #000000', padding: '2px 4px', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>LESS: PAID AMOUNT</td>
-                  <td style={{ padding: '2px 4px', textAlign: 'right', borderBottom: '1px solid #E2E8F0' }}>-₹{order.partiallyPaidAmount.toFixed(2)}</td>
+                <tr style={{ color: '#000000', fontWeight: 'bold' }}>
+                  <td colSpan={4} style={{ borderRight: '1px solid #000000', padding: '2px 4px', textAlign: 'left', borderBottom: '1px solid #000000' }}>LESS: PAID AMOUNT</td>
+                  <td style={{ padding: '2px 4px', textAlign: 'right', borderBottom: '1px solid #000000' }}>-₹{order.partiallyPaidAmount.toFixed(2)}</td>
                 </tr>
-                <tr style={{ backgroundColor: '#E53E3E', color: '#FFFFFF', fontWeight: 'bold' }}>
+                <tr style={{ backgroundColor: '#000000', color: '#FFFFFF', fontWeight: 'bold' }}>
                   <td colSpan={4} style={{ borderRight: '1px solid #FFFFFF', padding: '3px 4px', textAlign: 'left' }}>
                     {(order.paymentType === 'COD' || (order.partiallyPaidAmount > 0 && order.orderValue > order.partiallyPaidAmount)) ? 'BALANCE TO COLLECT (COD)' : 'TOTAL AMOUNT'}
                   </td>
@@ -560,7 +560,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
                 </tr>
               </>
             ) : (
-              <tr style={{ backgroundColor: '#E53E3E', color: '#FFFFFF', fontWeight: 'bold' }}>
+              <tr style={{ backgroundColor: '#000000', color: '#FFFFFF', fontWeight: 'bold' }}>
                 <td colSpan={4} style={{ borderRight: '1px solid #FFFFFF', padding: '3px 4px', textAlign: 'left' }}>TOTAL AMOUNT</td>
                 <td style={{ padding: '3px 4px', textAlign: 'right' }}>₹{orderVal.toFixed(2)}</td>
               </tr>

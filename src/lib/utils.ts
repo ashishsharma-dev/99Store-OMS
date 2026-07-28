@@ -15,3 +15,34 @@ export const getUserDisplayName = (username: string): string => {
   };
   return nameMap[username.toLowerCase()] || username;
 };
+
+/**
+ * Checks courier serviceability based on the destination pincode.
+ * - DTDC: Unserviceable for Zone 7 (pincode starts with 7)
+ * - XpressBees: Unserviceable for Zone 6 (pincode starts with 6)
+ * - Delhivery: Unserviceable for Zone 5 (pincode starts with 5)
+ * - Velocity / Aggregator: Unserviceable for Zone 3 (pincode starts with 3)
+ */
+export const checkCourierServiceability = (pincode: string, courier: string): boolean => {
+  if (!pincode || pincode.length !== 6 || !/^\d+$/.test(pincode)) {
+    return false;
+  }
+  const prefix = pincode.charAt(0);
+  const normalizedCourier = courier.toLowerCase();
+
+  if (normalizedCourier.includes('dtdc')) {
+    return prefix !== '7';
+  }
+  if (normalizedCourier.includes('xpressbees')) {
+    return prefix !== '6';
+  }
+  if (normalizedCourier.includes('delhivery')) {
+    return prefix !== '5';
+  }
+  if (normalizedCourier.includes('velocity') || normalizedCourier.includes('aggregator')) {
+    return prefix !== '3';
+  }
+
+  return true;
+};
+

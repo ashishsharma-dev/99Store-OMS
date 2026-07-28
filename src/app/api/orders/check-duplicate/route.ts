@@ -23,10 +23,10 @@ export async function GET(request: Request) {
       let isMatch = false;
       const reasons: string[] = [];
 
-      // 1. Exact phone match
-      if (phone && (order.phonePrimary === phone || order.phoneSecondary === phone || order.phoneTertiary === phone)) {
+      // 1. Exact phone match with CUSTOMER_NUMBER
+      if (phone && order.phoneTertiary === phone) {
         isMatch = true;
-        reasons.push(`Primary or alternate phone number matches`);
+        reasons.push(`CUSTOMER_NUMBER matches`);
       }
 
       // 2. Name and Pincode match
