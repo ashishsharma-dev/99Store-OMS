@@ -61,6 +61,7 @@ export default function Packing() {
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [rescheduleRemark, setRescheduleRemark] = useState('');
   const [rescheduleLoading, setRescheduleLoading] = useState(false);
+  const [serviceabilityCache, setServiceabilityCache] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const session = localStorage.getItem('99store_user');
@@ -118,6 +119,34 @@ export default function Packing() {
     const c = courierOverrides[o.id] || o.courier || 'DTDC';
     return c.toLowerCase().includes(courierFilter.toLowerCase());
   });
+
+  // Perform background live serviceability checks for visible orders
+  useEffect(() => {
+    const checkAllServiceability = async () => {
+      const pendingChecks = filteredOrders.filter(o => {
+        const activeCourier = courierOverrides[o.id] || o.courier || 'DTDC';
+        const cacheKey = `${o.pincode}-${activeCourier}`;
+        return serviceabilityCache[cacheKey] === undefined;
+      });
+
+      if (pendingChecks.length === 0) return;
+
+      for (const o of pendingChecks) {
+        const activeCourier = courierOverrides[o.id] || o.courier || 'DTDC';
+        const cacheKey = `${o.pincode}-${activeCourier}`;
+
+        try {
+          const res = await fetch(`/api/integrations/pincode/serviceability?pincode=${o.pincode}&courier=${encodeURIComponent(activeCourier)}`);
+          const data = await res.json();
+          setServiceabilityCache(prev => ({ ...prev, [cacheKey]: !!data.serviceable }));
+        } catch (err) {
+          setServiceabilityCache(prev => ({ ...prev, [cacheKey]: checkCourierServiceability(o.pincode, activeCourier) }));
+        }
+      }
+    };
+
+    checkAllServiceability();
+  }, [filteredOrders, courierOverrides]);
 
   const handleSelectAll = () => {
     if (selectedIds.length === filteredOrders.length && filteredOrders.length > 0) {
@@ -526,7 +555,10 @@ export default function Packing() {
                 const isPartiallyPaid = o.partiallyPaidAmount !== undefined && o.partiallyPaidAmount > 0;
                 
                 // Courier serviceability check
-                const isServiceable = checkCourierServiceability(o.pincode, activeCourier);
+                const cacheKey = `${o.pincode}-${activeCourier}`;
+                const isServiceable = serviceabilityCache[cacheKey] !== undefined 
+                  ? serviceabilityCache[cacheKey] 
+                  : checkCourierServiceability(o.pincode, activeCourier);
                 
                 return (
                   <tr 
