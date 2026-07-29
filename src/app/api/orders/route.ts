@@ -117,6 +117,7 @@ export async function POST(request: Request) {
       phonePrimary,
       phoneSecondary,
       phoneTertiary,
+      phoneWhatsApp,
       address,
       pincode,
       state,
@@ -180,6 +181,7 @@ export async function POST(request: Request) {
       phonePrimary,
       phoneSecondary: phoneSecondary || undefined,
       phoneTertiary: phoneTertiary || phonePrimary, // Default to primary if not distinct
+      phoneWhatsApp: phoneWhatsApp || undefined,
       address,
       pincode,
       state: stateAndArea.state,

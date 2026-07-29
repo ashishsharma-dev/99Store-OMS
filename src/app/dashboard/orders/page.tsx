@@ -52,6 +52,7 @@ export default function Orders() {
   const [phonePrimary, setPhonePrimary] = useState('');
   const [phoneSecondary, setPhoneSecondary] = useState('');
   const [phoneTertiary, setPhoneTertiary] = useState('');
+  const [phoneWhatsApp, setPhoneWhatsApp] = useState('');
   const [address, setAddress] = useState('');
   const [pincode, setPincode] = useState('');
   const [state, setState] = useState('');
@@ -85,6 +86,28 @@ export default function Orders() {
       }
     } catch (err) {
       alert('Failed to connect to WhatsApp dispatch API.');
+    }
+  };
+
+  const handleToggleVip = async (order: Order) => {
+    try {
+      const res = await fetch(`/api/orders/${order.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isVip: !order.isVip,
+          updatedBy: currentUser?.username || 'admin'
+        })
+      });
+
+      if (res.ok) {
+        fetchOrdersList();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to update VIP status.');
+      }
+    } catch (err) {
+      console.error('Error toggling VIP status:', err);
     }
   };
 
@@ -276,6 +299,7 @@ export default function Orders() {
           phonePrimary,
           phoneSecondary,
           phoneTertiary,
+          phoneWhatsApp,
           address,
           pincode,
           state,
@@ -322,7 +346,7 @@ export default function Orders() {
     setFormLoading(true);
     try {
       const checkRes = await fetch(
-        `/api/orders/check-duplicate?phone=${encodeURIComponent(phoneTertiary)}&name=${encodeURIComponent(customerName)}&pincode=${encodeURIComponent(pincode)}&address=${encodeURIComponent(address)}`
+        `/api/orders/check-duplicate?phone=${encodeURIComponent(phonePrimary)}&name=${encodeURIComponent(customerName)}&pincode=${encodeURIComponent(pincode)}&address=${encodeURIComponent(address)}`
       );
       const checkData = await checkRes.json();
       setFormLoading(false);
@@ -344,6 +368,7 @@ export default function Orders() {
     setPhonePrimary(defaultPrimaryPhone);
     setPhoneSecondary(defaultSecondaryPhone);
     setPhoneTertiary('');
+    setPhoneWhatsApp('');
     setAddress('');
     setPincode('');
     setState('');
@@ -789,6 +814,20 @@ export default function Orders() {
                             <MessageSquare size={14} />
                           </button>
                           <button
+                            onClick={() => handleToggleVip(o)}
+                            className="premium-btn premium-btn-secondary"
+                            style={{ 
+                              padding: '6px 8px', 
+                              fontSize: '12px', 
+                              borderColor: 'rgba(16, 185, 129, 0.4)', 
+                              color: '#10B981', 
+                              backgroundColor: o.isVip ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.04)' 
+                            }}
+                            title={o.isVip ? "Remove VIP Status" : "Mark as VIP"}
+                          >
+                            <Star size={14} fill={o.isVip ? "#10B981" : "none"} />
+                          </button>
+                          <button
                             onClick={() => handleCloneOrder(o)}
                             className="premium-btn premium-btn-secondary"
                             style={{ padding: '6px 8px', fontSize: '12px', borderColor: 'rgba(59, 130, 246, 0.4)', color: '#3B82F6', backgroundColor: 'rgba(59, 130, 246, 0.08)' }}
@@ -907,8 +946,18 @@ export default function Orders() {
                     <input type="tel" className="premium-input" placeholder="9876543211" value={phoneSecondary} onChange={(e) => setPhoneSecondary(e.target.value.replace(/\D/g, ''))} />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '4px', textTransform: 'uppercase' }}>Third Phone</label>
+                    <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '4px', textTransform: 'uppercase' }}>Customer Number</label>
                     <input type="tel" className="premium-input" placeholder="9876543212" value={phoneTertiary} onChange={(e) => setPhoneTertiary(e.target.value.replace(/\D/g, ''))} />
+                  </div>
+                </div>
+
+                <div className="premium-grid-2" style={{ marginBottom: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '4px', textTransform: 'uppercase' }}>WhatsApp Number</label>
+                    <input type="tel" className="premium-input" placeholder="9876543213" value={phoneWhatsApp} onChange={(e) => setPhoneWhatsApp(e.target.value.replace(/\D/g, ''))} />
+                  </div>
+                  <div>
+                    {/* Balanced empty grid item */}
                   </div>
                 </div>
 
@@ -1032,7 +1081,10 @@ export default function Orders() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     <span>{selectedOrder.phonePrimary || 'N/A'} (Primary)</span>
                     <span>{selectedOrder.phoneSecondary || 'N/A'} (Secondary)</span>
-                    <span>{selectedOrder.phoneTertiary || 'N/A'} (Tertiary)</span>
+                    <span>{selectedOrder.phoneTertiary || 'N/A'} (Customer)</span>
+                    {selectedOrder.phoneWhatsApp && (
+                      <span>{selectedOrder.phoneWhatsApp} (WhatsApp)</span>
+                    )}
                   </div>
                 </div>
                 <div>

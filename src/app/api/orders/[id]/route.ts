@@ -38,7 +38,8 @@ export async function PATCH(
       assignedTo,
       inNdrWorkingSheet,
       ndrAction,
-      futureDeliveryDate
+      futureDeliveryDate,
+      isVip
     } = body;
 
     if (!updatedBy) {
@@ -70,9 +71,13 @@ export async function PATCH(
     if (inNdrWorkingSheet !== undefined) order.inNdrWorkingSheet = !!inNdrWorkingSheet;
     if (ndrAction !== undefined) order.ndrAction = ndrAction;
     if (futureDeliveryDate !== undefined) order.futureDeliveryDate = futureDeliveryDate;
+    if (isVip !== undefined) order.isVip = !!isVip;
 
     // 2. Perform automated workflow integrations based on status changes
     let systemRemarks = remarks || `Status transitioned from ${previousStatus} to ${targetStatus}.`;
+    if (isVip !== undefined && !remarks) {
+      systemRemarks = `Order VIP status updated to ${isVip ? 'Enabled' : 'Disabled'}.`;
+    }
 
     if (assignedTo !== undefined && assignedTo !== order.assignedTo) {
       const prevAssignee = order.assignedTo || 'Unassigned';

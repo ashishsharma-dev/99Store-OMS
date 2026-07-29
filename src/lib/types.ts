@@ -53,6 +53,7 @@ export interface Order {
   phonePrimary: string;
   phoneSecondary?: string;
   phoneTertiary?: string;
+  phoneWhatsApp?: string;
   address: string;
   pincode: string;
   state: string;

@@ -130,8 +130,8 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
   const orderVal = order.orderValue || 0;
   const isHaryana = (order.state || '').toLowerCase().includes('haryana');
 
-  // Assume 18% GST (9% CGST + 9% SGST or 18% IGST)
-  const taxableValue = parseFloat((orderVal / 1.18).toFixed(2));
+  // Assume 5% GST (2.5% CGST + 2.5% SGST or 5% IGST)
+  const taxableValue = parseFloat((orderVal / 1.05).toFixed(2));
   const totalTax = parseFloat((orderVal - taxableValue).toFixed(2));
   const cgst = isHaryana ? parseFloat((totalTax / 2).toFixed(2)) : 0;
   const sgst = isHaryana ? parseFloat((totalTax / 2).toFixed(2)) : 0;
@@ -487,9 +487,9 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
               <th style={{ borderRight: '1px solid #000000', padding: '2px', textAlign: 'center' }}>QTY.</th>
               <th style={{ borderRight: '1px solid #000000', padding: '2px', textAlign: 'right' }}>RATE (₹)</th>
               <th style={{ borderRight: '1px solid #000000', padding: '2px', textAlign: 'right' }}>TAXABLE (₹)</th>
-              <th style={{ borderRight: '1px solid #000000', padding: '1px', textAlign: 'center' }}>CGST (9%)</th>
-              <th style={{ borderRight: '1px solid #000000', padding: '1px', textAlign: 'center' }}>SGST (9%)</th>
-              <th style={{ borderRight: '1px solid #000000', padding: '1px', textAlign: 'center' }}>IGST (18%)</th>
+              <th style={{ borderRight: '1px solid #000000', padding: '1px', textAlign: 'center' }}>CGST (2.5%)</th>
+              <th style={{ borderRight: '1px solid #000000', padding: '1px', textAlign: 'center' }}>SGST (2.5%)</th>
+              <th style={{ borderRight: '1px solid #000000', padding: '1px', textAlign: 'center' }}>IGST (5%)</th>
               <th style={{ padding: '2px', textAlign: 'right' }}>AMOUNT (₹)</th>
             </tr>
           </thead>
@@ -529,11 +529,11 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
               <td style={{ padding: '2px 4px', textAlign: 'right', borderBottom: '1px solid #000000' }}>₹{taxableValue.toFixed(2)}</td>
             </tr>
             <tr>
-              <td colSpan={4} style={{ borderRight: '1px solid #000000', padding: '2px 4px', textAlign: 'left', borderBottom: '1px solid #000000' }}>CGST (9%)</td>
+              <td colSpan={4} style={{ borderRight: '1px solid #000000', padding: '2px 4px', textAlign: 'left', borderBottom: '1px solid #000000' }}>CGST (2.5%)</td>
               <td style={{ padding: '2px 4px', textAlign: 'right', borderBottom: '1px solid #000000' }}>₹{cgst.toFixed(2)}</td>
             </tr>
             <tr>
-              <td colSpan={4} style={{ borderRight: '1px solid #000000', padding: '2px 4px', textAlign: 'left', borderBottom: '1px solid #000000' }}>SGST (9%)</td>
+              <td colSpan={4} style={{ borderRight: '1px solid #000000', padding: '2px 4px', textAlign: 'left', borderBottom: '1px solid #000000' }}>SGST (2.5%)</td>
               <td style={{ padding: '2px 4px', textAlign: 'right', borderBottom: '1px solid #000000' }}>₹{sgst.toFixed(2)}</td>
             </tr>
             <tr>

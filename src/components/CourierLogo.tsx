@@ -14,13 +14,13 @@ export function CourierLogo({ courier = '', showName = true, size = 18 }: Courie
   let displayName = name;
 
   if (lower.includes('dtdc')) {
-    logoSrc = '/dtdc-logo.webp';
+    logoSrc = '/dtdc.webp';
     displayName = 'DTDC';
   } else if (lower.includes('xpressbees') || lower.includes('xbees')) {
-    logoSrc = '/xbees-logo.webp';
+    logoSrc = '/xpressbees.png';
     displayName = name;
   } else if (lower.includes('delhivery')) {
-    logoSrc = '/delhivery-logo.webp';
+    logoSrc = '/delhivery.webp';
     displayName = 'Delhivery';
   }
 
@@ -32,14 +32,14 @@ export function CourierLogo({ courier = '', showName = true, size = 18 }: Courie
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', verticalAlign: 'middle' }}>
       <div 
         style={{ 
-          width: `${size + 4}px`, 
-          height: `${size + 4}px`, 
+          width: `${size + 12}px`, 
+          height: `${size + 12}px`, 
           borderRadius: '4px', 
           backgroundColor: '#FFFFFF', 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center',
-          padding: '2px',
+          padding: '0px',
           border: '1px solid rgba(255,255,255,0.15)',
           boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
           flexShrink: 0
