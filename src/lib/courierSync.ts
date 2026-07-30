@@ -21,8 +21,11 @@ export function mapCourierStatusToInternal(courierStatus: string): OrderStatus |
   if (
     status === 'out for delivery' || 
     status === 'ofd' || 
+    status.includes('out_for_delivery') || 
     status.includes('pending delivery') || 
-    status.includes('out_for_delivery')
+    status.includes('out with courier') ||
+    status.includes('out_with_courier') ||
+    status.includes('with courier')
   ) {
     return 'OFD';
   }
@@ -43,21 +46,26 @@ export function mapCourierStatusToInternal(courierStatus: string): OrderStatus |
 
   if (
     status === 'ndr' || 
-    status.includes('delivery failed') || 
-    status.includes('failed delivery attempt') || 
-    status === 'exception' || 
-    status === 'undelivered' || 
-    status === 'delayed'
+    status.includes('failed') || 
+    status.includes('exception') || 
+    status.includes('undelivered') || 
+    status.includes('non-delivered') || 
+    status.includes('non_delivered') || 
+    status.includes('refused') || 
+    status.includes('rejected') || 
+    status.includes('unreachable') || 
+    status.includes('delayed') ||
+    status.includes('awaiting instruction')
   ) {
     return 'NDR';
   }
 
   if (
     status.includes('return to origin') || 
-    status === 'rto' || 
-    status === 'returned' || 
-    status === 'returning' || 
-    status === 'return'
+    status.includes('rto') || 
+    status.includes('returned') || 
+    status.includes('returning') || 
+    status.includes('return')
   ) {
     return 'Return';
   }

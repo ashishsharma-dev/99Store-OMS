@@ -13,6 +13,39 @@ export async function GET(request: Request) {
     let records = await db.getNdrRecords();
     records = records.filter(r => !r.isDeleted);
 
+    // Self-healing: check if any active order has NDR status but no NDR record exists
+    const orders = await db.getOrders();
+    const ndrOrders = orders.filter(o => o.status === 'NDR' && !o.isDeleted);
+    
+    for (const order of ndrOrders) {
+      const exists = records.some(r => r.orderId === order.orderId);
+      if (!exists) {
+        const now = new Date().toISOString();
+        const newNdr: NdrRecord = {
+          id: `ndr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          orderId: order.orderId,
+          customerName: order.customerName,
+          phonePrimary: order.phonePrimary,
+          courier: order.courier || 'DTDC',
+          awb: order.awb || 'N/A',
+          reason: 'Courier reported failed delivery exception (Auto-logged).',
+          status: 'Pending',
+          createdAt: order.updatedAt || now,
+          updatedAt: now,
+          internalNotes: 'Awaiting escalation response from customer.',
+          history: [
+            {
+              action: 'NDR Logged',
+              timestamp: now,
+              remarks: 'NDR automatically logged to match order status.'
+            }
+          ]
+        };
+        await db.saveNdrRecord(newNdr);
+        records.push(newNdr);
+      }
+    }
+
     // Apply Date Range Filter
     if (startDate) {
       const start = new Date(startDate).getTime();
