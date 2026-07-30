@@ -99,6 +99,24 @@ export default function AllShipments() {
   const openOrderDetail = (order: Order) => {
     setSelectedOrder(order);
     setShowDetailModal(true);
+
+    if (order.awb) {
+      const courierParam = order.courier ? `&courier=${order.courier}` : '';
+      fetch(`/api/integrations/courier?action=track&waybill=${order.awb}${courierParam}`)
+        .then(res => {
+          if (res.ok) {
+            fetchShipmentsList(true);
+            return fetch(`/api/orders/${order.id}`);
+          }
+        })
+        .then(res => res?.json())
+        .then(data => {
+          if (data && data.success && data.order) {
+            setSelectedOrder(data.order);
+          }
+        })
+        .catch(err => console.error('Failed to trigger single parcel sync:', err));
+    }
   };
 
   return (

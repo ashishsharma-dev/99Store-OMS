@@ -3,6 +3,9 @@ import { db } from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const runInBackground = searchParams.get('background') === 'true';
+
     const baseUrl = new URL(request.url).origin;
     const orders = await db.getOrders();
 
@@ -20,10 +23,30 @@ export async function POST(request: Request) {
       });
     }
 
+    if (runInBackground) {
+      // Execute sequentially in the background to prevent db write race conditions
+      (async () => {
+        for (const order of activeOrders) {
+          const courierParam = order.courier ? `&courier=${order.courier}` : '';
+          try {
+            const url = `${baseUrl}/api/integrations/courier?action=track&waybill=${encodeURIComponent(order.awb!)}${courierParam}`;
+            await fetch(url);
+          } catch (err) {
+            console.error(`Failed background sync for AWB ${order.awb}:`, err);
+          }
+        }
+      })().catch(err => console.error('Background bulk sync process error:', err));
+
+      return NextResponse.json({
+        success: true,
+        message: `Bulk tracking synchronization started in the background for ${activeOrders.length} packages.`
+      });
+    }
+
+    // Synchronous execution for manual requests
     const updates: { orderId: string; awb: string; previousStatus: string; newStatus: string }[] = [];
     let totalUpdated = 0;
 
-    // Synchronize each active order by hitting our own courier tracking endpoint
     for (const order of activeOrders) {
       const courierParam = order.courier ? `&courier=${order.courier}` : '';
       const previousStatus = order.status;

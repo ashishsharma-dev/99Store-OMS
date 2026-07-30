@@ -63,6 +63,24 @@ export default function OfdManagement() {
   const openOrderDetail = (order: Order) => {
     setDetailOrder(order);
     setShowDetailModal(true);
+
+    if (order.awb) {
+      const courierParam = order.courier ? `&courier=${order.courier}` : '';
+      fetch(`/api/integrations/courier?action=track&waybill=${order.awb}${courierParam}`)
+        .then(res => {
+          if (res.ok) {
+            fetchOfdOrders(true);
+            return fetch(`/api/orders/${order.id}`);
+          }
+        })
+        .then(res => res?.json())
+        .then(data => {
+          if (data && data.success && data.order) {
+            setDetailOrder(data.order);
+          }
+        })
+        .catch(err => console.error('Failed to trigger single parcel sync:', err));
+    }
   };
 
   const getDynamicEdt = (order: Order) => {
