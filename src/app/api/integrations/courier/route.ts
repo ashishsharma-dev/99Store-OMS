@@ -375,8 +375,13 @@ export async function GET(request: Request) {
               : Array.isArray(data) 
                 ? data 
                 : (data.history || []);
-          const statusVal = data.status || data.current_status || (data.data && data.data.status) || 'In Transit';
-          const locationVal = data.location || (data.data && data.data.location) || 'Origin Hub';
+          const statusVal = (typeof data.status === 'string' ? data.status : null) || 
+                            (typeof data.current_status === 'string' ? data.current_status : null) || 
+                            (data.data && typeof data.data.status === 'string' ? data.data.status : null) || 
+                            'In Transit';
+          const locationVal = (typeof data.location === 'string' ? data.location : null) || 
+                              (data.data && typeof data.data.location === 'string' ? data.data.location : null) || 
+                              'Origin Hub';
 
           unifiedData = {
             ShipmentData: [
@@ -568,8 +573,13 @@ export async function GET(request: Request) {
                 : (trackData.history || []);
                 
           // Fetch current status
-          const currentStatus = trackData.status || trackData.current_status || (trackData.data && trackData.data.status) || 'In Transit';
-          const currentLocation = trackData.location || (trackData.data && trackData.data.location) || 'Origin Hub';
+          const currentStatus = (typeof trackData.status === 'string' ? trackData.status : null) || 
+                                (typeof trackData.current_status === 'string' ? trackData.current_status : null) || 
+                                (trackData.data && typeof trackData.data.status === 'string' ? trackData.data.status : null) || 
+                                'In Transit';
+          const currentLocation = (typeof trackData.location === 'string' ? trackData.location : null) || 
+                                  (trackData.data && typeof trackData.data.location === 'string' ? trackData.data.location : null) || 
+                                  'Origin Hub';
 
           const unifiedData = {
             ShipmentData: [

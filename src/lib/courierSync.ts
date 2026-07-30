@@ -5,9 +5,15 @@ import { triggerWhatsAppNotification } from '@/lib/whatsapp';
 /**
  * Maps live courier API status strings to internal 99Store OrderStatus types.
  */
-export function mapCourierStatusToInternal(courierStatus: string): OrderStatus | null {
+export function mapCourierStatusToInternal(courierStatus: any): OrderStatus | null {
   if (!courierStatus) return null;
-  const status = courierStatus.toLowerCase().trim();
+  const statusStr = typeof courierStatus === 'string' 
+    ? courierStatus 
+    : typeof courierStatus === 'object' 
+      ? JSON.stringify(courierStatus) 
+      : String(courierStatus);
+      
+  const status = statusStr.toLowerCase().trim();
 
   if (
     status === 'delivered' || 
