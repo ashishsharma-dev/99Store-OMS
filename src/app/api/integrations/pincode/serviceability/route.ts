@@ -101,3 +101,101 @@ export async function GET(request: Request) {
     return NextResponse.json({ serviceable: false, error: error.message || 'Verification failed.' });
   }
 }
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { checks } = body as { checks: { pincode: string; courier: string }[] };
+
+    if (!checks || !Array.isArray(checks)) {
+      return NextResponse.json({ error: 'Invalid checks list.' }, { status: 400 });
+    }
+
+    const settings = await db.getSettings();
+    const results: Record<string, boolean> = {};
+
+    let xpressbeesToken = '';
+    if (settings.xpressbeesActive) {
+      try {
+        xpressbeesToken = await getXpressBeesToken(settings.xpressbeesConfig);
+      } catch (err) {
+        console.error('Failed to get Xpressbees token for batch:', err);
+      }
+    }
+
+    await Promise.all(
+      checks.map(async ({ pincode, courier }) => {
+        const key = `${pincode}-${courier}`;
+        if (!pincode || pincode.length !== 6 || !/^\d+$/.test(pincode)) {
+          results[key] = false;
+          return;
+        }
+
+        const normalizedCourier = courier.toLowerCase();
+
+        try {
+          if (normalizedCourier.includes('delhivery')) {
+            if (settings.deliveryActive && settings.deliveryConfig.apiKey) {
+              const apiKey = settings.deliveryConfig.apiKey;
+              const isProduction = !apiKey.startsWith('MOCK') && !apiKey.includes('test') && !apiKey.includes('staging');
+              const delhiveryBaseUrl = isProduction ? 'https://track.delhivery.com' : 'https://staging-express.delhivery.com';
+
+              const res = await fetch(`${delhiveryBaseUrl}/c/api/pin-codes/json/?filter_codes=${pincode}`, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Token ${apiKey}`,
+                  'Accept': 'application/json'
+                }
+              });
+              if (res.ok) {
+                const data = await res.json();
+                if (data && data.delivery_codes && data.delivery_codes.length > 0) {
+                  const postalCode = data.delivery_codes[0].postal_code;
+                  results[key] = !!(postalCode.is_delivered || postalCode.pre_paid === 'Y' || postalCode.cod === 'Y');
+                  return;
+                }
+              }
+            }
+            results[key] = checkCourierServiceabilityFallback(pincode, courier);
+            return;
+          }
+
+          if (normalizedCourier.includes('xpressbees') || normalizedCourier.includes('xbees')) {
+            if (settings.xpressbeesActive && xpressbeesToken) {
+              const pincodeUrl = settings.xpressbeesConfig.pincodeUrl || 'https://xbmasterapi.xbees.in/expose/get/serviceabilitypincode/details';
+
+              const res = await fetch(`${pincodeUrl}?pincode=${pincode}`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Token': xpressbeesToken,
+                  'XBKey': settings.xpressbeesConfig.xbKey || ''
+                },
+                body: JSON.stringify({
+                  BusinessUnit: 'B2C',
+                  BusinessFlow: 'Forward',
+                  BusinessService: settings.xpressbeesConfig.serviceType || 'Air'
+                })
+              });
+              if (res.ok) {
+                const data = await res.json();
+                results[key] = !!(data && (data.status === true || data.status === 'success' || data.ReturnCode === 100 || data.data));
+                return;
+              }
+            }
+            results[key] = checkCourierServiceabilityFallback(pincode, courier);
+            return;
+          }
+
+          results[key] = checkCourierServiceabilityFallback(pincode, courier);
+        } catch (err) {
+          results[key] = checkCourierServiceabilityFallback(pincode, courier);
+        }
+      })
+    );
+
+    return NextResponse.json({ results });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Batch check failed.' }, { status: 500 });
+  }
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Package, 
   Printer, 
@@ -62,6 +62,7 @@ export default function Packing() {
   const [rescheduleRemark, setRescheduleRemark] = useState('');
   const [rescheduleLoading, setRescheduleLoading] = useState(false);
   const [serviceabilityCache, setServiceabilityCache] = useState<Record<string, boolean>>({});
+  const fetchingKeys = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const session = localStorage.getItem('99store_user');
@@ -122,30 +123,66 @@ export default function Packing() {
 
   // Perform background live serviceability checks for visible orders
   useEffect(() => {
+    let isMounted = true;
+
     const checkAllServiceability = async () => {
-      const pendingChecks = filteredOrders.filter(o => {
+      const uniqueChecksMap: Record<string, { pincode: string; courier: string }> = {};
+
+      filteredOrders.forEach(o => {
         const activeCourier = courierOverrides[o.id] || o.courier || 'DTDC';
         const cacheKey = `${o.pincode}-${activeCourier}`;
-        return serviceabilityCache[cacheKey] === undefined;
+
+        if (serviceabilityCache[cacheKey] === undefined && !fetchingKeys.current.has(cacheKey)) {
+          uniqueChecksMap[cacheKey] = { pincode: o.pincode, courier: activeCourier };
+        }
       });
 
+      const pendingChecks = Object.values(uniqueChecksMap);
       if (pendingChecks.length === 0) return;
 
-      for (const o of pendingChecks) {
-        const activeCourier = courierOverrides[o.id] || o.courier || 'DTDC';
-        const cacheKey = `${o.pincode}-${activeCourier}`;
+      const keysToFetch = Object.keys(uniqueChecksMap);
+      keysToFetch.forEach(key => fetchingKeys.current.add(key));
 
-        try {
-          const res = await fetch(`/api/integrations/pincode/serviceability?pincode=${o.pincode}&courier=${encodeURIComponent(activeCourier)}`);
-          const data = await res.json();
-          setServiceabilityCache(prev => ({ ...prev, [cacheKey]: !!data.serviceable }));
-        } catch (err) {
-          setServiceabilityCache(prev => ({ ...prev, [cacheKey]: checkCourierServiceability(o.pincode, activeCourier) }));
+      try {
+        const res = await fetch('/api/integrations/pincode/serviceability', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ checks: pendingChecks })
+        });
+
+        if (!res.ok) throw new Error('Batch serviceability check failed.');
+
+        const data = await res.json();
+
+        if (isMounted && data.results) {
+          setServiceabilityCache(prev => ({
+            ...prev,
+            ...data.results
+          }));
         }
+      } catch (err) {
+        console.error('Batch serviceability check failed, falling back to static rules:', err);
+        if (isMounted) {
+          const fallbackResults: Record<string, boolean> = {};
+          pendingChecks.forEach(({ pincode, courier }) => {
+            const cacheKey = `${pincode}-${courier}`;
+            fallbackResults[cacheKey] = checkCourierServiceability(pincode, courier);
+          });
+          setServiceabilityCache(prev => ({
+            ...prev,
+            ...fallbackResults
+          }));
+        }
+      } finally {
+        keysToFetch.forEach(key => fetchingKeys.current.delete(key));
       }
     };
 
     checkAllServiceability();
+
+    return () => {
+      isMounted = false;
+    };
   }, [filteredOrders, courierOverrides]);
 
   const handleSelectAll = () => {
