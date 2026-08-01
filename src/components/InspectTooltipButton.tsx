@@ -78,6 +78,14 @@ export const InspectTooltipButton = ({
           Quick Info: {order.orderId}
         </div>
 
+        {/* Product Details */}
+        <div style={{ marginBottom: '8px', borderBottom: '1px solid #2D2D30', paddingBottom: '8px' }}>
+          <div style={{ fontWeight: 600, color: '#A1A1AA', marginBottom: '2px' }}>Product:</div>
+          <div style={{ color: '#D4D4D8', fontWeight: 500, wordBreak: 'break-word' }}>
+            {order.productDetails || 'N/A'}
+          </div>
+        </div>
+
         {/* Phone numbers */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
