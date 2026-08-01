@@ -61,7 +61,12 @@ export function mapCourierStatusToInternal(courierStatus: any): OrderStatus | nu
     status.includes('rejected') || 
     status.includes('unreachable') || 
     status.includes('delayed') ||
-    status.includes('awaiting instruction')
+    status.includes('awaiting instruction') ||
+    status.includes('attempts reached') ||
+    status.includes('attempts_reached') ||
+    status.includes('not available') ||
+    status.includes('unavailable') ||
+    status.includes('denied')
   ) {
     return 'NDR';
   }

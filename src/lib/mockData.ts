@@ -294,6 +294,54 @@ export const mockOrders: Order[] = [
     history: [
       { status: 'Created', timestamp: new Date().toISOString(), updatedBy: 'order_user', remarks: 'Order entered manually.' }
     ]
+  },
+  {
+    id: 'ord-1059',
+    orderId: '99S-1059',
+    customerName: 'Raghunandan Singh',
+    phonePrimary: '+91 8057023592',
+    address: 'Vrindavan, Jait, Mathura',
+    pincode: '281121',
+    state: 'Uttar Pradesh',
+    area: 'Mathura',
+    productDetails: '99Store Premium Ceramic Coffee Mug - Matte Black',
+    paymentType: 'COD',
+    orderValue: 6165,
+    weight: 1.5,
+    createdBy: 'admin',
+    isVip: false,
+    status: 'OFD',
+    awb: '1635310036396',
+    courier: 'Delhivery',
+    eta: '2026-07-31',
+    createdAt: '2026-07-27T12:48:47.721Z',
+    updatedAt: '2026-07-31T11:49:46.597Z',
+    history: [
+      {
+        status: 'Created',
+        timestamp: '2026-07-27T12:48:47.721Z',
+        updatedBy: 'admin',
+        remarks: 'Order imported via manual entry.'
+      },
+      {
+        status: 'Label Generated',
+        timestamp: '2026-07-27T12:48:48.000Z',
+        updatedBy: 'admin',
+        remarks: 'AWB 1635310036396 allocated.'
+      },
+      {
+        status: 'Dispatched',
+        timestamp: '2026-07-28T16:48:12.000Z',
+        updatedBy: 'tracking_user',
+        remarks: 'Handed over to Delhivery.'
+      },
+      {
+        status: 'OFD',
+        timestamp: '2026-07-31T11:49:46.597Z',
+        updatedBy: 'tracking_user',
+        remarks: 'Out for delivery'
+      }
+    ]
   }
 ];
 

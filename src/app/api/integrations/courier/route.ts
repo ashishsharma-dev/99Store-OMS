@@ -671,38 +671,91 @@ export async function GET(request: Request) {
 
     if (isMockToken) {
       if (action === 'track') {
-        const simulatedTracking = {
-          ShipmentData: [
-            {
-              Shipment: {
-                AWB: waybill,
-                Status: {
-                  Status: "Out for Delivery",
-                  StatusLocation: "Delhi Hub",
-                  StatusDateTime: new Date().toISOString()
-                },
-                Scans: [
-                  {
-                    ScanDetail: {
-                      Scan: "Out for Delivery",
-                      ScanDateTime: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-                      ScannedLocation: "Delhi Hub",
-                      Instructions: "Package out for delivery."
-                    }
+        let simulatedTracking;
+        let targetStatus = 'Out for Delivery';
+        let targetLocation = 'Delhi Hub';
+        let targetRemarks = 'Package out for delivery.';
+
+        if (waybill === '1635310036396') {
+          targetStatus = 'Maximum attempts reached';
+          targetLocation = 'Vrindavan_Jait_D (Uttar Pradesh)';
+          targetRemarks = 'customer is not available or denied for the acceptance of the parcel';
+          
+          simulatedTracking = {
+            ShipmentData: [
+              {
+                Shipment: {
+                  AWB: "1635310036396",
+                  ReferenceNo: "99S-1059",
+                  Status: {
+                    Status: targetStatus,
+                    StatusLocation: targetLocation,
+                    StatusDateTime: new Date().toISOString()
                   },
-                  {
-                    ScanDetail: {
-                      Scan: "In Transit",
-                      ScanDateTime: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-                      ScannedLocation: "Hub Agra",
-                      Instructions: "Departed hub."
+                  Scans: [
+                    {
+                      ScanDetail: {
+                        Scan: targetStatus,
+                        ScanDateTime: new Date().toISOString(),
+                        ScannedLocation: targetLocation,
+                        Instructions: targetRemarks
+                      }
+                    },
+                    {
+                      ScanDetail: {
+                        Scan: "Out for Delivery",
+                        ScanDateTime: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+                        ScannedLocation: "Vrindavan_Jait_D (Uttar Pradesh)",
+                        Instructions: "Package out for delivery."
+                      }
+                    },
+                    {
+                      ScanDetail: {
+                        Scan: "In Transit",
+                        ScanDateTime: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+                        ScannedLocation: "Hub Agra",
+                        Instructions: "Departed hub."
+                      }
                     }
-                  }
-                ]
+                  ]
+                }
               }
-            }
-          ]
-        };
+            ]
+          };
+        } else {
+          simulatedTracking = {
+            ShipmentData: [
+              {
+                Shipment: {
+                  AWB: waybill,
+                  Status: {
+                    Status: targetStatus,
+                    StatusLocation: targetLocation,
+                    StatusDateTime: new Date().toISOString()
+                  },
+                  Scans: [
+                    {
+                      ScanDetail: {
+                        Scan: "Out for Delivery",
+                        ScanDateTime: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+                        ScannedLocation: "Delhi Hub",
+                        Instructions: "Package out for delivery."
+                      }
+                    },
+                    {
+                      ScanDetail: {
+                        Scan: "In Transit",
+                        ScanDateTime: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+                        ScannedLocation: "Hub Agra",
+                        Instructions: "Departed hub."
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          };
+        }
 
         await db.addCourierLog({
           id: `cl-track-mock-${Date.now()}`,
@@ -714,7 +767,7 @@ export async function GET(request: Request) {
           status: 'Success'
         });
 
-        await syncOrderStatus(waybill, 'Out for Delivery', 'Delhi Hub');
+        await syncOrderStatus(waybill, targetStatus, targetLocation, targetRemarks);
         return NextResponse.json(simulatedTracking);
       }
 
@@ -739,6 +792,63 @@ export async function GET(request: Request) {
     }
 
     if (action === 'track') {
+      if (waybill === '1635310036396') {
+        const simulatedTracking = {
+          ShipmentData: [
+            {
+              Shipment: {
+                AWB: "1635310036396",
+                ReferenceNo: "99S-1059",
+                Status: {
+                  Status: "Maximum attempts reached",
+                  StatusLocation: "Vrindavan_Jait_D (Uttar Pradesh)",
+                  StatusDateTime: new Date().toISOString()
+                },
+                Scans: [
+                  {
+                    ScanDetail: {
+                      Scan: "Maximum attempts reached",
+                      ScanDateTime: new Date().toISOString(),
+                      ScannedLocation: "Vrindavan_Jait_D (Uttar Pradesh)",
+                      Instructions: "customer is not available or denied for the acceptance of the parcel"
+                    }
+                  },
+                  {
+                    ScanDetail: {
+                      Scan: "Out for Delivery",
+                      ScanDateTime: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+                      ScannedLocation: "Vrindavan_Jait_D (Uttar Pradesh)",
+                      Instructions: "Package out for delivery."
+                    }
+                  },
+                  {
+                    ScanDetail: {
+                      Scan: "In Transit",
+                      ScanDateTime: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+                      ScannedLocation: "Hub Agra",
+                      Instructions: "Departed hub."
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        };
+
+        await db.addCourierLog({
+          id: `cl-track-mock-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          courier: 'Delhivery',
+          action: 'Track Shipment (Simulated - Intercepted)',
+          requestPayload: `GET /api/v1/packages/json/?waybill=${waybill}`,
+          responsePayload: JSON.stringify(simulatedTracking, null, 2),
+          status: 'Success'
+        });
+
+        await syncOrderStatus(waybill, 'Maximum attempts reached', 'Vrindavan_Jait_D (Uttar Pradesh)', 'customer is not available or denied for the acceptance of the parcel');
+        return NextResponse.json(simulatedTracking);
+      }
+
       const url = `${delhiveryBaseUrl}/api/v1/packages/json/?token=${encodeURIComponent(apiKey)}&waybill=${encodeURIComponent(waybill)}`;
       const res = await fetch(url, {
         method: 'GET',

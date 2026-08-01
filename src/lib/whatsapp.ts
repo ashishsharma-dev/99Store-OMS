@@ -3,8 +3,8 @@ import { WhatsAppLog } from '@/lib/types';
 
 // Deropo WhatsApp API Credentials (configured via environment variables)
 const API_URL = process.env.WHATSAPP_API_URL || 'https://api.deropo.com/api/send';
-const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || '8861d6ac2ad21c0ec4602a5f3057c332';
-const DEVICE_ID = process.env.WHATSAPP_DEVICE_ID || '2211';
+const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || 'f6e962bd642bdcb19019af646ee047a0';
+const DEVICE_ID = process.env.WHATSAPP_DEVICE_ID || '2755';
 
 async function sendWhatsAppMessage(phone: string, messageText: string): Promise<{ success: boolean; error?: string }> {
   try {
