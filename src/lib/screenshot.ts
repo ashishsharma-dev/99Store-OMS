@@ -1,18 +1,63 @@
 import puppeteer from 'puppeteer-core';
+import fs from 'fs';
+import { execSync } from 'child_process';
+
+/**
+ * Automatically detects the Google Chrome or Chromium executable path
+ * across different operating systems (Windows, Linux, macOS).
+ */
+function findChromePath(): string {
+  if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
+
+  if (process.platform === 'win32') {
+    const winPaths = [
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    ];
+    for (const p of winPaths) {
+      if (fs.existsSync(p)) return p;
+    }
+  }
+
+  if (process.platform === 'linux') {
+    const linuxPaths = [
+      '/usr/bin/google-chrome',
+      '/usr/bin/chromium',
+      '/usr/bin/chromium-browser',
+      '/usr/bin/google-chrome-stable',
+      '/usr/bin/google-chrome-beta'
+    ];
+    for (const p of linuxPaths) {
+      if (fs.existsSync(p)) return p;
+    }
+
+    try {
+      const pathFromWhich = execSync('which google-chrome || which chromium || which chromium-browser', { encoding: 'utf8' }).trim();
+      if (pathFromWhich) return pathFromWhich;
+    } catch (e) {}
+  }
+
+  if (process.platform === 'darwin') {
+    const macPath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+    if (fs.existsSync(macPath)) return macPath;
+  }
+
+  throw new Error('Google Chrome/Chromium executable not found. Please install chromium on your VPS or set CHROME_PATH environment variable.');
+}
 
 /**
  * Renders the order packing slip in a headless browser, takes a screenshot,
  * uploads it to tmpfiles.org, and returns a direct image link.
  */
 export async function generatePackingSlipImage(orderId: string): Promise<string | null> {
-  const chromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
   let browser;
   try {
-    console.log(`[Screenshot] Launching headless Chrome for order ${orderId}...`);
+    const executablePath = findChromePath();
+    console.log(`[Screenshot] Launching headless Chrome using path "${executablePath}" for order ${orderId}...`);
     browser = await puppeteer.launch({
-      executablePath: chromePath,
+      executablePath,
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
     });
 
     const page = await browser.newPage();
