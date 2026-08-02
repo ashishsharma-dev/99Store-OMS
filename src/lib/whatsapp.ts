@@ -6,7 +6,9 @@ const API_URL = process.env.WHATSAPP_API_URL || 'https://api.deropo.com/api/send
 const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || 'f6e962bd642bdcb19019af646ee047a0';
 const DEVICE_ID = process.env.WHATSAPP_DEVICE_ID || '2755';
 
-async function sendWhatsAppMessage(phone: string, messageText: string): Promise<{ success: boolean; error?: string }> {
+import { generatePackingSlipImage } from '@/lib/screenshot';
+
+async function sendWhatsAppMessage(phone: string, messageText: string, imageUrl?: string | null): Promise<{ success: boolean; error?: string }> {
   try {
     // 1. Format phone number just like the Google Apps Script
     let cleanPhone = phone.replace(/\D/g, '');
@@ -35,14 +37,25 @@ async function sendWhatsAppMessage(phone: string, messageText: string): Promise<
       requestUrl = `${requestUrl}${separator}device_id=${DEVICE_ID}`;
     }
 
+    const payload: any = {
+      number: cleanPhone,
+      message: messageText
+    };
+
+    if (imageUrl) {
+      payload.type = 'image';
+      payload.url = imageUrl;
+      payload.file = imageUrl;
+      payload.media = imageUrl;
+      payload.caption = messageText;
+    } else {
+      payload.type = 'text';
+    }
+
     const res = await fetch(requestUrl, {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        number: cleanPhone,
-        type: 'text',
-        message: messageText,
-      }),
+      body: JSON.stringify(payload),
     });
 
     const responseText = await res.text();
@@ -110,6 +123,14 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
   if (!pName) {
     const order = await db.getOrderByOrderId(orderId);
     pName = order?.productDetails || 'Product';
+  }
+
+  // Generate packing slip screenshot in background
+  let imageUrl: string | null = null;
+  try {
+    imageUrl = await generatePackingSlipImage(orderId);
+  } catch (err) {
+    console.error('Failed to generate packing slip screenshot:', err);
   }
 
   // --- 1. Primary Number Notifications ---
@@ -273,7 +294,7 @@ ${paymentType === 'COD'
       break;
   }
 
-  const primaryResult = await sendWhatsAppMessage(phonePrimary, primaryMessage);
+  const primaryResult = await sendWhatsAppMessage(phonePrimary, primaryMessage, imageUrl);
 
   const primaryLog: WhatsAppLog = {
     id: `wa-prim-${Date.now()}`,
@@ -316,7 +337,7 @@ ${paymentType === 'COD'
         break;
     }
 
-    const secondaryResult = await sendWhatsAppMessage(phoneSecondary, secondaryMessage);
+    const secondaryResult = await sendWhatsAppMessage(phoneSecondary, secondaryMessage, imageUrl);
 
     const secondaryLog: WhatsAppLog = {
       id: `wa-sec-${Date.now()}`,
