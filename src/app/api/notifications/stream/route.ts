@@ -8,6 +8,16 @@ export async function GET(request: Request) {
   const stream = new ReadableStream({
     async start(controller) {
       const sentKeys = new Set<string>();
+      let isClosed = false;
+
+      const safeEnqueue = (payload: string) => {
+        if (isClosed) return;
+        try {
+          controller.enqueue(encoder.encode(payload));
+        } catch (e) {
+          isClosed = true;
+        }
+      };
 
       try {
         // Fetch real database records for authentic notification telemetry
@@ -24,7 +34,7 @@ export async function GET(request: Request) {
           timestamp: new Date().toISOString(),
           type: 'system',
         })}\n\n`;
-        controller.enqueue(encoder.encode(initMessage));
+        safeEnqueue(initMessage);
 
         // Stream real active NDR exception alerts from DB
         ndrRecords.slice(0, 3).forEach((ndr) => {
@@ -37,7 +47,7 @@ export async function GET(request: Request) {
             timestamp: ndr.createdAt,
             type: 'ndr',
           })}\n\n`;
-          controller.enqueue(encoder.encode(ndrMsg));
+          safeEnqueue(ndrMsg);
         });
 
         // Stream real active recent orders
@@ -51,7 +61,7 @@ export async function GET(request: Request) {
             timestamp: order.createdAt,
             type: 'order',
           })}\n\n`;
-          controller.enqueue(encoder.encode(orderMsg));
+          safeEnqueue(orderMsg);
         });
 
       } catch (err) {
@@ -60,11 +70,17 @@ export async function GET(request: Request) {
 
       // 5-second polling interval for real-time order/NDR updates & Delhivery Call Placed alerts
       const pollInterval = setInterval(async () => {
+        if (isClosed) {
+          clearInterval(pollInterval);
+          return;
+        }
         try {
           const [orders, ndrRecords] = await Promise.all([
             db.getOrders(),
             db.getNdrRecords()
           ]);
+
+          if (isClosed) return;
 
           // 1. Delhivery Call Placed Notification orders
           orders.filter(o => o.status === 'Call Placed Notification').forEach(order => {
@@ -78,7 +94,7 @@ export async function GET(request: Request) {
                 timestamp: order.updatedAt || order.createdAt || new Date().toISOString(),
                 type: 'call_placed'
               })}\n\n`;
-              controller.enqueue(encoder.encode(eventPayload));
+              safeEnqueue(eventPayload);
             }
           });
 
@@ -94,7 +110,7 @@ export async function GET(request: Request) {
                 timestamp: ndr.updatedAt || ndr.createdAt || new Date().toISOString(),
                 type: 'ndr'
               })}\n\n`;
-              controller.enqueue(encoder.encode(eventPayload));
+              safeEnqueue(eventPayload);
             }
           });
 
@@ -110,7 +126,7 @@ export async function GET(request: Request) {
                 timestamp: order.updatedAt || order.createdAt || new Date().toISOString(),
                 type: 'order'
               })}\n\n`;
-              controller.enqueue(encoder.encode(eventPayload));
+              safeEnqueue(eventPayload);
             }
           });
 
@@ -121,18 +137,27 @@ export async function GET(request: Request) {
 
       // Silent heartbeat ping to keep SSE connection alive without emitting fake records
       const interval = setInterval(() => {
+        if (isClosed) {
+          clearInterval(interval);
+          return;
+        }
         try {
           const pingPayload = `: heartbeat ping\n\n`;
-          controller.enqueue(encoder.encode(pingPayload));
+          safeEnqueue(pingPayload);
         } catch (e) {
           clearInterval(interval);
         }
       }, 25000);
 
       request.signal.addEventListener('abort', () => {
+        isClosed = true;
         clearInterval(interval);
         clearInterval(pollInterval);
-        controller.close();
+        try {
+          controller.close();
+        } catch (e) {
+          // ignore already closed
+        }
       });
     },
   });

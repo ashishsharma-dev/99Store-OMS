@@ -61,6 +61,8 @@ export default function Packing() {
   const [reassignCourier, setReassignCourier] = useState('DTDC');
   const [reassignRemark, setReassignRemark] = useState('');
   const [reassignLoading, setReassignLoading] = useState(false);
+  const [showAwbErrorModal, setShowAwbErrorModal] = useState(false);
+  const [awbErrorDetails, setAwbErrorDetails] = useState<{ orderId: string; courier: string; pincode: string; error: string } | null>(null);
   const [serviceabilityCache, setServiceabilityCache] = useState<Record<string, boolean>>({});
   const fetchingKeys = useRef<Set<string>>(new Set());
 
@@ -216,6 +218,15 @@ export default function Packing() {
       setProcessingOrderId(null);
 
       if (res.ok) {
+        if (data.awbError) {
+          setAwbErrorDetails({
+            orderId: order.orderId,
+            courier: selectedCourier,
+            pincode: order.pincode,
+            error: data.awbError
+          });
+          setShowAwbErrorModal(true);
+        }
         fetchPackingQueue();
       } else {
         alert(data.error || 'Failed to generate AWB label.');
@@ -309,7 +320,8 @@ export default function Packing() {
             })
           });
 
-          if (res.ok) {
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && !data.awbError) {
             successCount++;
             completedList.push({
               orderId: order.orderId,
@@ -318,11 +330,10 @@ export default function Packing() {
             });
           } else {
             failedCount++;
-            const data = await res.json().catch(() => ({}));
             completedList.push({
               orderId: order.orderId,
               success: false,
-              message: data.error || `Transition error ${res.status}.`
+              message: data.awbError || data.error || 'Courier API AWB generation failed.'
             });
           }
         } catch (err: any) {
@@ -1011,6 +1022,61 @@ export default function Packing() {
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: AWB Generation Exception (Formal error notification) */}
+      {showAwbErrorModal && awbErrorDetails && (
+        <div className="premium-modal-backdrop" style={{ zIndex: 1200 }}>
+          <div className="premium-modal animate-fade-in" style={{ maxWidth: '480px', borderColor: '#EF4444' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#EF4444' }} />
+                <h3 style={{ fontSize: '15px', color: '#FAFAFA', fontWeight: 600, letterSpacing: '0.3px', margin: 0 }}>AWB Generation Exception</h3>
+              </div>
+              <button 
+                onClick={() => { setShowAwbErrorModal(false); setAwbErrorDetails(null); }} 
+                style={{ background: 'none', border: 'none', color: '#737373', cursor: 'pointer', fontSize: '13px' }}
+              >
+                Close
+              </button>
+            </div>
+
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '13px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ color: '#737373', textTransform: 'uppercase', fontSize: '10px' }}>Order Identifier</span>
+                  <span style={{ color: '#FAFAFA', fontWeight: 600 }}>{awbErrorDetails.orderId}</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ color: '#737373', textTransform: 'uppercase', fontSize: '10px' }}>Courier Partner</span>
+                  <span style={{ color: '#FAFAFA', fontWeight: 600 }}>{awbErrorDetails.courier}</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', gridColumn: 'span 2' }}>
+                  <span style={{ color: '#737373', textTransform: 'uppercase', fontSize: '10px' }}>Delivery Pincode</span>
+                  <span style={{ color: '#FAFAFA', fontWeight: 600 }}>{awbErrorDetails.pincode}</span>
+                </div>
+              </div>
+
+              <div style={{ padding: '16px', backgroundColor: 'rgba(239, 68, 68, 0.05)', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.15)' }}>
+                <span style={{ display: 'block', color: '#EF4444', textTransform: 'uppercase', fontSize: '9px', fontWeight: 700, marginBottom: '6px', letterSpacing: '0.5px' }}>Courier Exception Response</span>
+                <p style={{ color: '#F3F4F6', fontSize: '13px', margin: 0, lineHeight: '1.5', fontFamily: 'monospace' }}>
+                  {awbErrorDetails.error}
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '16px', justifyContent: 'flex-end' }}>
+                <button 
+                  type="button" 
+                  onClick={() => { setShowAwbErrorModal(false); setAwbErrorDetails(null); }} 
+                  className="premium-btn premium-btn-primary"
+                  style={{ backgroundColor: '#EF4444', borderColor: '#EF4444', color: '#FFFFFF' }}
+                >
+                  Acknowledge
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -88,6 +88,7 @@ export async function PATCH(
     const baseUrl = new URL(request.url).origin;
 
     // A. PACKING queue -> Trigger Auto AWB generation if not yet allocated
+    let awbError: string | null = null;
     if (targetStatus === 'Label Generated' && !order.awb) {
       const selectedCourier = courier || order.courier || 'DTDC';
       try {
@@ -112,10 +113,12 @@ export async function PATCH(
           order.courier = courierData.courier;
           systemRemarks += ` (Automated: AWB ${courierData.awb} generated via ${selectedCourier} API successfully.)`;
         } else {
-          systemRemarks += ` (Warning: Automated AWB generation failed: ${courierData.error || 'Unknown Error'})`;
+          awbError = courierData.error || 'Unknown Error';
+          systemRemarks += ` (Warning: Automated AWB generation failed: ${awbError})`;
         }
       } catch (err: any) {
         console.error('Background courier generation failed:', err);
+        awbError = err.message || 'Courier integration API network error.';
         systemRemarks += ` (Warning: Courier integration API network error.)`;
       }
     }
@@ -186,7 +189,7 @@ export async function PATCH(
       }).catch(err => console.error('Failed to trigger background direct WhatsApp:', err));
     }
 
-    return NextResponse.json({ success: true, order });
+    return NextResponse.json({ success: true, order, awbError });
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to update order.' }, { status: 500 });

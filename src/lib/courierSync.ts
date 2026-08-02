@@ -132,9 +132,6 @@ export async function syncOrderStatus(
     }
 
     let mappedStatus = mapCourierStatusToInternal(courierStatus);
-    if (!mappedStatus) {
-      return { updated: false, error: `Unable to map courier status: "${courierStatus}"` };
-    }
 
     const now = new Date().toISOString();
     const locStr = scanLocation ? ` [Hub: ${scanLocation}]` : '';
@@ -153,6 +150,16 @@ export async function syncOrderStatus(
       if (remarksLower.includes('return to origin') || remarksLower.includes('rto') || remarksLower.includes('returned') || remarksLower.includes('type: rt') || remarksLower.includes('status: rt')) {
         mappedStatus = 'Return';
       }
+      // 3. Check for NDR override
+      if (remarksLower.includes('consignee unavailable') || remarksLower.includes('unavailable') || remarksLower.includes('reattempt') || remarksLower.includes('failed attempt') || remarksLower.includes('not available') || remarksLower.includes('undelivered') || remarksLower.includes('refused') || remarksLower.includes('rejected') || remarksLower.includes('unreachable') || remarksLower.includes('delayed') || remarksLower.includes('no such') || remarksLower.includes('incorrect address')) {
+        if (mappedStatus !== 'Delivered' && mappedStatus !== 'Return' && mappedStatus !== 'RDC') {
+          mappedStatus = 'NDR';
+        }
+      }
+    }
+
+    if (!mappedStatus) {
+      return { updated: false, error: `Unable to map courier status: "${courierStatus}"` };
     }
 
     let hasChanges = false;

@@ -2139,7 +2139,14 @@ export async function POST(request: Request) {
         });
 
         if (!manifestRes.ok || !manifestResponseData.success) {
-          return NextResponse.json({ error: `Delhivery CMU Manifest failed: ${manifestResponseData.rmk || manifestResponseData.error || responseText}` }, { status: 400 });
+          let errorMsg = manifestResponseData.rmk || manifestResponseData.error || responseText;
+          if (manifestResponseData.packages && manifestResponseData.packages.length > 0) {
+            const pkg = manifestResponseData.packages[0];
+            if (pkg.remarks && pkg.remarks.length > 0) {
+              errorMsg = `${errorMsg} (Remarks: ${pkg.remarks.join(', ')})`;
+            }
+          }
+          return NextResponse.json({ error: `Delhivery CMU Manifest failed: ${errorMsg}` }, { status: 400 });
         }
 
         if (!finalAwb && manifestResponseData.packages && manifestResponseData.packages.length > 0) {
