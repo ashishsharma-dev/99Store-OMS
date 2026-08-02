@@ -1164,7 +1164,17 @@ export default function DashboardLayout({
                     <div style={{ padding: '30px', textAlign: 'center', color: '#737373', fontSize: '13px' }}>Listening for live system events...</div>
                   ) : (
                     streamEvents.map((evt) => (
-                      <div key={evt.id} style={{ padding: '10px 12px', backgroundColor: '#1A1A1E', borderRadius: '8px', borderLeft: '3px solid #3B82F6' }}>
+                      <div key={evt.id} style={{ 
+                        padding: '10px 12px', 
+                        backgroundColor: '#1A1A1E', 
+                        borderRadius: '8px', 
+                        borderLeft: `3px solid ${
+                          evt.type === 'ndr' ? '#EF4444' : 
+                          evt.type === 'call_placed' ? '#10B981' : 
+                          evt.type === 'order' ? '#3B82F6' : 
+                          '#737373'
+                        }` 
+                      }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                           <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#FAFAFA' }}>{evt.title}</span>
                           <span style={{ fontSize: '10px', color: '#737373' }}>{new Date(evt.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>

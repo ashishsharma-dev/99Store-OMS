@@ -503,12 +503,18 @@ export default function NdrManagement() {
   // Tab 1 List: Active NDR tickets that are NOT in working sheet
   const activeNdrTickets = ndrRecords.filter(n => {
     const order = getOrderForNdr(n.orderId);
+    if (order && ['Return', 'RDC', 'Delivered'].includes(order.status)) {
+      return false;
+    }
     return n.status === 'Pending' && (!order || !order.inNdrWorkingSheet);
   });
 
   // Tab 2 List: Active NDR tickets that are IN the working sheet
   const workingSheetTickets = ndrRecords.filter(n => {
     const order = getOrderForNdr(n.orderId);
+    if (order && ['Return', 'RDC', 'Delivered'].includes(order.status)) {
+      return false;
+    }
     return order && order.inNdrWorkingSheet;
   });
 

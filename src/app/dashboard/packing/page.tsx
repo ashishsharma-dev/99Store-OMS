@@ -55,12 +55,12 @@ export default function Packing() {
   const [courierFilter, setCourierFilter] = useState<string>('all');
   const [contactBindingFilter, setContactBindingFilter] = useState<string>('Primary');
 
-  // Reschedule Modal States
-  const [rescheduleOrder, setRescheduleOrder] = useState<Order | null>(null);
-  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
-  const [rescheduleDate, setRescheduleDate] = useState('');
-  const [rescheduleRemark, setRescheduleRemark] = useState('');
-  const [rescheduleLoading, setRescheduleLoading] = useState(false);
+  // Reassign Modal States
+  const [reassignOrder, setReassignOrder] = useState<Order | null>(null);
+  const [showReassignModal, setShowReassignModal] = useState(false);
+  const [reassignCourier, setReassignCourier] = useState('DTDC');
+  const [reassignRemark, setReassignRemark] = useState('');
+  const [reassignLoading, setReassignLoading] = useState(false);
   const [serviceabilityCache, setServiceabilityCache] = useState<Record<string, boolean>>({});
   const fetchingKeys = useRef<Set<string>>(new Set());
 
@@ -403,47 +403,46 @@ export default function Packing() {
     window.print();
   };
 
-  const handleOpenReschedule = (order: Order) => {
+  const handleOpenReassign = (order: Order) => {
     const activeCourier = courierOverrides[order.id] || order.courier || 'DTDC';
-    setRescheduleOrder(order);
-    
-    // Set tomorrow as default date
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    setRescheduleDate(tomorrow.toISOString().split('T')[0]);
-    
-    setRescheduleRemark(`Pincode ${order.pincode} is not serviceable with ${activeCourier}. Rescheduled order.`);
-    setShowRescheduleModal(true);
+    setReassignOrder(order);
+    setReassignCourier(activeCourier);
+    setReassignRemark(`Pincode ${order.pincode} is not serviceable with ${activeCourier}. Reassigned order.`);
+    setShowReassignModal(true);
   };
 
-  const handleConfirmReschedule = async (e: React.FormEvent) => {
+  const handleConfirmReassign = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rescheduleOrder || !rescheduleDate || !rescheduleRemark) return;
+    if (!reassignOrder || !reassignCourier || !reassignRemark) return;
 
-    setRescheduleLoading(true);
+    setReassignLoading(true);
     try {
-      const res = await fetch(`/api/orders/${rescheduleOrder.id}`, {
+      const res = await fetch(`/api/orders/${reassignOrder.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          futureDeliveryDate: rescheduleDate,
-          remarks: rescheduleRemark,
+          status: 'Created',
+          courier: reassignCourier,
+          awb: '',
+          eta: '',
+          futureDeliveryDate: '',
+          remarks: reassignRemark,
           updatedBy: currentUser?.username || 'packing_operator'
         })
       });
 
       if (res.ok) {
-        setShowRescheduleModal(false);
-        setRescheduleOrder(null);
+        setShowReassignModal(false);
+        setReassignOrder(null);
         fetchPackingQueue();
       } else {
         const data = await res.json();
-        alert(data.error || 'Failed to reschedule order.');
+        alert(data.error || 'Failed to reassign order.');
       }
     } catch (err) {
-      alert('Network error when rescheduling.');
+      alert('Network error when reassigning.');
     } finally {
-      setRescheduleLoading(false);
+      setReassignLoading(false);
     }
   };
 
@@ -705,7 +704,7 @@ export default function Packing() {
                             </button>
                           ) : (
                             <button
-                              onClick={() => handleOpenReschedule(o)}
+                              onClick={() => handleOpenReassign(o)}
                               className="premium-btn animate-fade-in"
                               style={{ 
                                 padding: '6px 12px', 
@@ -719,8 +718,8 @@ export default function Packing() {
                               }}
                               disabled={isProcessing}
                             >
-                              <Calendar size={12} />
-                              <span>Reschedule</span>
+                              <RefreshCcw size={12} />
+                              <span>Reassign</span>
                             </button>
                           )
                         )}
@@ -1017,43 +1016,51 @@ export default function Packing() {
         </div>
       )}
 
-      {/* MODAL: Reschedule Order (Unserviceable Pincode) */}
-      {showRescheduleModal && rescheduleOrder && (
+      {/* MODAL: Reassign Order (Unserviceable Pincode) */}
+      {showReassignModal && reassignOrder && (
         <div className="premium-modal-backdrop" style={{ zIndex: 1100 }}>
           <div className="premium-modal" style={{ maxWidth: '520px' }}>
             <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '17px', color: '#FAFAFA' }}>Reschedule Order: {rescheduleOrder.orderId}</h3>
-              <button onClick={() => { setShowRescheduleModal(false); setRescheduleOrder(null); }} style={{ background: 'none', border: 'none', color: '#8A8A8A', cursor: 'pointer' }}>Close</button>
+              <h3 style={{ fontSize: '17px', color: '#FAFAFA' }}>Reassign Order: {reassignOrder.orderId}</h3>
+              <button onClick={() => { setShowReassignModal(false); setReassignOrder(null); }} style={{ background: 'none', border: 'none', color: '#8A8A8A', cursor: 'pointer' }}>Close</button>
             </div>
 
-            <form onSubmit={handleConfirmReschedule} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <form onSubmit={handleConfirmReassign} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '6px', textTransform: 'uppercase' }}>Selected Reschedule Date *</label>
-                <input
-                  type="date"
+                <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '6px', textTransform: 'uppercase' }}>Select Courier Partner *</label>
+                <select
                   className="premium-input"
-                  value={rescheduleDate}
-                  onChange={(e) => setRescheduleDate(e.target.value)}
+                  value={reassignCourier}
+                  onChange={(e) => {
+                    const newCourier = e.target.value;
+                    setReassignCourier(newCourier);
+                    setReassignRemark(`Pincode ${reassignOrder.pincode} is not serviceable with ${reassignOrder.courier || 'DTDC'}. Reassigned order to ${newCourier}.`);
+                  }}
                   required
-                />
+                >
+                  <option value="DTDC">DTDC</option>
+                  <option value="XpressBees">XpressBees</option>
+                  <option value="Delhivery">Delhivery</option>
+                  <option value="Velocity">Velocity</option>
+                </select>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '6px', textTransform: 'uppercase' }}>Reschedule Reason / Remark *</label>
+                <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '6px', textTransform: 'uppercase' }}>Reassign Reason / Remark *</label>
                 <textarea
                   className="premium-input"
-                  placeholder="Enter details explaining why this order is rescheduled..."
-                  value={rescheduleRemark}
-                  onChange={(e) => setRescheduleRemark(e.target.value)}
+                  placeholder="Enter details explaining why this order is reassigned..."
+                  value={reassignRemark}
+                  onChange={(e) => setReassignRemark(e.target.value)}
                   style={{ minHeight: '80px' }}
                   required
                 />
               </div>
 
               <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '20px', justifyContent: 'flex-end' }}>
-                <button type="button" onClick={() => { setShowRescheduleModal(false); setRescheduleOrder(null); }} className="premium-btn premium-btn-secondary">Close</button>
-                <button type="submit" className="premium-btn premium-btn-primary" disabled={rescheduleLoading}>
-                  {rescheduleLoading ? 'Scheduling...' : 'Confirm Reschedule'}
+                <button type="button" onClick={() => { setShowReassignModal(false); setReassignOrder(null); }} className="premium-btn premium-btn-secondary">Close</button>
+                <button type="submit" className="premium-btn premium-btn-primary" disabled={reassignLoading}>
+                  {reassignLoading ? 'Reassigning...' : 'Confirm Reassign'}
                 </button>
               </div>
             </form>

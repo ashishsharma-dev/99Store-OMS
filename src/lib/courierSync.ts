@@ -37,6 +37,21 @@ export function mapCourierStatusToInternal(courierStatus: any): OrderStatus | nu
   }
 
   if (
+    status === 'call placed' ||
+    status === 'call placed notification' ||
+    status.includes('call_placed') ||
+    status.includes('consignee contacted') ||
+    status.includes('customer contacted') ||
+    status.includes('pre-delivery call') ||
+    status.includes('pre_delivery_call') ||
+    status.includes('call to customer') ||
+    status.includes('customer called') ||
+    status === 'call_placed_notification'
+  ) {
+    return 'Call Placed Notification';
+  }
+
+  if (
     status === 'in transit' || 
     status === 'dispatched' || 
     status === 'shipped' || 
@@ -116,7 +131,7 @@ export async function syncOrderStatus(
       return { updated: false, error: `Order with AWB ${waybill} not found.` };
     }
 
-    const mappedStatus = mapCourierStatusToInternal(courierStatus);
+    let mappedStatus = mapCourierStatusToInternal(courierStatus);
     if (!mappedStatus) {
       return { updated: false, error: `Unable to map courier status: "${courierStatus}"` };
     }
@@ -124,7 +139,36 @@ export async function syncOrderStatus(
     const now = new Date().toISOString();
     const locStr = scanLocation ? ` [Hub: ${scanLocation}]` : '';
     const sysRemarks = customRemarks || `Auto-synced status from ${order.courier} tracking API. Courier Status: "${courierStatus}"${locStr}.`;
+
+    // Override or refine mapped status based on remarks/instructions context
+    if (sysRemarks) {
+      const remarksLower = sysRemarks.toLowerCase();
+      // 1. Check for Out for Delivery override
+      if (remarksLower.includes('out for delivery') || remarksLower.includes('out_for_delivery') || remarksLower.includes('ofd') || remarksLower.includes('out with courier') || remarksLower.includes('pending delivery')) {
+        if (mappedStatus !== 'Delivered' && mappedStatus !== 'Return' && mappedStatus !== 'RDC') {
+          mappedStatus = 'OFD';
+        }
+      }
+      // 2. Check for Return override
+      if (remarksLower.includes('return to origin') || remarksLower.includes('rto') || remarksLower.includes('returned') || remarksLower.includes('type: rt') || remarksLower.includes('status: rt')) {
+        mappedStatus = 'Return';
+      }
+    }
+
     let hasChanges = false;
+
+    // Parse Field Executive (FE) number if it's OFD or Call Placed
+    if (mappedStatus === 'OFD' || mappedStatus === 'Call Placed Notification') {
+      const searchString = `${sysRemarks} ${courierStatus}`.toLowerCase();
+      const match = searchString.match(/\b([6-9]\d{9})\b/);
+      if (match) {
+        const feNum = match[1];
+        if (order.feNumber !== feNum) {
+          order.feNumber = feNum;
+          hasChanges = true;
+        }
+      }
+    }
 
     // 1. Update Order Status
     if (order.status !== mappedStatus) {

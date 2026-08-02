@@ -14,7 +14,9 @@ import {
   Clock,
   Printer,
   ChevronDown,
-  ArrowUpDown
+  ArrowUpDown,
+  MessageSquare,
+  Copy
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
 import { InspectTooltipButton } from '@/components/InspectTooltipButton';
@@ -47,6 +49,55 @@ export default function AllShipments() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    const session = localStorage.getItem('99store_user');
+    if (session) {
+      setCurrentUser(JSON.parse(session));
+    }
+  }, []);
+
+  const handleToggleVip = async (order: Order) => {
+    try {
+      const res = await fetch(`/api/orders/${order.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isVip: !order.isVip,
+          updatedBy: currentUser?.username || 'admin'
+        })
+      });
+
+      if (res.ok) {
+        fetchShipmentsList(true);
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to update VIP status.');
+      }
+    } catch (err) {
+      console.error('Error toggling VIP status:', err);
+    }
+  };
+
+  const handleOnDemandWhatsAppTrack = async (orderId: string) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}/whatsapp-track`, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        alert('On-Demand WhatsApp Tracking alert successfully dispatched to customer!');
+      } else {
+        alert(data.error || 'Failed to send WhatsApp update.');
+      }
+    } catch (err) {
+      alert('Failed to connect to WhatsApp dispatch API.');
+    }
+  };
+
+  const handleCloneOrder = (order: Order) => {
+    window.location.href = `/dashboard/orders?clone=${order.id}`;
+  };
 
   useEffect(() => {
     fetchShipmentsList();
@@ -406,8 +457,40 @@ export default function AllShipments() {
                           {o.status}
                         </span>
                       </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <InspectTooltipButton order={o} onClick={() => openOrderDetail(o)} iconSize={12} padding="6px 10px" showText={true} />
+                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', gap: '6px', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={() => handleOnDemandWhatsAppTrack(o.id)}
+                            className="premium-btn premium-btn-secondary"
+                            style={{ padding: '6px 8px', fontSize: '12px', borderColor: 'rgba(16, 185, 129, 0.4)', color: '#10B981', backgroundColor: 'rgba(16, 185, 129, 0.08)' }}
+                            title="Send On-Demand WhatsApp Alert"
+                          >
+                            <MessageSquare size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleToggleVip(o)}
+                            className="premium-btn premium-btn-secondary"
+                            style={{ 
+                              padding: '6px 8px', 
+                              fontSize: '12px', 
+                              borderColor: 'rgba(16, 185, 129, 0.4)', 
+                              color: '#10B981', 
+                              backgroundColor: o.isVip ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.04)' 
+                            }}
+                            title={o.isVip ? "Remove VIP Status" : "Mark as VIP"}
+                          >
+                            <Star size={14} fill={o.isVip ? "#10B981" : "none"} />
+                          </button>
+                          <button
+                            onClick={() => handleCloneOrder(o)}
+                            className="premium-btn premium-btn-secondary"
+                            style={{ padding: '6px 8px', fontSize: '12px', borderColor: 'rgba(59, 130, 246, 0.4)', color: '#3B82F6', backgroundColor: 'rgba(59, 130, 246, 0.08)' }}
+                            title="Clone Order Information"
+                          >
+                            <Copy size={14} />
+                          </button>
+                          <InspectTooltipButton order={o} onClick={() => openOrderDetail(o)} iconSize={12} padding="6px 10px" showText={true} />
+                        </div>
                       </td>
                     </tr>
                   );

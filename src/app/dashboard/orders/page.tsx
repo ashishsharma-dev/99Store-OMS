@@ -74,6 +74,43 @@ export default function Orders() {
   const [duplicateMatches, setDuplicateMatches] = useState<any[]>([]);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const cloneId = params.get('clone');
+    if (cloneId) {
+      // Clear the query parameter from the URL bar so it doesn't re-trigger on refresh
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+
+      // Fetch the order to clone
+      fetch(`/api/orders/${cloneId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.success && data.order) {
+            const o = data.order;
+            setCustomerName(o.customerName);
+            setPhonePrimary(o.phonePrimary);
+            setPhoneSecondary(o.phoneSecondary || '');
+            setPhoneTertiary(o.phoneTertiary || '');
+            setAddress(o.address);
+            setPincode(o.pincode);
+            setState(o.state);
+            setArea(o.area);
+            setProductDetails(o.productDetails);
+            setPaymentType(o.paymentType);
+            setOrderValue((o.orderValue || 0).toString());
+            setPartiallyPaidAmount((o.partiallyPaidAmount || 0).toString());
+            setWeight((o.weight || 0).toString());
+            setInternalRemarks(o.internalRemarks || '');
+            setIsVip(o.isVip);
+            setShowAddModal(true);
+          }
+        })
+        .catch(err => console.error('Failed to clone order:', err));
+    }
+  }, []);
+
   // Module 1: On-Demand WhatsApp Tracking
   const handleOnDemandWhatsAppTrack = async (orderId: string) => {
     try {

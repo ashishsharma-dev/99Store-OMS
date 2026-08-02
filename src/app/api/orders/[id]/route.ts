@@ -59,8 +59,8 @@ export async function PATCH(
     order.status = targetStatus as OrderStatus;
     order.updatedAt = now;
     if (courier) order.courier = courier;
-    if (awb) order.awb = awb;
-    if (eta) order.eta = eta;
+    if (awb !== undefined) order.awb = awb || undefined;
+    if (eta !== undefined) order.eta = eta || undefined;
 
     // Additional requirement fields
     if (partiallyPaidAmount !== undefined) {
@@ -70,7 +70,7 @@ export async function PATCH(
     if (feNumber !== undefined) order.feNumber = feNumber;
     if (inNdrWorkingSheet !== undefined) order.inNdrWorkingSheet = !!inNdrWorkingSheet;
     if (ndrAction !== undefined) order.ndrAction = ndrAction;
-    if (futureDeliveryDate !== undefined) order.futureDeliveryDate = futureDeliveryDate;
+    if (futureDeliveryDate !== undefined) order.futureDeliveryDate = futureDeliveryDate || undefined;
     if (isVip !== undefined) order.isVip = !!isVip;
 
     // 2. Perform automated workflow integrations based on status changes

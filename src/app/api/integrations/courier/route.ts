@@ -214,8 +214,10 @@ export async function GET(request: Request) {
 
           const courierStatus = unifiedData?.ShipmentData?.[0]?.Shipment?.Status?.Status;
           const scanLocation = unifiedData?.ShipmentData?.[0]?.Shipment?.Status?.StatusLocation;
+          const latestScan = unifiedData?.ShipmentData?.[0]?.Shipment?.Scans?.[0]?.ScanDetail;
+          const customRemarks = latestScan ? `${latestScan.Scan}. Remarks: ${latestScan.Instructions}` : undefined;
           if (courierStatus) {
-            await syncOrderStatus(waybill, courierStatus, scanLocation);
+            await syncOrderStatus(waybill, courierStatus, scanLocation, customRemarks);
           }
           return NextResponse.json(unifiedData);
         } catch (err: any) {
@@ -319,7 +321,9 @@ export async function GET(request: Request) {
           // Auto-sync status to database
           const courierStatus = simulatedTracking.ShipmentData[0].Shipment.Status.Status;
           const scanLocation = simulatedTracking.ShipmentData[0].Shipment.Status.StatusLocation;
-          await syncOrderStatus(waybill, courierStatus, scanLocation);
+          const latestScan = simulatedTracking.ShipmentData[0].Shipment.Scans?.[0]?.ScanDetail;
+          const customRemarks = latestScan ? `${latestScan.Scan}. Remarks: ${latestScan.Instructions}` : undefined;
+          await syncOrderStatus(waybill, courierStatus, scanLocation, customRemarks);
 
           return NextResponse.json(simulatedTracking);
         }
@@ -420,8 +424,10 @@ export async function GET(request: Request) {
         const courierStatus = unifiedData?.ShipmentData?.[0]?.Shipment?.Status?.Status;
         const scanLocation = unifiedData?.ShipmentData?.[0]?.Shipment?.Status?.StatusLocation;
         const liveEta = data?.expected_delivery_date || data?.data?.expected_delivery_date || data?.ExpectedDeliveryDate || data?.edd || null;
+        const latestScan = unifiedData?.ShipmentData?.[0]?.Shipment?.Scans?.[0]?.ScanDetail;
+        const customRemarks = latestScan ? `${latestScan.Scan}. Remarks: ${latestScan.Instructions}` : undefined;
         if (courierStatus) {
-          await syncOrderStatus(waybill, courierStatus, scanLocation, undefined, liveEta);
+          await syncOrderStatus(waybill, courierStatus, scanLocation, customRemarks, liveEta);
         }
 
         return NextResponse.json(unifiedData);
@@ -492,7 +498,9 @@ export async function GET(request: Request) {
             status: 'Success'
           });
 
-          await syncOrderStatus(waybill, 'Out for Delivery', 'Delhi Hub');
+          const latestScan = simulatedTracking.ShipmentData[0].Shipment.Scans?.[0]?.ScanDetail;
+          const customRemarks = latestScan ? `${latestScan.Scan}. Remarks: ${latestScan.Instructions}` : undefined;
+          await syncOrderStatus(waybill, 'Out for Delivery', 'Delhi Hub', customRemarks);
           return NextResponse.json(simulatedTracking);
         }
 
@@ -605,8 +613,10 @@ export async function GET(request: Request) {
 
           // Auto-sync status to database
           const liveEta = trackData?.expected_delivery_date || trackData?.expectedDeliveryDate || trackData?.edd || (trackData?.data && (trackData.data.expected_delivery_date || trackData.data.expectedDeliveryDate)) || null;
+          const latestScan = unifiedData?.ShipmentData?.[0]?.Shipment?.Scans?.[0]?.ScanDetail;
+          const customRemarks = latestScan ? `${latestScan.Scan}. Remarks: ${latestScan.Instructions}` : undefined;
           if (currentStatus) {
-            await syncOrderStatus(waybill, currentStatus, currentLocation, undefined, liveEta);
+            await syncOrderStatus(waybill, currentStatus, currentLocation, customRemarks, liveEta);
           }
 
           return NextResponse.json(unifiedData);
@@ -792,62 +802,6 @@ export async function GET(request: Request) {
     }
 
     if (action === 'track') {
-      if (waybill === '1635310036396') {
-        const simulatedTracking = {
-          ShipmentData: [
-            {
-              Shipment: {
-                AWB: "1635310036396",
-                ReferenceNo: "99S-1059",
-                Status: {
-                  Status: "Maximum attempts reached",
-                  StatusLocation: "Vrindavan_Jait_D (Uttar Pradesh)",
-                  StatusDateTime: new Date().toISOString()
-                },
-                Scans: [
-                  {
-                    ScanDetail: {
-                      Scan: "Maximum attempts reached",
-                      ScanDateTime: new Date().toISOString(),
-                      ScannedLocation: "Vrindavan_Jait_D (Uttar Pradesh)",
-                      Instructions: "customer is not available or denied for the acceptance of the parcel"
-                    }
-                  },
-                  {
-                    ScanDetail: {
-                      Scan: "Out for Delivery",
-                      ScanDateTime: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-                      ScannedLocation: "Vrindavan_Jait_D (Uttar Pradesh)",
-                      Instructions: "Package out for delivery."
-                    }
-                  },
-                  {
-                    ScanDetail: {
-                      Scan: "In Transit",
-                      ScanDateTime: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-                      ScannedLocation: "Hub Agra",
-                      Instructions: "Departed hub."
-                    }
-                  }
-                ]
-              }
-            }
-          ]
-        };
-
-        await db.addCourierLog({
-          id: `cl-track-mock-${Date.now()}`,
-          timestamp: new Date().toISOString(),
-          courier: 'Delhivery',
-          action: 'Track Shipment (Simulated - Intercepted)',
-          requestPayload: `GET /api/v1/packages/json/?waybill=${waybill}`,
-          responsePayload: JSON.stringify(simulatedTracking, null, 2),
-          status: 'Success'
-        });
-
-        await syncOrderStatus(waybill, 'Maximum attempts reached', 'Vrindavan_Jait_D (Uttar Pradesh)', 'customer is not available or denied for the acceptance of the parcel');
-        return NextResponse.json(simulatedTracking);
-      }
 
       const url = `${delhiveryBaseUrl}/api/v1/packages/json/?token=${encodeURIComponent(apiKey)}&waybill=${encodeURIComponent(waybill)}`;
       const res = await fetch(url, {
@@ -870,8 +824,11 @@ export async function GET(request: Request) {
       const courierStatus = data?.ShipmentData?.[0]?.Shipment?.Status?.Status;
       const scanLocation = data?.ShipmentData?.[0]?.Shipment?.Status?.StatusLocation;
       const liveEta = data?.ShipmentData?.[0]?.Shipment?.ExpectedDeliveryDate || data?.ShipmentData?.[0]?.Shipment?.expected_delivery_date || data?.expected_delivery_date || null;
+      const latestScan = data?.ShipmentData?.[0]?.Shipment?.Scans?.[0]?.ScanDetail;
+      const statusObj = data?.ShipmentData?.[0]?.Shipment?.Status;
+      const customRemarks = `Current Status: "${statusObj?.Status}" [Type: ${statusObj?.StatusType || 'UD'}, Instructions: ${statusObj?.Instructions || ''}]. Latest Scan: ${latestScan ? `${latestScan.Scan} (${latestScan.Instructions})` : 'None'}`;
       if (courierStatus) {
-        await syncOrderStatus(waybill, courierStatus, scanLocation, undefined, liveEta);
+        await syncOrderStatus(waybill, courierStatus, scanLocation, customRemarks, liveEta);
       }
 
       return NextResponse.json(data);
