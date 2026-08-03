@@ -77,6 +77,11 @@ export async function generatePackingSlipImage(orderId: string, baseUrl?: string
     
     await page.goto(targetUrl, { waitUntil: 'networkidle0', timeout: 15000 });
     
+    // Inject CSS to hide Next.js development overlays/dialogs/badges
+    await page.addStyleTag({
+      content: 'nextjs-portal, #__next-toast-container, [data-nextjs-dialog], [data-nextjs-toast] { display: none !important; }'
+    });
+    
     // Wait for the label element to load
     await page.waitForSelector('.healvita-label', { timeout: 5000 });
 
@@ -106,10 +111,11 @@ export async function generatePackingSlipImage(orderId: string, baseUrl?: string
     const resolvedBase = baseUrl || process.env.NEXT_PUBLIC_APP_URL || `http://localhost:${port}`;
     let fileUrl = `${resolvedBase.replace(/\/$/, '')}/packing-slips/${orderId}.png`;
     
-    // Check if the file URL is a local/private URL
+    // Upload to catbox.moe if the URL is local OR if it is NOT a secure public HTTPS domain (to support raw VPS IP/port test setups)
     const lowerUrl = fileUrl.toLowerCase();
-    if (lowerUrl.includes('localhost') || lowerUrl.includes('127.0.0.1') || lowerUrl.includes('192.168.') || lowerUrl.includes('10.') || lowerUrl.includes('::1')) {
-      console.log(`[Screenshot] Local URL detected ("${fileUrl}"). Uploading to catbox.moe for cloud delivery bypass...`);
+    const isLocalOrInsecure = !lowerUrl.startsWith('https://') || lowerUrl.includes('localhost') || lowerUrl.includes('127.0.0.1') || lowerUrl.includes('192.168.') || lowerUrl.includes('10.') || lowerUrl.includes('::1');
+    if (isLocalOrInsecure) {
+      console.log(`[Screenshot] Local/Insecure URL detected ("${fileUrl}"). Uploading to catbox.moe for reliable delivery bypass...`);
       try {
         const blob = new Blob([new Uint8Array(imageBuffer)], { type: 'image/png' });
         const formData = new FormData();

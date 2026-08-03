@@ -165,6 +165,7 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
 ऑर्डर विवरण:
 • उत्पाद: ${pName}
 • ऑर्डर आईडी: ${orderId}
+• ऑर्डर स्थिति: ${status}
 • कुल राशि: ₹${orderValue}
 
 आपका ऑर्डर जल्द ही पैक करके डिस्पैच किया जाएगा। जैसे ही आपका ऑर्डर हमारी ओर से भेजा जाएगा, हम आपको उसकी जानकारी और ट्रैकिंग विवरण भेज देंगे।
@@ -189,6 +190,7 @@ ${brandName}`;
 ऑर्डर विवरण:
 • उत्पाद: ${pName}
 • ऑर्डर आईडी: ${orderId}
+• ऑर्डर स्थिति: ${status}
 • ट्रैकिंग आईडी (AWB): ${awb || 'N/A'}
 • कूरियर पार्टनर: ${courier || 'N/A'}
 • अनुमानित डिलीवरी: ${eta || '3-4 Days'}
@@ -219,6 +221,7 @@ ${brandName}`;
 ऑर्डर विवरण:
 • उत्पाद: ${pName}
 • ऑर्डर आईडी: ${orderId}
+• ऑर्डर स्थिति: ${status}
 • ट्रैकिंग आईडी (AWB): ${awb || 'N/A'}
 • कूरियर पार्टनर: ${courier || 'N/A'}
 • भुगतान राशि${paymentType === 'COD' ? ' (COD)' : ''}: ${paymentType === 'COD' ? `₹${orderValue}` : 'Prepaid'}
@@ -254,6 +257,7 @@ ${paymentType === 'COD'
 ऑर्डर विवरण:
 • उत्पाद: ${pName}
 • ऑर्डर आईडी: ${orderId}
+• ऑर्डर स्थिति: ${status}
 • ट्रैकिंग आईडी (AWB): ${awb || 'N/A'}
 • कूरियर पार्टनर: ${courier || 'N/A'}
 • भुगतान राशि${paymentType === 'COD' ? ' (COD)' : ''}: ${paymentType === 'COD' ? `₹${orderValue}` : 'Prepaid'}
@@ -287,6 +291,7 @@ ${paymentType === 'COD'
 ऑर्डर विवरण:
 • उत्पाद: ${pName}
 • ऑर्डर आईडी: ${orderId}
+• ऑर्डर स्थिति: ${status}
 
 हमें आशा है कि आपको आपका उत्पाद पसंद आएगा। यदि उत्पाद से संबंधित कोई प्रश्न, समस्या या सहायता चाहिए, तो बेझिझक हमसे संपर्क करें।
 
@@ -301,11 +306,11 @@ ${paymentType === 'COD'
       break;
 
     case 'NDR':
-      primaryMessage = `⚠️ Delivery Failed! Hi ${customerName}, our courier partner was unable to deliver your ${brandName} order #${orderId}. Reason: Delivery attempt failed. Don't worry, we are scheduling a re-attempt shortly. Contact us if you wish to update details.`;
+      primaryMessage = `⚠️ Delivery Failed! Hi ${customerName}, our courier partner was unable to deliver your ${brandName} order #${orderId}. Status: ${status}. Reason: Delivery attempt failed. Don't worry, we are scheduling a re-attempt shortly. Contact us if you wish to update details.`;
       break;
 
     case 'Return':
-      primaryMessage = `🔄 Return Update! Hi ${customerName}, your ${brandName} order #${orderId} has been marked for return (RTO). It is being shipped back to our fulfillment center. Please reach out to customer support to arrange a refund or reshipment.`;
+      primaryMessage = `🔄 Return Update! Hi ${customerName}, your ${brandName} order #${orderId} status has been updated to RTO (${status}). It is being shipped back to our fulfillment center. Please reach out to customer support to arrange a refund or reshipment.`;
       break;
 
     default:
