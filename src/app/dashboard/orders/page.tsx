@@ -73,6 +73,12 @@ export default function Orders() {
   // Duplicate Check States
   const [duplicateMatches, setDuplicateMatches] = useState<any[]>([]);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [whatsAppSuccessModal, setWhatsAppSuccessModal] = useState<{ show: boolean; title: string; message: string; isError?: boolean }>({
+    show: false,
+    title: '',
+    message: '',
+    isError: false
+  });
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -117,12 +123,26 @@ export default function Orders() {
       const res = await fetch(`/api/orders/${orderId}/whatsapp-track`, { method: 'POST' });
       const data = await res.json();
       if (res.ok) {
-        alert('On-Demand WhatsApp Tracking alert successfully dispatched to customer!');
+        setWhatsAppSuccessModal({
+          show: true,
+          title: 'Notification Dispatched',
+          message: `On-Demand WhatsApp Tracking notification successfully queued and sent to customer's WhatsApp number.`
+        });
       } else {
-        alert(data.error || 'Failed to send WhatsApp update.');
+        setWhatsAppSuccessModal({
+          show: true,
+          title: 'Dispatch Failed',
+          message: data.error || 'Failed to send WhatsApp update.',
+          isError: true
+        });
       }
     } catch (err) {
-      alert('Failed to connect to WhatsApp dispatch API.');
+      setWhatsAppSuccessModal({
+        show: true,
+        title: 'Connection Error',
+        message: 'Failed to connect to the WhatsApp dispatch API.',
+        isError: true
+      });
     }
   };
 
@@ -1400,6 +1420,49 @@ export default function Orders() {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: WhatsApp Notification Success/Error Status */}
+      {whatsAppSuccessModal.show && (
+        <div className="premium-modal-backdrop" style={{ zIndex: 1300 }}>
+          <div className="premium-modal animate-fade-in" style={{ maxWidth: '400px', borderColor: whatsAppSuccessModal.isError ? '#EF4444' : '#10B981' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: whatsAppSuccessModal.isError ? '#EF4444' : '#10B981' }} />
+                <h3 style={{ fontSize: '15px', color: '#FAFAFA', fontWeight: 600, letterSpacing: '0.3px', margin: 0 }}>
+                  {whatsAppSuccessModal.title}
+                </h3>
+              </div>
+              <button 
+                onClick={() => setWhatsAppSuccessModal(prev => ({ ...prev, show: false }))} 
+                style={{ background: 'none', border: 'none', color: '#737373', cursor: 'pointer', fontSize: '13px' }}
+              >
+                Close
+              </button>
+            </div>
+            
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <p style={{ color: '#E4E4E7', fontSize: '13px', margin: 0, lineHeight: '1.6' }}>
+                {whatsAppSuccessModal.message}
+              </p>
+              
+              <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '16px', justifyContent: 'flex-end' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setWhatsAppSuccessModal(prev => ({ ...prev, show: false }))} 
+                  className="premium-btn premium-btn-primary"
+                  style={{ 
+                    backgroundColor: whatsAppSuccessModal.isError ? '#EF4444' : '#10B981', 
+                    borderColor: whatsAppSuccessModal.isError ? '#EF4444' : '#10B981', 
+                    color: '#FFFFFF' 
+                  }}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
