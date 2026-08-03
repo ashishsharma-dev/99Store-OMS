@@ -15,6 +15,7 @@ export async function POST(
     }
 
     // Trigger WhatsApp notification for current status & tracking details
+    const baseUrl = new URL(request.url).origin;
     const logs = await triggerWhatsAppNotification({
       orderId: order.orderId,
       customerName: order.customerName,
@@ -26,6 +27,7 @@ export async function POST(
       eta: order.eta || '3-4 Days',
       orderValue: order.orderValue,
       paymentType: order.paymentType,
+      baseUrl,
     });
 
     return NextResponse.json({

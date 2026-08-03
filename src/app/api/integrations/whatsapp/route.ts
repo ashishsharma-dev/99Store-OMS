@@ -21,6 +21,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required parameters (orderId, customerName, phonePrimary, status)' }, { status: 400 });
     }
 
+    const baseUrl = new URL(request.url).origin;
     const logs = await triggerWhatsAppNotification({
       orderId,
       customerName,
@@ -31,7 +32,8 @@ export async function POST(request: Request) {
       courier,
       eta,
       orderValue,
-      paymentType
+      paymentType,
+      baseUrl
     });
 
     return NextResponse.json({ success: true, logs });

@@ -212,6 +212,7 @@ export async function POST(request: Request) {
     await db.saveOrder(newOrder);
 
     // Trigger real WhatsApp in background directly, bypassing loopback network dependencies
+    const baseUrl = new URL(request.url).origin;
     triggerWhatsAppNotification({
       orderId: nextOrderId,
       customerName,
@@ -221,7 +222,8 @@ export async function POST(request: Request) {
       awb: newOrder.awb || 'PENDING',
       courier: newOrder.courier || 'PENDING',
       orderValue: newOrder.orderValue,
-      paymentType: newOrder.paymentType
+      paymentType: newOrder.paymentType,
+      baseUrl
     }).catch(err => console.error('Failed to trigger background direct WhatsApp:', err));
 
     return NextResponse.json({ success: true, order: newOrder });

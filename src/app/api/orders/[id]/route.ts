@@ -174,6 +174,7 @@ export async function PATCH(
     // D. Trigger Automated WhatsApp messaging for logistics
     const waTriggerStatuses = ['Dispatched', 'OFD', 'Delivered', 'NDR', 'Return'];
     if (status && waTriggerStatuses.includes(status)) {
+      const baseUrl = new URL(request.url).origin;
       // Trigger real WhatsApp in background directly, bypassing loopback network dependencies
       triggerWhatsAppNotification({
         orderId: order.orderId,
@@ -185,7 +186,8 @@ export async function PATCH(
         courier: order.courier || 'N/A',
         eta: order.eta || 'N/A',
         orderValue: order.orderValue,
-        paymentType: order.paymentType
+        paymentType: order.paymentType,
+        baseUrl
       }).catch(err => console.error('Failed to trigger background direct WhatsApp:', err));
     }
 

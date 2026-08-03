@@ -3,7 +3,7 @@ import { WhatsAppLog } from '@/lib/types';
 
 // Deropo WhatsApp API Credentials (configured via environment variables)
 const API_URL = process.env.WHATSAPP_API_URL || 'https://api.deropo.com/api/send';
-const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || 'f6e962bd642bdcb19019af646ee047a0';
+const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || '90a12c96e165f1a1189361d1169d04de';
 const DEVICE_ID = process.env.WHATSAPP_DEVICE_ID || '2755';
 
 import { generatePackingSlipImage } from '@/lib/screenshot';
@@ -44,6 +44,9 @@ async function sendWhatsAppMessage(phone: string, messageText: string, imageUrl?
 
     if (imageUrl) {
       payload.type = 'image';
+      payload.variables = {
+        imageUrl: imageUrl
+      };
       payload.url = imageUrl;
       payload.file = imageUrl;
       payload.media = imageUrl;
@@ -91,6 +94,7 @@ export interface TriggerWhatsAppParams {
   orderValue: number | string;
   paymentType: string;
   productName?: string;
+  baseUrl?: string;
 }
 
 export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams): Promise<WhatsAppLog[]> {
@@ -105,7 +109,8 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
     eta,
     orderValue,
     paymentType,
-    productName
+    productName,
+    baseUrl
   } = params;
 
   const logsSent: WhatsAppLog[] = [];
@@ -128,7 +133,7 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
   // Generate packing slip screenshot in background
   let imageUrl: string | null = null;
   try {
-    imageUrl = await generatePackingSlipImage(orderId);
+    imageUrl = await generatePackingSlipImage(orderId, baseUrl);
   } catch (err) {
     console.error('Failed to generate packing slip screenshot:', err);
   }
