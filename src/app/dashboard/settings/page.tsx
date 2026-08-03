@@ -41,13 +41,15 @@ export default function IntegrationsSettings() {
   const [primaryContacts, setPrimaryContacts] = useState('');
   const [secondaryContacts, setSecondaryContacts] = useState('');
 
-  // Settings Form states
   const [otpWhatsappNumber, setOtpWhatsappNumber] = useState('');
   const [whatsappBrandName, setWhatsappBrandName] = useState('99Store');
   const [whatsappSupportName, setWhatsappSupportName] = useState('99Store Support');
   const [whatsappSupportNumber, setWhatsappSupportNumber] = useState('');
   const [whatsappCourierSupportName, setWhatsappCourierSupportName] = useState('Courier Helpdesk');
   const [whatsappCourierSupportNumber, setWhatsappCourierSupportNumber] = useState('');
+  const [whatsappNotificationsEnabled, setWhatsappNotificationsEnabled] = useState(true);
+  const [whatsappDeviceId, setWhatsappDeviceId] = useState('');
+  const [whatsappAccessToken, setWhatsappAccessToken] = useState('');
   const [ipInput, setIpInput] = useState('');
   const [isIpEnabled, setIsIpEnabled] = useState(false);
   const [autoCourier, setAutoCourier] = useState(true);
@@ -140,6 +142,9 @@ export default function IntegrationsSettings() {
         setWhatsappSupportNumber(s.whatsappSupportNumber || '');
         setWhatsappCourierSupportName(s.whatsappCourierSupportName || 'Courier Helpdesk');
         setWhatsappCourierSupportNumber(s.whatsappCourierSupportNumber || '');
+        setWhatsappNotificationsEnabled(s.whatsappNotificationsEnabled !== false);
+        setWhatsappDeviceId(s.whatsappDeviceId || '');
+        setWhatsappAccessToken(s.whatsappAccessToken || '');
         setIpInput(s.ipWhitelist.join(', '));
         setIsIpEnabled(s.isIpWhitelistEnabled);
         setAutoCourier(s.autoCourierEnabled);
@@ -240,6 +245,9 @@ export default function IntegrationsSettings() {
           whatsappSupportNumber,
           whatsappCourierSupportName,
           whatsappCourierSupportNumber,
+          whatsappNotificationsEnabled,
+          whatsappDeviceId,
+          whatsappAccessToken,
           ipWhitelist: ipList,
           isIpWhitelistEnabled: isIpEnabled,
           autoCourierEnabled: autoCourier,
@@ -1206,14 +1214,31 @@ export default function IntegrationsSettings() {
 
           {/* Card 2: WhatsApp Templates Identity & Support */}
           <div className="premium-card" style={{ padding: '28px', borderRadius: '12px', backgroundColor: '#121212', border: '1px solid #27272A', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div>
-              <h3 style={{ fontSize: '18px', color: '#FAFAFA', fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <MessageSquare size={20} style={{ color: '#EC4899' }} />
-                WhatsApp Notification Brand & Support Configurations
-              </h3>
-              <p style={{ fontSize: '13px', color: '#A1A1AA' }}>
-                Define support contacts, help desk names, and brand identifiers dynamically embedded into customer-facing WhatsApp alerts.
-              </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h3 style={{ fontSize: '18px', color: '#FAFAFA', fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <MessageSquare size={20} style={{ color: '#EC4899' }} />
+                  WhatsApp Notification Brand & Support Configurations
+                </h3>
+                <p style={{ fontSize: '13px', color: '#A1A1AA' }}>
+                  Define support contacts, help desk names, and brand identifiers dynamically embedded into customer-facing WhatsApp alerts.
+                </p>
+              </div>
+
+              {/* Toggle switch for WhatsApp notifications */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#18181B', padding: '8px 16px', borderRadius: '8px', border: '1px solid #27272A' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', userSelect: 'none' }}>
+                  <input
+                    type="checkbox"
+                    checked={whatsappNotificationsEnabled}
+                    onChange={(e) => setWhatsappNotificationsEnabled(e.target.checked)}
+                    style={{ width: '16px', height: '16px', accentColor: '#EC4899' }}
+                  />
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: whatsappNotificationsEnabled ? '#F472B6' : '#71717A' }}>
+                    {whatsappNotificationsEnabled ? 'Notifications Enabled' : 'Notifications Disabled'}
+                  </span>
+                </label>
+              </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
@@ -1245,7 +1270,7 @@ export default function IntegrationsSettings() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
-                  Order Support Phone Number
+                  Order Support Phone Number (Sender Match)
                 </label>
                 <input
                   type="text"
@@ -1279,6 +1304,32 @@ export default function IntegrationsSettings() {
                   placeholder="e.g. +91 9123456789"
                   value={whatsappCourierSupportNumber}
                   onChange={(e) => setWhatsappCourierSupportNumber(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  WhatsApp API Device ID
+                </label>
+                <input
+                  type="text"
+                  className="premium-input"
+                  placeholder="e.g. 2755"
+                  value={whatsappDeviceId}
+                  onChange={(e) => setWhatsappDeviceId(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  WhatsApp API Access Token
+                </label>
+                <input
+                  type="text"
+                  className="premium-input"
+                  placeholder="e.g. 90a12c96e165f1..."
+                  value={whatsappAccessToken}
+                  onChange={(e) => setWhatsappAccessToken(e.target.value)}
                 />
               </div>
             </div>

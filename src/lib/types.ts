@@ -158,6 +158,9 @@ export interface SystemSettings {
   whatsappSupportNumber?: string;
   whatsappCourierSupportName?: string;
   whatsappCourierSupportNumber?: string;
+  whatsappNotificationsEnabled?: boolean;
+  whatsappDeviceId?: string;
+  whatsappAccessToken?: string;
   ipWhitelist: string[];
   isIpWhitelistEnabled: boolean;
   autoCourierEnabled: boolean;

@@ -23,20 +23,38 @@ async function sendWhatsAppMessage(phone: string, messageText: string, imageUrl?
       return { success: false, error: 'Invalid phone number' };
     }
 
+    // Fetch dynamic system settings
+    const settings = await db.getSettings();
+    const isEnabled = settings.whatsappNotificationsEnabled !== false; // default to true if not set
+    const activeAccessToken = settings.whatsappAccessToken || ACCESS_TOKEN;
+    const activeDeviceId = settings.whatsappDeviceId || DEVICE_ID;
+    
+    // Recipient check
+    const isTestRecipient = (cleanPhone === '918439762192' || cleanPhone === '8439762192');
+
+    // If notifications are globally disabled, block all messages EXCEPT the test recipient
+    if (!isEnabled && !isTestRecipient) {
+      console.warn(`[WhatsApp Block] WhatsApp notifications are disabled globally.`);
+      return { 
+        success: false, 
+        error: 'Blocked: WhatsApp notifications are disabled globally.' 
+      };
+    }
+
     // 3. Make fetch request to WhatsApp API
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 
-    if (ACCESS_TOKEN) {
-      headers['X-Access-Token'] = ACCESS_TOKEN;
+    if (activeAccessToken) {
+      headers['X-Access-Token'] = activeAccessToken;
     }
 
     // Construct request URL by appending device_id if not already present in the URL
     let requestUrl = API_URL;
-    if (DEVICE_ID && !requestUrl.includes('device_id=') && !requestUrl.includes('device=')) {
+    if (activeDeviceId && !requestUrl.includes('device_id=') && !requestUrl.includes('device=')) {
       const separator = requestUrl.includes('?') ? '&' : '?';
-      requestUrl = `${requestUrl}${separator}device_id=${DEVICE_ID}`;
+      requestUrl = `${requestUrl}${separator}device_id=${activeDeviceId}`;
     }
 
     const payload: any = {
@@ -164,57 +182,51 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
   switch (status) {
     case 'Created':
       primaryMessage = `🙏 ऑर्डर कन्फर्मेशन संदेश
-
 नमस्कार ${customerName},
-
 आपका ऑर्डर सफलतापूर्वक कन्फर्म हो गया है। 🎉
 
 ऑर्डर विवरण:
 • उत्पाद: ${pName}
 • ऑर्डर आईडी: ${orderId}
-• ऑर्डर स्थिति: ${status}
 • कुल राशि: ₹${orderValue}
 
 आपका ऑर्डर जल्द ही पैक करके डिस्पैच किया जाएगा। जैसे ही आपका ऑर्डर हमारी ओर से भेजा जाएगा, हम आपको उसकी जानकारी और ट्रैकिंग विवरण भेज देंगे।
 
-यदि आपको किसी भी प्रकार की सहायता चाहिए, तो आप हमसे संपर्क कर सकते हैं।
 
-ऑर्डर सहायता:
-${supportName}
+ऑर्डर सहायता
+👤 ${supportName}
 📞 ${supportNumber}
-
 धन्यवाद!
-${brandName}`;
+– Team ${brandName}`;
       break;
 
     case 'Dispatched':
       primaryMessage = `🚚 ऑर्डर डिस्पैच अपडेट
-
 नमस्कार ${customerName},
-
 आपका ऑर्डर हमारी ओर से सफलतापूर्वक डिस्पैच कर दिया गया है। 🎉
 
 ऑर्डर विवरण:
 • उत्पाद: ${pName}
 • ऑर्डर आईडी: ${orderId}
-• ऑर्डर स्थिति: ${status}
 • ट्रैकिंग आईडी (AWB): ${awb || 'N/A'}
 • कूरियर पार्टनर: ${courier || 'N/A'}
 • अनुमानित डिलीवरी: ${eta || '3-4 Days'}
 
 आप अपने ऑर्डर को ट्रैकिंग आईडी की सहायता से कूरियर की वेबसाइट पर ट्रैक कर सकते हैं।
 
-यदि आपके ऑर्डर से संबंधित किसी भी प्रकार की सहायता चाहिए, तो नीचे दिए गए नंबरों पर संपर्क करें:
 
+🖼️ महत्वपूर्ण सूचना
+इस संदेश के साथ एक लेबल की तस्वीर भेजी गई है।
+कृपया डिलीवरी प्राप्त करने से पहले अपने पार्सल पर लगे लेबल का मिलान इस तस्वीर से अवश्य करें।
+यदि तस्वीर और आपके पार्सल का लेबल एक जैसा है, तभी पार्सल स्वीकार करें।
+यदि दोनों में कोई अंतर दिखाई दे, तो कृपया तुरंत हमारे सपोर्ट से संपर्क करें और पार्सल स्वीकार न करें।
 ऑर्डर सहायता
 👤 ${supportName}
 📞 ${supportNumber}
-
 कूरियर सहायता
 📦 ${courierSupportName}
 📞 ${courierSupportNumber}
-
-आपके विश्वास के लिए धन्यवाद।
+धन्यवाद!
 – Team ${brandName}`;
       break;
 
@@ -222,32 +234,31 @@ ${brandName}`;
       primaryMessage = `📍 आपका ऑर्डर आपके नज़दीकी डिलीवरी सेंटर पर पहुँच गया है
 
 नमस्कार ${customerName},
-
 आपके ऑर्डर की नवीनतम जानकारी साझा की जा रही है।
 
 ऑर्डर विवरण:
 • उत्पाद: ${pName}
 • ऑर्डर आईडी: ${orderId}
-• ऑर्डर स्थिति: ${status}
 • ट्रैकिंग आईडी (AWB): ${awb || 'N/A'}
 • कूरियर पार्टनर: ${courier || 'N/A'}
 • भुगतान राशि${paymentType === 'COD' ? ' (COD)' : ''}: ${paymentType === 'COD' ? `₹${orderValue}` : 'Prepaid'}
 
 आपका ऑर्डर आपके नज़दीकी डिलीवरी सेंटर (RDC) पर पहुँच चुका है और डिलीवरी की प्रक्रिया में है।
-${paymentType === 'COD'
-          ? `संभावना है कि आपका ऑर्डर आज या कल तक आपको प्राप्त हो जाएगा।\nकृपया डिलीवरी के समय ₹${orderValue} की राशि तैयार रखें।`
-          : 'संभावना है कि आपका ऑर्डर आज या कल तक आपको प्राप्त हो जाएगा।'}
+संभावना है कि आपका ऑर्डर आज या कल तक आपको प्राप्त हो जाएगा।
+${paymentType === 'COD' ? `कृपया डिलीवरी के समय ₹${orderValue} की राशि तैयार रखें।` : ''}
 
-यदि किसी भी प्रकार की सहायता चाहिए, तो कृपया हमसे संपर्क करें।
 
+🖼️ महत्वपूर्ण सूचना
+इस संदेश के साथ एक लेबल की तस्वीर भेजी गई है।
+कृपया डिलीवरी प्राप्त करने से पहले अपने पार्सल पर लगे लेबल का मिलान इस तस्वीर से अवश्य करें।
+यदि तस्वीर और आपके पार्सल का लेबल एक जैसा है, तभी पार्सल स्वीकार करें।
+यदि दोनों में कोई अंतर दिखाई दे, तो कृपया तुरंत हमारे सपोर्ट से संपर्क करें और पार्सल स्वीकार न करें।
 ऑर्डर सहायता
 👤 ${supportName}
 📞 ${supportNumber}
-
 कूरियर सहायता
 📦 ${courierSupportName}
 📞 ${courierSupportNumber}
-
 धन्यवाद!
 – Team ${brandName}`;
       break;
@@ -256,15 +267,12 @@ ${paymentType === 'COD'
       primaryMessage = `🚚 आपका ऑर्डर डिलीवरी के लिए निकल चुका है
 
 नमस्कार ${customerName},
-
 खुशखबरी! 🎉
-
 आपका ऑर्डर आज डिलीवरी के लिए निकल चुका है।
 
 ऑर्डर विवरण:
 • उत्पाद: ${pName}
 • ऑर्डर आईडी: ${orderId}
-• ऑर्डर स्थिति: ${status}
 • ट्रैकिंग आईडी (AWB): ${awb || 'N/A'}
 • कूरियर पार्टनर: ${courier || 'N/A'}
 • भुगतान राशि${paymentType === 'COD' ? ' (COD)' : ''}: ${paymentType === 'COD' ? `₹${orderValue}` : 'Prepaid'}
@@ -272,18 +280,20 @@ ${paymentType === 'COD'
 आपका ऑर्डर आज ही डिलीवर होने की पूरी संभावना है।
 ${paymentType === 'COD'
           ? `कृपया डिलीवरी के समय ₹${orderValue} की राशि तैयार रखें। साथ ही अपना मोबाइल फ़ोन उपलब्ध रखें ताकि डिलीवरी पार्टनर आवश्यकता पड़ने पर आपसे संपर्क कर सके।`
-          : 'कृपया अपना मोबाइल फ़ोन उपलब्ध रखें ताकि डिलीवरी पार्टनर आवश्यकता पड़ने पर आपसे संपर्क कर सके।'}
+          : 'साथ ही अपना मोबाइल फ़ोन उपलब्ध रखें ताकि डिलीवरी पार्टनर आवश्यकता पड़ने पर आपसे संपर्क कर सके।'}
 
-यदि किसी भी प्रकार की सहायता चाहिए, तो कृपया हमसे संपर्क करें।
 
+🖼️ महत्वपूर्ण सूचना
+इस संदेश के साथ एक लेबल की तस्वीर भेजी गई है।
+कृपया डिलीवरी प्राप्त करने से पहले अपने पार्सल पर लगे लेबल का मिलान इस तस्वीर से अवश्य करें।
+यदि तस्वीर और आपके पार्सल का लेबल एक जैसा है, तभी पार्सल स्वीकार करें।
+यदि दोनों में कोई अंतर दिखाई दे, तो कृपया तुरंत हमारे सपोर्ट से संपर्क करें और पार्सल स्वीकार न करें।
 ऑर्डर सहायता
 👤 ${supportName}
 📞 ${supportNumber}
-
 कूरियर सहायता
 📦 ${courierSupportName}
 📞 ${courierSupportNumber}
-
 धन्यवाद!
 – Team ${brandName}`;
       break;
@@ -292,20 +302,23 @@ ${paymentType === 'COD'
       primaryMessage = `✅ आपका ऑर्डर सफलतापूर्वक डिलीवर हो गया
 
 नमस्कार ${customerName},
-
 हमें खुशी है कि आपका ऑर्डर सफलतापूर्वक डिलीवर हो गया है। 😊
 
 ऑर्डर विवरण:
 • उत्पाद: ${pName}
 • ऑर्डर आईडी: ${orderId}
-• ऑर्डर स्थिति: ${status}
 
 हमें आशा है कि आपको आपका उत्पाद पसंद आएगा। यदि उत्पाद से संबंधित कोई प्रश्न, समस्या या सहायता चाहिए, तो बेझिझक हमसे संपर्क करें।
 
+
+🖼️ महत्वपूर्ण सूचना
+इस संदेश के साथ एक लेबल की तस्वीर भेजी गई है।
+कृपया डिलीवरी प्राप्त करने से पहले अपने पार्सल पर लगे लेबल का मिलान इस तस्वीर से अवश्य करें।
+यदि तस्वीर और आपके पार्सल का लेबल एक जैसा है, तभी पार्सल स्वीकार करें।
+यदि दोनों में कोई अंतर दिखाई दे, तो कृपया तुरंत हमारे सपोर्ट से संपर्क करें और पार्सल स्वीकार न करें।
 ऑर्डर सहायता
 👤 ${supportName}
 📞 ${supportNumber}
-
 यदि आपको हमारा उत्पाद और सेवा पसंद आई हो, तो कृपया अपना अनुभव अपने परिवार और मित्रों के साथ साझा करें। आपका विश्वास और सहयोग हमारे लिए बेहद महत्वपूर्ण है।
 
 धन्यवाद! ❤️
