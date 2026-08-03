@@ -138,10 +138,22 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
   const courierSupportName = settings.whatsappCourierSupportName || 'Courier Helpdesk';
   const courierSupportNumber = settings.whatsappCourierSupportNumber || settings.secondaryContactNumbers?.[0] || '+91 9123456789';
 
+  // Gather all unique phone numbers associated with the parcel
+  const order = await db.getOrderByOrderId(orderId);
+  const allNumbers = new Set<string>();
+  if (phonePrimary) allNumbers.add(phonePrimary.trim());
+  if (phoneSecondary) allNumbers.add(phoneSecondary.trim());
+  if (order) {
+    if (order.phonePrimary) allNumbers.add(order.phonePrimary.trim());
+    if (order.phoneSecondary) allNumbers.add(order.phoneSecondary.trim());
+    if (order.phoneTertiary) allNumbers.add(order.phoneTertiary.trim());
+    if (order.phoneWhatsApp) allNumbers.add(order.phoneWhatsApp.trim());
+  }
+  const uniqueNumbers = Array.from(allNumbers).filter(num => num && num.trim() !== '');
+
   // Get product name (either from params, or fetch from DB)
   let pName = productName;
   if (!pName) {
-    const order = await db.getOrderByOrderId(orderId);
     pName = order?.productDetails || 'Product';
   }
 
@@ -314,61 +326,21 @@ ${paymentType === 'COD'
       break;
   }
 
-  const primaryResult = await sendWhatsAppMessage(phonePrimary, primaryMessage, imageUrl);
+  // Send the detailed message to all unique numbers attached to the order
+  for (const phone of uniqueNumbers) {
+    console.log(`[WhatsApp] Dispatching notification to number: ${phone}`);
+    const result = await sendWhatsAppMessage(phone, primaryMessage, imageUrl);
 
-  const primaryLog: WhatsAppLog = {
-    id: `wa-prim-${Date.now()}`,
-    timestamp: new Date().toISOString(),
-    phone: phonePrimary,
-    type: 'Primary',
-    message: primaryResult.success ? primaryMessage : `${primaryMessage}\n\n❌ Error: ${primaryResult.error}`,
-    status: primaryResult.success ? 'Sent' : 'Failed'
-  };
-  await db.addWhatsAppLog(primaryLog);
-  logsSent.push(primaryLog);
-
-  // --- 2. Secondary Number Notifications ---
-  if (phoneSecondary && phoneSecondary.trim() !== '') {
-    let secondaryMessage = '';
-    switch (status) {
-      case 'Created':
-        secondaryMessage = `ऑर्डर कन्फर्मेशन: ऑर्डर #${orderId} सफलतापूर्वक प्राप्त हुआ। वैकल्पिक नंबर अलर्ट। – ${brandName}`;
-        break;
-      case 'Dispatched':
-        secondaryMessage = `डिस्पैच अपडेट: ऑर्डर #${orderId} को ${courier || 'कूरियर'} द्वारा भेजा गया है। AWB: ${awb || 'N/A'}। – ${brandName}`;
-        break;
-      case 'RDC':
-        secondaryMessage = `डिलीवरी अपडेट: ऑर्डर #${orderId} स्थानीय डिलीवरी सेंटर (RDC) पहुँच गया है। – ${brandName}`;
-        break;
-      case 'OFD':
-        secondaryMessage = `डिलीवरी अपडेट: ऑर्डर #${orderId} आज डिलीवरी के लिए बाहर (OFD) है। – ${brandName}`;
-        break;
-      case 'Delivered':
-        secondaryMessage = `डिलीवरी संपन्न: ऑर्डर #${orderId} डिलीवर कर दिया गया है। वैकल्पिक नंबर अपडेट। धन्यवाद! – ${brandName}`;
-        break;
-      case 'NDR':
-        secondaryMessage = `डिलीवरी विफलता: ऑर्डर #${orderId} की डिलीवरी का प्रयास असफल रहा। पुनः प्रयास किया जाएगा। – ${brandName}`;
-        break;
-      case 'Return':
-        secondaryMessage = `ऑर्डर अपडेट: ऑर्डर #${orderId} को रिटर्न (RTO) चिह्नित किया गया है। – ${brandName}`;
-        break;
-      default:
-        secondaryMessage = `ऑर्डर अपडेट: ऑर्डर #${orderId} की स्थिति: ${status}। – ${brandName}`;
-        break;
-    }
-
-    const secondaryResult = await sendWhatsAppMessage(phoneSecondary, secondaryMessage, imageUrl);
-
-    const secondaryLog: WhatsAppLog = {
-      id: `wa-sec-${Date.now()}`,
+    const log: WhatsAppLog = {
+      id: `wa-dispatch-${phone}-${Date.now()}`,
       timestamp: new Date().toISOString(),
-      phone: phoneSecondary,
-      type: 'Secondary',
-      message: secondaryResult.success ? secondaryMessage : `${secondaryMessage}\n\n❌ Error: ${secondaryResult.error}`,
-      status: secondaryResult.success ? 'Sent' : 'Failed'
+      phone: phone,
+      type: phone === phonePrimary ? 'Primary' : 'Secondary',
+      message: result.success ? primaryMessage : `${primaryMessage}\n\n❌ Error: ${result.error}`,
+      status: result.success ? 'Sent' : 'Failed'
     };
-    await db.addWhatsAppLog(secondaryLog);
-    logsSent.push(secondaryLog);
+    await db.addWhatsAppLog(log);
+    logsSent.push(log);
   }
 
   return logsSent;
