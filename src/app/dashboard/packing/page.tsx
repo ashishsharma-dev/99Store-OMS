@@ -65,6 +65,60 @@ export default function Packing() {
   const [awbErrorDetails, setAwbErrorDetails] = useState<{ orderId: string; courier: string; pincode: string; error: string } | null>(null);
   const [serviceabilityCache, setServiceabilityCache] = useState<Record<string, boolean>>({});
   const fetchingKeys = useRef<Set<string>>(new Set());
+  const [modalServiceability, setModalServiceability] = useState<Record<string, 'loading' | 'serviceable' | 'unserviceable'>>({});
+  const [inlineReassignLoading, setInlineReassignLoading] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (showAwbErrorModal && awbErrorDetails) {
+      const checkAllCouriers = async () => {
+        const couriers = ['Delhivery', 'XpressBees', 'DTDC', 'Velocity'];
+        const pincode = awbErrorDetails.pincode;
+        
+        const initialStates: Record<string, 'loading' | 'serviceable' | 'unserviceable'> = {};
+        couriers.forEach(c => {
+          initialStates[c] = 'loading';
+        });
+        setModalServiceability(initialStates);
+
+        try {
+          const res = await fetch('/api/integrations/pincode/serviceability', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              checks: couriers.map(c => ({ pincode, courier: c }))
+            })
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const results = data.results || {};
+            const updatedStates: Record<string, 'loading' | 'serviceable' | 'unserviceable'> = {};
+            couriers.forEach(c => {
+              const key = `${pincode}-${c}`;
+              const isServiceable = results[key] === true;
+              updatedStates[c] = isServiceable ? 'serviceable' : 'unserviceable';
+            });
+            setModalServiceability(updatedStates);
+          } else {
+            const fallbackStates: Record<string, 'loading' | 'serviceable' | 'unserviceable'> = {};
+            couriers.forEach(c => {
+              fallbackStates[c] = 'unserviceable';
+            });
+            setModalServiceability(fallbackStates);
+          }
+        } catch (e) {
+          const fallbackStates: Record<string, 'loading' | 'serviceable' | 'unserviceable'> = {};
+          couriers.forEach(c => {
+            fallbackStates[c] = 'unserviceable';
+          });
+          setModalServiceability(fallbackStates);
+        }
+      };
+      checkAllCouriers();
+    } else {
+      setModalServiceability({});
+    }
+  }, [showAwbErrorModal, awbErrorDetails]);
 
   useEffect(() => {
     const session = localStorage.getItem('99store_user');
@@ -454,6 +508,42 @@ export default function Packing() {
       alert('Network error when reassigning.');
     } finally {
       setReassignLoading(false);
+    }
+  };
+
+  const handleInlineReassign = async (orderId: string, courierName: string, pincode: string) => {
+    setInlineReassignLoading(courierName);
+    try {
+      // Find the corresponding order ID
+      const order = orders.find(o => o.orderId === orderId);
+      if (!order) return;
+
+      const res = await fetch(`/api/orders/${order.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'Created',
+          courier: courierName,
+          awb: '',
+          eta: '',
+          futureDeliveryDate: '',
+          remarks: `Pincode ${pincode} unserviceable. Inline reassigned to ${courierName} from exception modal.`,
+          updatedBy: currentUser?.username || 'packing_operator'
+        })
+      });
+
+      if (res.ok) {
+        setShowAwbErrorModal(false);
+        setAwbErrorDetails(null);
+        fetchPackingQueue();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to reassign order.');
+      }
+    } catch (err) {
+      alert('Network error when reassigning.');
+    } finally {
+      setInlineReassignLoading(null);
     }
   };
 
@@ -1065,6 +1155,61 @@ export default function Packing() {
                 <p style={{ color: '#F3F4F6', fontSize: '13px', margin: 0, lineHeight: '1.5', fontFamily: 'monospace' }}>
                   {awbErrorDetails.error}
                 </p>
+              </div>
+
+              {/* Courier Serviceability & Reassignment Options */}
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <span style={{ color: '#FAFAFA', fontSize: '12px', fontWeight: 600 }}>Alternative Serviceability & Reassignment:</span>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {['Delhivery', 'XpressBees', 'DTDC', 'Velocity'].map((cName) => {
+                    const status = modalServiceability[cName];
+                    const isCurrent = cName === awbErrorDetails.courier;
+                    
+                    return (
+                      <div key={cName} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.02)', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span style={{ color: '#FAFAFA', fontSize: '13px', fontWeight: 500 }}>
+                            {cName} {isCurrent && <span style={{ color: '#A1A1AA', fontSize: '11px' }}>(Current)</span>}
+                          </span>
+                          <span style={{ fontSize: '11px', fontWeight: 600, color: status === 'serviceable' ? '#10B981' : (status === 'unserviceable' ? '#EF4444' : '#EAB308') }}>
+                            {status === 'loading' ? '⌛ Checking serviceability...' : (status === 'serviceable' ? '✓ Serviceable' : '✗ Unserviceable')}
+                          </span>
+                        </div>
+                        
+                        {status === 'serviceable' && !isCurrent && (
+                          <button
+                            type="button"
+                            disabled={!!inlineReassignLoading}
+                            onClick={() => handleInlineReassign(awbErrorDetails.orderId, cName, awbErrorDetails.pincode)}
+                            className="premium-btn"
+                            style={{
+                              padding: '4px 10px',
+                              fontSize: '11px',
+                              backgroundColor: '#FAFAFA',
+                              color: '#09090B',
+                              borderColor: '#FAFAFA',
+                              fontWeight: 600
+                            }}
+                          >
+                            {inlineReassignLoading === cName ? 'Reassigning...' : 'Reassign'}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Warning if no other courier is serviceable */}
+                {Object.keys(modalServiceability).length > 0 && 
+                 Object.values(modalServiceability).every(s => s === 'unserviceable') && (
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', padding: '12px', backgroundColor: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', marginTop: '4px' }}>
+                    <span style={{ color: '#EF4444', fontSize: '14px', lineHeight: '1.2' }}>⚠️</span>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#EF6868', lineHeight: '1.4' }}>
+                      <strong>Zero Courier Coverage:</strong> No courier partner supports this pincode ({awbErrorDetails.pincode}) at this time. Please contact the customer to provide a serviceable address.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '16px', justifyContent: 'flex-end' }}>
