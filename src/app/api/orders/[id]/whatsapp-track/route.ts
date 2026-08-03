@@ -14,6 +14,17 @@ export async function POST(
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
+    // Try parsing body for specific targetNumbers selection
+    let targetNumbers: string[] | undefined = undefined;
+    try {
+      const body = await request.json();
+      if (body && Array.isArray(body.targetNumbers)) {
+        targetNumbers = body.targetNumbers;
+      }
+    } catch (e) {
+      // Body might be empty, ignore
+    }
+
     // Trigger WhatsApp notification for current status & tracking details
     const baseUrl = new URL(request.url).origin;
     const logs = await triggerWhatsAppNotification({
@@ -28,6 +39,7 @@ export async function POST(
       orderValue: order.orderValue,
       paymentType: order.paymentType,
       baseUrl,
+      targetNumbers,
     });
 
     return NextResponse.json({

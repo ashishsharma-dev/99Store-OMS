@@ -97,6 +97,7 @@ export interface TriggerWhatsAppParams {
   paymentType: string;
   productName?: string;
   baseUrl?: string;
+  targetNumbers?: string[];
 }
 
 export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams): Promise<WhatsAppLog[]> {
@@ -112,7 +113,8 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
     orderValue,
     paymentType,
     productName,
-    baseUrl
+    baseUrl,
+    targetNumbers
   } = params;
 
   const logsSent: WhatsAppLog[] = [];
@@ -121,20 +123,25 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
   const settings = await db.getSettings();
   const brandName = settings.whatsappBrandName || '99Store';
   const supportName = settings.whatsappSupportName || '99Store Support';
-  const supportNumber = settings.whatsappSupportNumber || settings.primaryContactNumbers?.[0] || '+91 9876543210';
+  const supportNumber = settings.whatsappSupportNumber || settings.primaryContactNumbers?.[0] || '+91 8439581832';
   const courierSupportName = settings.whatsappCourierSupportName || 'Courier Helpdesk';
   const courierSupportNumber = settings.whatsappCourierSupportNumber || settings.secondaryContactNumbers?.[0] || '+91 9123456789';
 
   // Gather all unique phone numbers associated with the parcel
   const order = await db.getOrderByOrderId(orderId);
   const allNumbers = new Set<string>();
-  if (phonePrimary) allNumbers.add(phonePrimary.trim());
-  if (phoneSecondary) allNumbers.add(phoneSecondary.trim());
-  if (order) {
-    if (order.phonePrimary) allNumbers.add(order.phonePrimary.trim());
-    if (order.phoneSecondary) allNumbers.add(order.phoneSecondary.trim());
-    if (order.phoneTertiary) allNumbers.add(order.phoneTertiary.trim());
-    if (order.phoneWhatsApp) allNumbers.add(order.phoneWhatsApp.trim());
+  
+  if (targetNumbers && targetNumbers.length > 0) {
+    targetNumbers.forEach(num => allNumbers.add(num.trim()));
+  } else {
+    if (phonePrimary) allNumbers.add(phonePrimary.trim());
+    if (phoneSecondary) allNumbers.add(phoneSecondary.trim());
+    if (order) {
+      if (order.phonePrimary) allNumbers.add(order.phonePrimary.trim());
+      if (order.phoneSecondary) allNumbers.add(order.phoneSecondary.trim());
+      if (order.phoneTertiary) allNumbers.add(order.phoneTertiary.trim());
+      if (order.phoneWhatsApp) allNumbers.add(order.phoneWhatsApp.trim());
+    }
   }
   const uniqueNumbers = Array.from(allNumbers).filter(num => num && num.trim() !== '');
 

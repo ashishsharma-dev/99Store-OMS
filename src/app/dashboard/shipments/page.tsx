@@ -44,6 +44,17 @@ export default function AllShipments() {
     message: '',
     isError: false
   });
+  const [whatsAppSelectModal, setWhatsAppSelectModal] = useState<{
+    show: boolean;
+    order: Order | null;
+    selectedNumbers: string[];
+    loading: boolean;
+  }>({
+    show: false,
+    order: null,
+    selectedNumbers: [],
+    loading: false
+  });
 
   // Filters State
   const [statusFilter, setStatusFilter] = useState('all');
@@ -87,15 +98,51 @@ export default function AllShipments() {
     }
   };
 
-  const handleOnDemandWhatsAppTrack = async (orderId: string) => {
+  const handleWhatsAppClick = (order: Order) => {
+    const defaultSelected: string[] = [];
+    if (order.phonePrimary) defaultSelected.push(order.phonePrimary.trim());
+    if (order.phoneWhatsApp) defaultSelected.push(order.phoneWhatsApp.trim());
+    
+    const uniqueDefaults = Array.from(new Set(defaultSelected)).filter(Boolean);
+
+    setWhatsAppSelectModal({
+      show: true,
+      order,
+      selectedNumbers: uniqueDefaults,
+      loading: false
+    });
+  };
+
+  const handleTriggerWhatsAppSend = async () => {
+    const { order, selectedNumbers } = whatsAppSelectModal;
+    if (!order) return;
+    if (selectedNumbers.length === 0) {
+      alert('Please select at least one number to send the WhatsApp notification to.');
+      return;
+    }
+
+    setWhatsAppSelectModal(prev => ({ ...prev, loading: true }));
+
     try {
-      const res = await fetch(`/api/orders/${orderId}/whatsapp-track`, { method: 'POST' });
+      const res = await fetch(`/api/orders/${order.id}/whatsapp-track`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetNumbers: selectedNumbers })
+      });
       const data = await res.json();
+      
+      setWhatsAppSelectModal({
+        show: false,
+        order: null,
+        selectedNumbers: [],
+        loading: false
+      });
+
       if (res.ok) {
         setWhatsAppSuccessModal({
           show: true,
           title: 'Notification Dispatched',
-          message: `On-Demand WhatsApp Tracking notification successfully queued and sent to customer's WhatsApp number.`
+          message: `On-Demand WhatsApp Tracking notification successfully queued and sent to selected numbers.`
         });
       } else {
         setWhatsAppSuccessModal({
@@ -106,6 +153,7 @@ export default function AllShipments() {
         });
       }
     } catch (err) {
+      setWhatsAppSelectModal(prev => ({ ...prev, loading: false }));
       setWhatsAppSuccessModal({
         show: true,
         title: 'Connection Error',
@@ -479,7 +527,7 @@ export default function AllShipments() {
                       <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'inline-flex', gap: '6px', justifyContent: 'flex-end' }}>
                           <button
-                            onClick={() => handleOnDemandWhatsAppTrack(o.id)}
+                            onClick={() => handleWhatsAppClick(o)}
                             className="premium-btn premium-btn-secondary"
                             style={{ padding: '6px 8px', fontSize: '12px', borderColor: 'rgba(16, 185, 129, 0.4)', color: '#10B981', backgroundColor: 'rgba(16, 185, 129, 0.08)' }}
                             title="Send On-Demand WhatsApp Alert"
@@ -731,7 +779,114 @@ export default function AllShipments() {
           </div>
         </div>
       )}
+      {/* MODAL: WhatsApp Number Selection & Loader */}
+      {whatsAppSelectModal.show && whatsAppSelectModal.order && (
+        <div className="premium-modal-backdrop" style={{ zIndex: 1200 }}>
+          <div className="premium-modal animate-fade-in" style={{ maxWidth: '450px' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '15px', color: '#FAFAFA', fontWeight: 600, margin: 0 }}>
+                Select WhatsApp Recipients
+              </h3>
+              {!whatsAppSelectModal.loading && (
+                <button 
+                  onClick={() => setWhatsAppSelectModal({ show: false, order: null, selectedNumbers: [], loading: false })}
+                  style={{ background: 'none', border: 'none', color: '#737373', cursor: 'pointer', fontSize: '13px' }}
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
 
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {whatsAppSelectModal.loading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px 0', gap: '16px' }}>
+                  <div className="spinner" style={{ width: '36px', height: '36px', borderTopColor: '#10B981', borderWidth: '3px' }} />
+                  <p style={{ color: '#E4E4E7', fontSize: '13px', margin: 0, textAlign: 'center', lineHeight: '1.6' }}>
+                    Generating high-DPI packing slip screenshot and dispatching WhatsApp message. Please wait...
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <p style={{ color: '#A3A3A3', fontSize: '13px', margin: 0, lineHeight: '1.5' }}>
+                    Choose which numbers associated with order <strong>{whatsAppSelectModal.order.orderId}</strong> should receive this update:
+                  </p>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {[
+                      { label: 'Primary Contact (Customer)', value: whatsAppSelectModal.order.phonePrimary },
+                      { label: 'Secondary Contact (Alternate)', value: whatsAppSelectModal.order.phoneSecondary },
+                      { label: 'Tertiary Contact (Alternate)', value: whatsAppSelectModal.order.phoneTertiary },
+                      { label: 'WhatsApp Number', value: whatsAppSelectModal.order.phoneWhatsApp },
+                    ].filter(item => item.value && item.value.trim() !== '').map((item, idx) => {
+                      const cleanNum = item.value!.trim();
+                      const isChecked = whatsAppSelectModal.selectedNumbers.includes(cleanNum);
+                      return (
+                        <label 
+                          key={idx}
+                          style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '12px', 
+                            padding: '12px 16px', 
+                            backgroundColor: 'rgba(255, 255, 255, 0.02)', 
+                            border: '1px solid var(--border)', 
+                            borderRadius: '8px', 
+                            cursor: 'pointer',
+                            transition: 'background 0.2s'
+                          }}
+                        >
+                          <input 
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              setWhatsAppSelectModal(prev => {
+                                const newNumbers = prev.selectedNumbers.includes(cleanNum)
+                                  ? prev.selectedNumbers.filter(n => n !== cleanNum)
+                                  : [...prev.selectedNumbers, cleanNum];
+                                return { ...prev, selectedNumbers: newNumbers };
+                              });
+                            }}
+                            style={{ width: '16px', height: '16px', accentColor: '#10B981', cursor: 'pointer' }}
+                          />
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <span style={{ fontSize: '13px', color: '#FAFAFA', fontWeight: 500 }}>{cleanNum}</span>
+                            <span style={{ fontSize: '11px', color: '#737373' }}>{item.label}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '16px', justifyContent: 'flex-end' }}>
+                    <button 
+                      type="button" 
+                      onClick={() => setWhatsAppSelectModal({ show: false, order: null, selectedNumbers: [], loading: false })}
+                      className="premium-btn premium-btn-secondary"
+                      style={{ padding: '8px 16px', fontSize: '13px' }}
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={handleTriggerWhatsAppSend}
+                      className="premium-btn premium-btn-primary"
+                      style={{ 
+                        backgroundColor: '#10B981', 
+                        borderColor: '#10B981', 
+                        color: '#FFFFFF',
+                        padding: '8px 16px', 
+                        fontSize: '13px' 
+                      }}
+                    >
+                      Send Alert
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
