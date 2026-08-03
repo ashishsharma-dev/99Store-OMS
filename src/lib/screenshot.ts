@@ -109,27 +109,27 @@ export async function generatePackingSlipImage(orderId: string, baseUrl?: string
     // Check if the file URL is a local/private URL
     const lowerUrl = fileUrl.toLowerCase();
     if (lowerUrl.includes('localhost') || lowerUrl.includes('127.0.0.1') || lowerUrl.includes('192.168.') || lowerUrl.includes('10.') || lowerUrl.includes('::1')) {
-      console.log(`[Screenshot] Local URL detected ("${fileUrl}"). Uploading to tmpfiles.org for cloud delivery bypass...`);
+      console.log(`[Screenshot] Local URL detected ("${fileUrl}"). Uploading to catbox.moe for cloud delivery bypass...`);
       try {
         const blob = new Blob([new Uint8Array(imageBuffer)], { type: 'image/png' });
         const formData = new FormData();
-        formData.append('file', blob, `${orderId}-slip.png`);
+        formData.append('reqtype', 'fileupload');
+        formData.append('fileToUpload', blob, `${orderId}-slip.png`);
 
-        const uploadRes = await fetch('https://tmpfiles.org/api/v1/upload', {
+        const uploadRes = await fetch('https://catbox.moe/user/api.php', {
           method: 'POST',
           body: formData
         });
 
-        const uploadData = await uploadRes.json();
-        if (uploadData.status === 'success') {
-          const directUrl = uploadData.data.url.replace('https://tmpfiles.org/', 'https://tmpfiles.org/dl/');
-          console.log(`[Screenshot] Uploaded to tmpfiles for local fallback: ${directUrl}`);
+        const directUrl = await uploadRes.text();
+        if (directUrl && directUrl.startsWith('https://files.catbox.moe/')) {
+          console.log(`[Screenshot] Uploaded to catbox for local fallback: ${directUrl}`);
           fileUrl = directUrl;
         } else {
-          console.error('[Screenshot] Failed to upload local fallback to tmpfiles:', uploadData);
+          console.error('[Screenshot] Failed to upload local fallback to catbox:', directUrl);
         }
       } catch (uploadErr) {
-        console.error('[Screenshot] Failed to upload local fallback to tmpfiles:', uploadErr);
+        console.error('[Screenshot] Failed to upload local fallback to catbox:', uploadErr);
       }
     }
     
