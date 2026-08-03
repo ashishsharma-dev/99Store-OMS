@@ -8,17 +8,7 @@ const DEVICE_ID = process.env.WHATSAPP_DEVICE_ID || '2755';
 
 import { generatePackingSlipImage } from '@/lib/screenshot';
 
-function isPublicUrl(url: string | null | undefined): boolean {
-  if (!url) return false;
-  const lower = url.toLowerCase();
-  return !(
-    lower.includes('localhost') || 
-    lower.includes('127.0.0.1') || 
-    lower.includes('192.168.') || 
-    lower.includes('10.') || 
-    lower.includes('::1')
-  );
-}
+
 
 async function sendWhatsAppMessage(phone: string, messageText: string, imageUrl?: string | null): Promise<{ success: boolean; error?: string }> {
   try {
@@ -54,7 +44,7 @@ async function sendWhatsAppMessage(phone: string, messageText: string, imageUrl?
       message: messageText
     };
 
-    if (imageUrl && isPublicUrl(imageUrl)) {
+    if (imageUrl) {
       payload.type = 'image';
       payload.variables = {
         imageUrl: imageUrl
@@ -65,9 +55,6 @@ async function sendWhatsAppMessage(phone: string, messageText: string, imageUrl?
       payload.caption = messageText;
     } else {
       payload.type = 'text';
-      if (imageUrl) {
-        console.log(`[WhatsApp] Image URL is local/private ("${imageUrl}"). Falling back to text-only mode for delivery.`);
-      }
     }
 
     const res = await fetch(requestUrl, {
