@@ -71,7 +71,7 @@ export default function Packing() {
   useEffect(() => {
     if (showAwbErrorModal && awbErrorDetails) {
       const checkAllCouriers = async () => {
-        const couriers = ['Delhivery', 'XpressBees', 'DTDC', 'Velocity'];
+        const couriers = ['Delhivery', 'XpressBees', 'DTDC'];
         const pincode = awbErrorDetails.pincode;
         
         const initialStates: Record<string, 'loading' | 'serviceable' | 'unserviceable'> = {};
@@ -595,7 +595,6 @@ export default function Packing() {
               <option value="XpressBees">XpressBees Logistics</option>
               <option value="Delhivery">Delhivery Express</option>
               <option value="Aggregator">Aggregator API</option>
-              <option value="Velocity">Velocity Aggregator</option>
             </select>
           </div>
           <div>
@@ -747,7 +746,6 @@ export default function Packing() {
                               <option value="XpressBees Surface">XpressBees Surface</option>
                               <option value="Delhivery">Delhivery (Priority 3)</option>
                               <option value="Aggregator">Aggregator API</option>
-                              <option value="Velocity">Velocity Aggregator</option>
                             </select>
                             {!isServiceable && (
                               <span style={{ color: '#EF4444', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
@@ -1162,7 +1160,7 @@ export default function Packing() {
                 <span style={{ color: '#FAFAFA', fontSize: '12px', fontWeight: 600 }}>Alternative Serviceability & Reassignment:</span>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {['Delhivery', 'XpressBees', 'DTDC', 'Velocity'].map((cName) => {
+                  {['Delhivery', 'XpressBees', 'DTDC'].map((cName) => {
                     const status = modalServiceability[cName];
                     const isCurrent = cName === awbErrorDetails.courier;
                     
@@ -1252,7 +1250,6 @@ export default function Packing() {
                   <option value="DTDC">DTDC</option>
                   <option value="XpressBees">XpressBees</option>
                   <option value="Delhivery">Delhivery</option>
-                  <option value="Velocity">Velocity</option>
                 </select>
               </div>
 

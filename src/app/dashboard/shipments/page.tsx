@@ -286,7 +286,6 @@ export default function AllShipments() {
             <option value="XpressBees">XpressBees</option>
             <option value="Delhivery">Delhivery</option>
             <option value="Aggregator">Aggregator</option>
-            <option value="Velocity">Velocity</option>
           </select>
           <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
         </div>
