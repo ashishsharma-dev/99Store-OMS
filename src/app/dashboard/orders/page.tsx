@@ -450,7 +450,7 @@ export default function Orders() {
     setFormLoading(true);
     try {
       const checkRes = await fetch(
-        `/api/orders/check-duplicate?phone=${encodeURIComponent(phonePrimary)}&name=${encodeURIComponent(customerName)}&pincode=${encodeURIComponent(pincode)}&address=${encodeURIComponent(address)}`
+        `/api/orders/check-duplicate?phone=${encodeURIComponent(phoneTertiary)}&name=${encodeURIComponent(customerName)}&pincode=${encodeURIComponent(pincode)}&address=${encodeURIComponent(address)}`
       );
       const checkData = await checkRes.json();
       setFormLoading(false);

@@ -3320,6 +3320,78 @@
   ],
   "courierLogs": [
     {
+      "id": "cl-track-1785926616884",
+      "timestamp": "2026-08-05T10:43:36.884Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=1635310038986",
+      "responsePayload": "{\n  \"Success\": false,\n  \"Error\": \"Data does not exists for provided Waybill(s)\",\n  \"rmk\": \"Some error has occurred. Please contact client.support@delhivery.com with error message- Data does not exists for provided Waybill(s)\"\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1785926615979",
+      "timestamp": "2026-08-05T10:43:35.979Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=1635310035910",
+      "responsePayload": "{\n  \"Success\": false,\n  \"Error\": \"No such waybill or Order Id found\",\n  \"rmk\": \"Some error has occurred. Please contact client.support@delhivery.com with error message- No such waybill or Order Id found\"\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1785926615568",
+      "timestamp": "2026-08-05T10:43:35.568Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=1635310036396",
+      "responsePayload": "{\n  \"Success\": false,\n  \"Error\": \"No such waybill or Order Id found\",\n  \"rmk\": \"Some error has occurred. Please contact client.support@delhivery.com with error message- No such waybill or Order Id found\"\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1785926610125",
+      "timestamp": "2026-08-05T10:43:30.125Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=1635310035906",
+      "responsePayload": "{\n  \"Success\": false,\n  \"Error\": \"No such waybill or Order Id found\",\n  \"rmk\": \"Some error has occurred. Please contact client.support@delhivery.com with error message- No such waybill or Order Id found\"\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1785926608384",
+      "timestamp": "2026-08-05T10:43:28.384Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218735",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218735\",\n        \"CODAmount\": 3000,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"vishnu thkur\",\n          \"PinCode\": 282005,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 3000,\n        \"OrderType\": \"COD\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-19T12:54:24.724\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1025\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-19T12:54:24.776\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-19T12:54:24.776\"\n            }\n          },\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Shipment not received from client\",\n              \"Scan\": \"Not Picked\",\n              \"ScanDateTime\": \"2026-06-19T22:12:12.559\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-PNP\",\n              \"StatusDateTime\": \"2026-06-19T22:12:12.559\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Shipment not received from client\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Not Picked\",\n          \"StatusCode\": \"X-PNP\",\n          \"StatusDateTime\": \"2026-06-19T22:12:12.559\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1785926607842",
+      "timestamp": "2026-08-05T10:43:27.842Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218724",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218724\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vishnu\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-10T18:56:46.963\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1023\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-10T18:56:47.018\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-10T18:56:47.018\"\n            }\n          },\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Shipment not received from client\",\n              \"Scan\": \"Not Picked\",\n              \"ScanDateTime\": \"2026-06-16T19:58:18.008\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-PNP\",\n              \"StatusDateTime\": \"2026-06-16T19:58:18.008\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Shipment not received from client\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Not Picked\",\n          \"StatusCode\": \"X-PNP\",\n          \"StatusDateTime\": \"2026-06-16T19:58:18.008\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-track-1785926607264",
+      "timestamp": "2026-08-05T10:43:27.264Z",
+      "courier": "Delhivery",
+      "action": "Track Shipment",
+      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218713",
+      "responsePayload": "{\n  \"ShipmentData\": [\n    {\n      \"Shipment\": {\n        \"AWB\": \"18242910218713\",\n        \"CODAmount\": 0,\n        \"ChargedWeight\": null,\n        \"Consignee\": {\n          \"Address1\": [],\n          \"Address2\": [],\n          \"Address3\": \"\",\n          \"City\": \"Agra\",\n          \"Country\": \"India\",\n          \"Name\": \"Vinod Sharma\",\n          \"PinCode\": 282006,\n          \"State\": \"Uttar Pradesh\",\n          \"Telephone1\": \"\",\n          \"Telephone2\": \"\"\n        },\n        \"DeliveryDate\": null,\n        \"DestRecieveDate\": null,\n        \"Destination\": \"Agra\",\n        \"DispatchCount\": 0,\n        \"Ewaybill\": [],\n        \"ExpectedDeliveryDate\": null,\n        \"Extras\": \"\",\n        \"FirstAttemptDate\": null,\n        \"InvoiceAmount\": 1300,\n        \"OrderType\": \"Pre-paid\",\n        \"Origin\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n        \"OriginRecieveDate\": null,\n        \"OutDestinationDate\": null,\n        \"PickUpDate\": \"2026-06-02T18:21:37.322\",\n        \"PickedupDate\": null,\n        \"PickupLocation\": \"Default Pickup Location\",\n        \"PromisedDeliveryDate\": null,\n        \"Quantity\": \"1\",\n        \"RTOStartedDate\": null,\n        \"ReferenceNo\": \"99S-1015\",\n        \"ReturnPromisedDeliveryDate\": null,\n        \"ReturnedDate\": null,\n        \"ReverseInTransit\": false,\n        \"Scans\": [\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Manifest uploaded\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-02T18:21:37.377\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-UCI\",\n              \"StatusDateTime\": \"2026-06-02T18:21:37.377\"\n            }\n          },\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Shipment not ready for pickup\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-02T20:09:10\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"FMEOD-152\",\n              \"StatusDateTime\": \"2026-06-02T20:09:10\"\n            }\n          },\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Shipment not ready for pickup\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-03T17:55:09\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"FMEOD-152\",\n              \"StatusDateTime\": \"2026-06-03T17:55:09\"\n            }\n          },\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Shipment not ready for pickup\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-04T17:07:07\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"FMEOD-152\",\n              \"StatusDateTime\": \"2026-06-04T17:07:07\"\n            }\n          },\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Shipper unavailable\",\n              \"Scan\": \"Manifested\",\n              \"ScanDateTime\": \"2026-06-05T21:25:51\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"FMEOD-103\",\n              \"StatusDateTime\": \"2026-06-05T21:25:51\"\n            }\n          },\n          {\n            \"ScanDetail\": {\n              \"Instructions\": \"Shipment not received from client\",\n              \"Scan\": \"Not Picked\",\n              \"ScanDateTime\": \"2026-06-08T18:12:47.859\",\n              \"ScanType\": \"UD\",\n              \"ScannedLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n              \"StatusCode\": \"X-PNP\",\n              \"StatusDateTime\": \"2026-06-08T18:12:47.859\"\n            }\n          }\n        ],\n        \"SenderName\": \"4067c8-SOMENTERPRISES-do\",\n        \"Status\": {\n          \"Instructions\": \"Shipment not received from client\",\n          \"RecievedBy\": \"\",\n          \"Status\": \"Not Picked\",\n          \"StatusCode\": \"X-PNP\",\n          \"StatusDateTime\": \"2026-06-08T18:12:47.859\",\n          \"StatusLocation\": \"Agra_Jaupura_H (Uttar Pradesh)\",\n          \"StatusType\": \"UD\"\n        }\n      }\n    }\n  ]\n}",
+      "status": "Success"
+    },
+    {
+      "id": "cl-dtdc-track-1785926606364",
+      "timestamp": "2026-08-05T10:43:26.364Z",
+      "courier": "DTDC",
+      "action": "Track Shipment",
+      "requestPayload": "POST https://blktracksvc.dtdc.com/dtdc-api/rest/JSONCnTrk/getTrackDetails\nPayload: {\"trkType\":\"cnno\",\"strcnno\":\"DTDC901238912\",\"addtnlDtl\":\"Y\"}",
+      "responsePayload": "{\n  \"timestamp\": \"2026-08-05T10:43:25.987+00:00\",\n  \"status\": 401,\n  \"error\": \"Unauthorized\",\n  \"message\": \"Unauthorized: Authentication token was either missing or invalid.\",\n  \"path\": \"/dtdc-api/rest/JSONCnTrk/getTrackDetails\"\n}",
+      "status": "Error"
+    },
+    {
       "id": "cl-track-1785766246574",
       "timestamp": "2026-08-03T14:10:46.575Z",
       "courier": "Delhivery",
@@ -7745,78 +7817,6 @@
       "action": "Track Shipment",
       "requestPayload": "POST https://blktracksvc.dtdc.com/dtdc-api/rest/JSONCnTrk/getTrackDetails\nPayload: {\"trkType\":\"cnno\",\"strcnno\":\"7X117877231\",\"addtnlDtl\":\"Y\"}",
       "responsePayload": "{\n  \"timestamp\": \"2026-08-02T10:41:38.042+00:00\",\n  \"status\": 401,\n  \"error\": \"Unauthorized\",\n  \"message\": \"Unauthorized: Authentication token was either missing or invalid.\",\n  \"path\": \"/dtdc-api/rest/JSONCnTrk/getTrackDetails\"\n}",
-      "status": "Error"
-    },
-    {
-      "id": "cl-dtdc-track-1785667297503",
-      "timestamp": "2026-08-02T10:41:37.503Z",
-      "courier": "DTDC",
-      "action": "Track Shipment",
-      "requestPayload": "POST https://blktracksvc.dtdc.com/dtdc-api/rest/JSONCnTrk/getTrackDetails\nPayload: {\"trkType\":\"cnno\",\"strcnno\":\"7X117776257\",\"addtnlDtl\":\"Y\"}",
-      "responsePayload": "{\n  \"timestamp\": \"2026-08-02T10:41:37.653+00:00\",\n  \"status\": 401,\n  \"error\": \"Unauthorized\",\n  \"message\": \"Unauthorized: Authentication token was either missing or invalid.\",\n  \"path\": \"/dtdc-api/rest/JSONCnTrk/getTrackDetails\"\n}",
-      "status": "Error"
-    },
-    {
-      "id": "cl-xb-track-1785667297040",
-      "timestamp": "2026-08-02T10:41:37.040Z",
-      "courier": "XpressBees",
-      "action": "Track Shipment",
-      "requestPayload": "POST https://apishipmenttracking.xbees.in/GetCurrentShipmentStatus body: { awb: 153999414800000 }",
-      "responsePayload": "[\n  {\n    \"AWBNO\": null,\n    \"ReturnCode\": 101,\n    \"ReturnMessage\": \"Invalid token key\",\n    \"CurrentShipmentStatus\": null\n  }\n]",
-      "status": "Success"
-    },
-    {
-      "id": "cl-xb-track-1785667296599",
-      "timestamp": "2026-08-02T10:41:36.599Z",
-      "courier": "XpressBees",
-      "action": "Track Shipment",
-      "requestPayload": "POST https://apishipmenttracking.xbees.in/GetCurrentShipmentStatus body: { awb: 153999415000000 }",
-      "responsePayload": "[\n  {\n    \"AWBNO\": null,\n    \"ReturnCode\": 101,\n    \"ReturnMessage\": \"Invalid token key\",\n    \"CurrentShipmentStatus\": null\n  }\n]",
-      "status": "Success"
-    },
-    {
-      "id": "cl-xb-track-1785667296123",
-      "timestamp": "2026-08-02T10:41:36.123Z",
-      "courier": "XpressBees",
-      "action": "Track Shipment",
-      "requestPayload": "POST https://apishipmenttracking.xbees.in/GetCurrentShipmentStatus body: { awb: 153999414700000 }",
-      "responsePayload": "[\n  {\n    \"AWBNO\": null,\n    \"ReturnCode\": 101,\n    \"ReturnMessage\": \"Invalid token key\",\n    \"CurrentShipmentStatus\": null\n  }\n]",
-      "status": "Success"
-    },
-    {
-      "id": "cl-xb-track-1785667295409",
-      "timestamp": "2026-08-02T10:41:35.409Z",
-      "courier": "XpressBees",
-      "action": "Track Shipment",
-      "requestPayload": "POST https://apishipmenttracking.xbees.in/GetCurrentShipmentStatus body: { awb: 153999414900000 }",
-      "responsePayload": "[\n  {\n    \"AWBNO\": null,\n    \"ReturnCode\": 101,\n    \"ReturnMessage\": \"Invalid token key\",\n    \"CurrentShipmentStatus\": null\n  }\n]",
-      "status": "Success"
-    },
-    {
-      "id": "cl-track-1785667295120",
-      "timestamp": "2026-08-02T10:41:35.120Z",
-      "courier": "Delhivery",
-      "action": "Track Shipment",
-      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218816",
-      "responsePayload": "{\n  \"Success\": false,\n  \"Error\": \"No such waybill or Order Id found\",\n  \"rmk\": \"Some error has occurred. Please contact client.support@delhivery.com with error message- No such waybill or Order Id found\"\n}",
-      "status": "Success"
-    },
-    {
-      "id": "cl-track-1785667294858",
-      "timestamp": "2026-08-02T10:41:34.858Z",
-      "courier": "Delhivery",
-      "action": "Track Shipment",
-      "requestPayload": "GET /api/v1/packages/json/?waybill=18242910218805",
-      "responsePayload": "{\n  \"Success\": false,\n  \"Error\": \"No such waybill or Order Id found\",\n  \"rmk\": \"Some error has occurred. Please contact client.support@delhivery.com with error message- No such waybill or Order Id found\"\n}",
-      "status": "Success"
-    },
-    {
-      "id": "cl-dtdc-track-1785667294474",
-      "timestamp": "2026-08-02T10:41:34.474Z",
-      "courier": "DTDC",
-      "action": "Track Shipment",
-      "requestPayload": "POST https://blktracksvc.dtdc.com/dtdc-api/rest/JSONCnTrk/getTrackDetails\nPayload: {\"trkType\":\"cnno\",\"strcnno\":\"7X117722094\",\"addtnlDtl\":\"Y\"}",
-      "responsePayload": "{\n  \"timestamp\": \"2026-08-02T10:41:34.603+00:00\",\n  \"status\": 401,\n  \"error\": \"Unauthorized\",\n  \"message\": \"Unauthorized: Authentication token was either missing or invalid.\",\n  \"path\": \"/dtdc-api/rest/JSONCnTrk/getTrackDetails\"\n}",
       "status": "Error"
     }
   ],

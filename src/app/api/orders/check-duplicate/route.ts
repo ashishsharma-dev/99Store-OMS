@@ -17,16 +17,41 @@ export async function GET(request: Request) {
     // Exclude deleted orders
     orders = orders.filter(o => !o.isDeleted);
 
+    // Fetch system settings to identify and skip system default numbers
+    const settings = await db.getSettings();
+    const systemPhones = new Set<string>();
+    if (settings.primaryContactNumbers) {
+      settings.primaryContactNumbers.forEach((p: string) => {
+        const cleaned = p.replace(/\D/g, '').slice(-10);
+        if (cleaned) systemPhones.add(cleaned);
+      });
+    }
+    if (settings.secondaryContactNumbers) {
+      settings.secondaryContactNumbers.forEach((p: string) => {
+        const cleaned = p.replace(/\D/g, '').slice(-10);
+        if (cleaned) systemPhones.add(cleaned);
+      });
+    }
+
     const matches: any[] = [];
 
     for (const order of orders) {
       let isMatch = false;
       const reasons: string[] = [];
 
-      // 1. Exact phone match with CUSTOMER_NUMBER
-      if (phone && order.phoneTertiary === phone) {
-        isMatch = true;
-        reasons.push(`CUSTOMER_NUMBER matches`);
+      // 1. Phone match with CUSTOMER_NUMBER (normalized to avoid formatting differences)
+      if (phone && order.phoneTertiary) {
+        const normOrderPhone = order.phoneTertiary.replace(/\D/g, '').slice(-10);
+        const normQueryPhone = phone.replace(/\D/g, '').slice(-10);
+        if (
+          normOrderPhone &&
+          normQueryPhone &&
+          normOrderPhone === normQueryPhone &&
+          !systemPhones.has(normQueryPhone)
+        ) {
+          isMatch = true;
+          reasons.push(`CUSTOMER_NUMBER matches`);
+        }
       }
 
       // 2. Name and Pincode match
