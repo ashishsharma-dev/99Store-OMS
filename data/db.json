@@ -7827,6 +7827,9 @@
     "whatsappSupportNumber": "+91 8439581832",
     "whatsappCourierSupportName": "Courier Helpdesk",
     "whatsappCourierSupportNumber": "+91 9123456789",
+    "whatsappNotificationsEnabled": true,
+    "whatsappDeviceId": "2755",
+    "whatsappAccessToken": "f6e962bd642bdcb19019af646ee047a0",
     "ipWhitelist": [
       "127.0.0.1",
       "::1",

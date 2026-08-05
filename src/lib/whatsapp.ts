@@ -3,7 +3,7 @@ import { WhatsAppLog } from '@/lib/types';
 
 // Deropo WhatsApp API Credentials (configured via environment variables)
 const API_URL = process.env.WHATSAPP_API_URL || 'https://api.deropo.com/api/send';
-const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || '90a12c96e165f1a1189361d1169d04de';
+const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || 'f6e962bd642bdcb19019af646ee047a0';
 const DEVICE_ID = process.env.WHATSAPP_DEVICE_ID || '2755';
 
 import { generatePackingSlipImage } from '@/lib/screenshot';
@@ -29,8 +29,13 @@ async function sendWhatsAppMessage(phone: string, messageText: string, imageUrl?
     const activeAccessToken = settings.whatsappAccessToken || ACCESS_TOKEN;
     const activeDeviceId = settings.whatsappDeviceId || DEVICE_ID;
     
-    // Recipient check
-    const isTestRecipient = (cleanPhone === '918439762192' || cleanPhone === '8439762192');
+    // Recipient check (dynamically resolved from settings.otpWhatsappNumber, falling back to 8439762192)
+    const testRecipient = settings.otpWhatsappNumber || '8439762192';
+    let cleanTestRecipient = testRecipient.replace(/\D/g, '');
+    if (cleanTestRecipient.length === 10) {
+      cleanTestRecipient = '91' + cleanTestRecipient;
+    }
+    const isTestRecipient = (cleanPhone === cleanTestRecipient || cleanPhone === testRecipient);
 
     // If notifications are globally disabled, block all messages EXCEPT the test recipient
     if (!isEnabled && !isTestRecipient) {
