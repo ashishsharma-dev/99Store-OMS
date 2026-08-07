@@ -172,7 +172,7 @@ export async function PATCH(
     }
 
     // D. Trigger Automated WhatsApp messaging for logistics
-    const waTriggerStatuses = ['Dispatched', 'OFD', 'Delivered', 'NDR', 'Return'];
+    const waTriggerStatuses = ['Label Generated', 'Dispatched', 'OFD', 'Delivered', 'NDR', 'Return'];
     if (status && waTriggerStatuses.includes(status)) {
       const baseUrl = new URL(request.url).origin;
       // Trigger real WhatsApp in background directly, bypassing loopback network dependencies
@@ -193,6 +193,89 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, order, awbError });
 
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to update order.' }, { status: 500 });
+  }
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const body = await request.json();
+    
+    // Check permission - must be Admin
+    const userRole = request.headers.get('x-user-role') || body.role || '';
+    const isAdmin = userRole === 'Super Admin' || userRole === 'Admin' || userRole.toLowerCase().includes('admin');
+    
+    if (!isAdmin) {
+      return NextResponse.json({ error: '403 Forbidden: Only Admin role can edit orders.' }, { status: 403 });
+    }
+
+    const order = await db.getOrderById(id);
+    if (!order) {
+      return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
+    }
+
+    // Update fields
+    const {
+      customerName,
+      phonePrimary,
+      phoneSecondary,
+      phoneTertiary,
+      phoneWhatsApp,
+      address,
+      pincode,
+      state,
+      area,
+      productDetails,
+      paymentType,
+      orderValue,
+      weight,
+      internalRemarks,
+      isVip,
+      partiallyPaidAmount,
+      updatedBy
+    } = body;
+
+    const now = new Date().toISOString();
+
+    if (customerName !== undefined) order.customerName = customerName;
+    if (phonePrimary !== undefined) order.phonePrimary = phonePrimary;
+    if (phoneSecondary !== undefined) order.phoneSecondary = phoneSecondary || undefined;
+    if (phoneTertiary !== undefined) order.phoneTertiary = phoneTertiary || undefined;
+    if (phoneWhatsApp !== undefined) order.phoneWhatsApp = phoneWhatsApp || undefined;
+    if (address !== undefined) order.address = address;
+    if (pincode !== undefined) order.pincode = pincode;
+    if (state !== undefined) order.state = state;
+    if (area !== undefined) order.area = area;
+    if (productDetails !== undefined) order.productDetails = productDetails;
+    if (paymentType !== undefined) order.paymentType = paymentType;
+    if (orderValue !== undefined) {
+      order.orderValue = parseFloat(orderValue);
+      order.finalPayableAmount = order.orderValue - (order.partiallyPaidAmount || 0);
+    }
+    if (weight !== undefined) order.weight = parseFloat(weight);
+    if (internalRemarks !== undefined) order.internalRemarks = internalRemarks || undefined;
+    if (isVip !== undefined) order.isVip = !!isVip;
+    if (partiallyPaidAmount !== undefined) {
+      order.partiallyPaidAmount = parseFloat(partiallyPaidAmount);
+      order.finalPayableAmount = order.orderValue - order.partiallyPaidAmount;
+    }
+
+    order.updatedAt = now;
+
+    order.history.push({
+      status: order.status,
+      timestamp: now,
+      updatedBy: updatedBy || 'admin',
+      remarks: `Order details edited/corrected by admin.`
+    });
+
+    await db.saveOrder(order);
+    return NextResponse.json({ success: true, order });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to update order.' }, { status: 500 });
   }

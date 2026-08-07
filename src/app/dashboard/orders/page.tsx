@@ -21,7 +21,8 @@ import {
   Trash2,
   Clock,
   ChevronDown,
-  ArrowUpDown
+  ArrowUpDown,
+  Edit
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
 import { HealvitaShippingLabel } from '@/components/HealvitaShippingLabel';
@@ -42,6 +43,8 @@ export default function Orders() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
 
   // Printing label popup state
   const [printingOrder, setPrintingOrder] = useState<Order | null>(null);
@@ -438,12 +441,64 @@ export default function Orders() {
     }
   };
 
+  const executeOrderEdit = async () => {
+    setFormLoading(true);
+    setFormError('');
+    try {
+      const res = await fetch(`/api/orders/${editingOrderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName,
+          phonePrimary,
+          phoneSecondary,
+          phoneTertiary,
+          phoneWhatsApp,
+          address,
+          pincode,
+          state,
+          area,
+          productDetails,
+          paymentType,
+          orderValue: parseFloat(orderValue),
+          weight: parseFloat(weight),
+          internalRemarks,
+          isVip,
+          updatedBy: currentUser?.username || 'admin',
+          partiallyPaidAmount: partiallyPaidAmount ? parseFloat(partiallyPaidAmount) : 0,
+          role: currentUser?.role || ''
+        })
+      });
+
+      const data = await res.json();
+      setFormLoading(false);
+
+      if (!res.ok) {
+        setFormError(data.error || 'Failed to update order.');
+        return;
+      }
+
+      // Reset Form and refresh
+      setShowAddModal(false);
+      resetForm();
+      fetchOrdersList();
+    } catch (err) {
+      setFormLoading(false);
+      setFormError('Network connection failure.');
+    }
+  };
+
   const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
 
     if (!customerName || !phonePrimary || !address || !pincode || !productDetails || !orderValue || !weight) {
       setFormError('Please enter all required fields.');
+      return;
+    }
+
+    if (isEditMode) {
+      await executeOrderEdit();
       return;
     }
 
@@ -485,6 +540,8 @@ export default function Orders() {
     setInternalRemarks('');
     setIsVip(false);
     setFormError('');
+    setIsEditMode(false);
+    setEditingOrderId(null);
   };
 
   const openOrderDetail = (order: Order) => {
@@ -526,6 +583,30 @@ export default function Orders() {
     setWeight((order.weight || 0).toString());
     setInternalRemarks(order.internalRemarks || '');
     setIsVip(order.isVip);
+    setShowAddModal(true);
+  };
+
+  const handleEditClick = (order: Order) => {
+    setIsEditMode(true);
+    setEditingOrderId(order.id);
+    
+    setCustomerName(order.customerName);
+    setPhonePrimary(order.phonePrimary);
+    setPhoneSecondary(order.phoneSecondary || '');
+    setPhoneTertiary(order.phoneTertiary || '');
+    setPhoneWhatsApp(order.phoneWhatsApp || '');
+    setAddress(order.address);
+    setPincode(order.pincode);
+    setState(order.state);
+    setArea(order.area);
+    setProductDetails(order.productDetails);
+    setPaymentType(order.paymentType);
+    setOrderValue((order.orderValue || 0).toString());
+    setPartiallyPaidAmount((order.partiallyPaidAmount || 0).toString());
+    setWeight((order.weight || 0).toString());
+    setInternalRemarks(order.internalRemarks || '');
+    setIsVip(order.isVip);
+    
     setShowAddModal(true);
   };
 
@@ -949,6 +1030,16 @@ export default function Orders() {
                           >
                             <Star size={14} fill={o.isVip ? "#10B981" : "none"} />
                           </button>
+                          {currentUser?.role === 'Super Admin' && (
+                            <button
+                              onClick={() => handleEditClick(o)}
+                              className="premium-btn premium-btn-secondary"
+                              style={{ padding: '6px 8px', fontSize: '12px', borderColor: 'rgba(234, 179, 8, 0.4)', color: '#EAB308', backgroundColor: 'rgba(234, 179, 8, 0.08)' }}
+                              title="Edit Order Details"
+                            >
+                              <Edit size={14} />
+                            </button>
+                          )}
                           <button
                             onClick={() => handleCloneOrder(o)}
                             className="premium-btn premium-btn-secondary"
@@ -1028,8 +1119,8 @@ export default function Orders() {
         <div className="premium-modal-backdrop">
           <div className="premium-modal" style={{ maxWidth: '680px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '18px', color: '#FAFAFA' }}>Create New Manual Order</h3>
-              <button onClick={() => setShowAddModal(false)} style={{ background: 'none', border: 'none', color: '#8A8A8A', cursor: 'pointer' }}>Close</button>
+              <h3 style={{ fontSize: '18px', color: '#FAFAFA' }}>{isEditMode ? 'Edit Order Details' : 'Create New Manual Order'}</h3>
+              <button onClick={() => { setShowAddModal(false); resetForm(); }} style={{ background: 'none', border: 'none', color: '#8A8A8A', cursor: 'pointer' }}>Close</button>
             </div>
 
             <form onSubmit={handleCreateOrder} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -1169,9 +1260,9 @@ export default function Orders() {
               </div>
 
               <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '20px', justifyContent: 'flex-end' }}>
-                <button type="button" onClick={() => setShowAddModal(false)} className="premium-btn premium-btn-secondary">Cancel</button>
+                <button type="button" onClick={() => { setShowAddModal(false); resetForm(); }} className="premium-btn premium-btn-secondary">Cancel</button>
                 <button type="submit" className="premium-btn premium-btn-primary" disabled={formLoading}>
-                  {formLoading ? 'Creating order...' : 'Create Order'}
+                  {isEditMode ? (formLoading ? 'Saving...' : 'Save Changes') : (formLoading ? 'Creating order...' : 'Create Order')}
                 </button>
               </div>
             </form>

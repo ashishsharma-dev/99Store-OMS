@@ -241,7 +241,7 @@ export async function syncOrderStatus(
     }
 
     // 5. WhatsApp Notification Trigger
-    const waTriggerStatuses = ['Dispatched', 'OFD', 'Delivered', 'NDR', 'Return'];
+    const waTriggerStatuses = ['Label Generated', 'Dispatched', 'OFD', 'Delivered', 'NDR', 'Return'];
     if (waTriggerStatuses.includes(mappedStatus)) {
       triggerWhatsAppNotification({
         orderId: order.orderId,

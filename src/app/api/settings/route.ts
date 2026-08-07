@@ -33,6 +33,15 @@ export async function POST(request: Request) {
       });
     }
 
+    // Check if it is a request to delete all orders
+    if (body.deleteAllOrders === true) {
+      await db.deleteAllOrders();
+      return NextResponse.json({ 
+        success: true, 
+        message: 'All orders and NDR logs have been successfully deleted.'
+      });
+    }
+
     // Module 5: Role-Based Hierarchy for Contact Configurations (RBAC Check)
     const userRole = request.headers.get('x-user-role') || body.userRole || '';
     const isUpdatingContacts = body.primaryContactNumbers !== undefined || body.secondaryContactNumbers !== undefined;

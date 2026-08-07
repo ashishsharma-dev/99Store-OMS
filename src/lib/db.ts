@@ -190,6 +190,24 @@ export const db = {
     };
   },
 
+  deleteAllOrders: async (): Promise<void> => {
+    memoryOrders = [];
+    memoryNdrs = [];
+    memoryTrackingEvents = [];
+    saveMemoryToLocalFile();
+
+    const database = await safeGetDb();
+    if (database) {
+      try {
+        await database.collection('orders').deleteMany({});
+        await database.collection('ndr').deleteMany({});
+        await database.collection('tracking_events').deleteMany({});
+      } catch (e) {
+        console.warn('MongoDB deleteAllOrders warning:', e);
+      }
+    }
+  },
+
   // Users Operations
   getUsers: async (): Promise<User[]> => {
     performWeeklyBackupIfDue().catch(console.error);

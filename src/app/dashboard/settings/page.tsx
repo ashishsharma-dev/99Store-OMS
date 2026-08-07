@@ -19,7 +19,8 @@ import {
   Activity,
   Server,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Trash2
 } from 'lucide-react';
 import { SystemSettings, WhatsAppLog, CourierApiLog } from '@/lib/types';
 import { CourierLogo } from '@/components/CourierLogo';
@@ -347,6 +348,27 @@ export default function IntegrationsSettings() {
     }
   };
 
+  const handleDeleteAllOrders = async () => {
+    if (confirm('WARNING: This will permanently delete all orders, NDR records, and tracking logs. This action cannot be undone. Proceed?')) {
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deleteAllOrders: true })
+        });
+        if (res.ok) {
+          alert('All orders and NDR logs have been successfully deleted.');
+          fetchSettingsAndLogs();
+        } else {
+          const data = await res.json();
+          alert(data.error || 'Failed to delete orders.');
+        }
+      } catch (err) {
+        alert('Failed to delete orders.');
+      }
+    }
+  };
+
   const filteredCourierLogs = courierLogs.filter(log =>
     !logSearchQuery ||
     log.courier.toLowerCase().includes(logSearchQuery.toLowerCase()) ||
@@ -423,6 +445,15 @@ export default function IntegrationsSettings() {
           >
             <Database size={15} />
             <span>Reset Database</span>
+          </button>
+
+          <button
+            onClick={handleDeleteAllOrders}
+            className="premium-btn premium-btn-danger"
+            style={{ padding: '10px 16px', fontSize: '13px', background: 'rgba(239, 68, 68, 0.1)', color: '#EF4444', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Trash2 size={15} />
+            <span>Delete All Orders</span>
           </button>
         </div>
       </div>

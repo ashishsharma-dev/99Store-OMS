@@ -330,6 +330,25 @@ ${paymentType === 'COD'
 – Team ${brandName}`;
       break;
 
+    case 'Label Generated':
+      primaryMessage = `📄 आपके ऑर्डर का शिपिंग लेबल तैयार है
+नमस्कार ${customerName},
+आपके ${brandName} ऑर्डर #${orderId} का शिपिंग लेबल सफलतापूर्वक जेनरेट कर दिया गया है। 
+
+ऑर्डर विवरण:
+• उत्पाद: ${pName}
+• ट्रैकिंग आईडी (AWB): ${awb || 'N/A'}
+• कूरियर पार्टनर: ${courier || 'N/A'}
+
+जैसे ही आपका पार्सल कूरियर पार्टनर द्वारा पिक किया जाएगा, हम आपको शिपमेंट ट्रैकिंग जानकारी साझा करेंगे।
+
+ऑर्डर सहायता
+👤 ${supportName}
+📞 ${supportNumber}
+धन्यवाद!
+– Team ${brandName}`;
+      break;
+
     case 'NDR':
       primaryMessage = `⚠️ Delivery Failed! Hi ${customerName}, our courier partner was unable to deliver your ${brandName} order #${orderId}. Status: ${status}. Reason: Delivery attempt failed. Don't worry, we are scheduling a re-attempt shortly. Contact us if you wish to update details.`;
       break;
@@ -341,6 +360,18 @@ ${paymentType === 'COD'
     default:
       primaryMessage = `Hello ${customerName}, your ${brandName} order #${orderId} status has been updated to: ${status}.`;
       break;
+  }
+
+  // Generate packing slip URL and append if status is after/during label generation
+  const packingSlipUrl = `${baseUrl || 'https://99-store-oms.vercel.app'}/packing-slip/${orderId}`;
+  const isAfterLabelGen = status !== 'Created' && status !== 'Packing' && status !== 'Courier Selected';
+  if (isAfterLabelGen) {
+    const isHindi = ['Label Generated', 'Dispatched', 'RDC', 'OFD', 'Delivered'].includes(status);
+    if (isHindi) {
+      primaryMessage += `\n\n📄 अपनी पैकिंग स्लिप (Packing Slip) देखने के लिए यहाँ क्लिक करें:\n${packingSlipUrl}`;
+    } else {
+      primaryMessage += `\n\n📄 Click here to view your packing slip:\n${packingSlipUrl}`;
+    }
   }
 
   // Send the detailed message to all unique numbers attached to the order
