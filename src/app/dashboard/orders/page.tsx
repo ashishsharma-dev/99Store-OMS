@@ -497,6 +497,30 @@ export default function Orders() {
       return;
     }
 
+    const val = parseFloat(orderValue);
+    const paid = partiallyPaidAmount ? parseFloat(partiallyPaidAmount) : 0;
+
+    if (val <= 0) {
+      setFormError('Order Value must be greater than 0.');
+      return;
+    }
+
+    if (paymentType === 'Paid') {
+      if (paid > 0) {
+        setFormError('For prepaid (Paid) orders, the partially paid amount must be 0 (the full amount is already paid).');
+        return;
+      }
+    } else if (paymentType === 'COD') {
+      if (paid < 0) {
+        setFormError('Partially paid amount cannot be negative.');
+        return;
+      }
+      if (paid >= val) {
+        setFormError('For COD orders, the partially paid amount must be less than the total order value. If it is fully paid, please select Prepaid (Paid).');
+        return;
+      }
+    }
+
     if (isEditMode) {
       await executeOrderEdit();
       return;
@@ -612,6 +636,7 @@ export default function Orders() {
 
   const handleExportCsv = () => {
     let url = `/api/reports?status=${statusFilter}&payment=${paymentFilter}&vip=${vipFilter}`;
+    if (search.trim() !== '') url += `&search=${encodeURIComponent(search)}`;
     if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
     if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
     window.open(url);
@@ -1214,7 +1239,17 @@ export default function Orders() {
                 <div className="premium-grid-3" style={{ marginBottom: '12px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '4px', textTransform: 'uppercase' }}>Payment Type *</label>
-                    <select className="premium-input" value={paymentType} onChange={(e) => setPaymentType(e.target.value as any)}>
+                    <select 
+                      className="premium-input" 
+                      value={paymentType} 
+                      onChange={(e) => {
+                        const val = e.target.value as any;
+                        setPaymentType(val);
+                        if (val === 'Paid') {
+                          setPartiallyPaidAmount('');
+                        }
+                      }}
+                    >
                       <option value="Paid">Prepaid (Paid)</option>
                       <option value="COD">Cash on Delivery (COD)</option>
                     </select>
@@ -1232,7 +1267,15 @@ export default function Orders() {
                 <div className="premium-grid-2" style={{ marginBottom: '12px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '4px', textTransform: 'uppercase' }}>Partially Paid Amount (INR)</label>
-                    <input type="number" className="premium-input" placeholder="0" value={partiallyPaidAmount} onChange={(e) => setPartiallyPaidAmount(e.target.value)} />
+                    <input 
+                      type="number" 
+                      className="premium-input" 
+                      placeholder={paymentType === 'Paid' ? "N/A (Prepaid)" : "0"} 
+                      value={partiallyPaidAmount} 
+                      onChange={(e) => setPartiallyPaidAmount(e.target.value)} 
+                      disabled={paymentType === 'Paid'}
+                      style={paymentType === 'Paid' ? { backgroundColor: '#111113', cursor: 'not-allowed', color: '#52525B' } : {}}
+                    />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '4px', textTransform: 'uppercase' }}>Final Payable Amount (Autocalculated)</label>

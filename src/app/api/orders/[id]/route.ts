@@ -242,6 +242,26 @@ export async function PUT(
 
     const now = new Date().toISOString();
 
+    const currentPaymentType = paymentType !== undefined ? paymentType : order.paymentType;
+    const currentOrderValue = orderValue !== undefined ? parseFloat(orderValue) : order.orderValue;
+    const currentPartiallyPaidAmount = partiallyPaidAmount !== undefined ? parseFloat(partiallyPaidAmount) : (order.partiallyPaidAmount || 0);
+
+    if (currentOrderValue <= 0) {
+      return NextResponse.json({ error: 'Order value must be greater than 0.' }, { status: 400 });
+    }
+    if (currentPaymentType === 'Paid') {
+      if (currentPartiallyPaidAmount > 0) {
+        return NextResponse.json({ error: 'For prepaid (Paid) orders, the partially paid amount must be 0.' }, { status: 400 });
+      }
+    } else if (currentPaymentType === 'COD') {
+      if (currentPartiallyPaidAmount < 0) {
+        return NextResponse.json({ error: 'Partially paid amount cannot be negative.' }, { status: 400 });
+      }
+      if (currentPartiallyPaidAmount >= currentOrderValue) {
+        return NextResponse.json({ error: 'For COD orders, the partially paid amount must be less than the total order value.' }, { status: 400 });
+      }
+    }
+
     if (customerName !== undefined) order.customerName = customerName;
     if (phonePrimary !== undefined) order.phonePrimary = phonePrimary;
     if (phoneSecondary !== undefined) order.phoneSecondary = phoneSecondary || undefined;
@@ -255,15 +275,14 @@ export async function PUT(
     if (paymentType !== undefined) order.paymentType = paymentType;
     if (orderValue !== undefined) {
       order.orderValue = parseFloat(orderValue);
-      order.finalPayableAmount = order.orderValue - (order.partiallyPaidAmount || 0);
     }
     if (weight !== undefined) order.weight = parseFloat(weight);
     if (internalRemarks !== undefined) order.internalRemarks = internalRemarks || undefined;
     if (isVip !== undefined) order.isVip = !!isVip;
     if (partiallyPaidAmount !== undefined) {
       order.partiallyPaidAmount = parseFloat(partiallyPaidAmount);
-      order.finalPayableAmount = order.orderValue - order.partiallyPaidAmount;
     }
+    order.finalPayableAmount = order.orderValue - (order.partiallyPaidAmount || 0);
 
     order.updatedAt = now;
 

@@ -1827,49 +1827,54 @@ export async function POST(request: Request) {
       const serviceTypeId = settings.dtdcConfig.serviceTypeId || 'B2C PRIORITY';
       const commodityId = settings.dtdcConfig.commodityId || '2';
 
+      const consignmentObj: any = {
+        customer_code: customerCode,
+        service_type_id: serviceTypeId,
+        load_type: 'NON-DOCUMENT',
+        consignment_type: 'Forward',
+        dimension_unit: 'cm',
+        length: '10.0',
+        width: '10.0',
+        height: '10.0',
+        weight_unit: 'kg',
+        weight: weight ? String(weight) : String(order.weight || '0.5'),
+        declared_value: String(order.orderValue),
+        num_pieces: '1',
+        origin_details: {
+          name: settings.dtdcConfig.contactName || settings.xpressbeesConfig.contactName || 'Vishnu Singh Sikarwar',
+          phone: settings.dtdcConfig.phone || settings.xpressbeesConfig.phone || '8057023592',
+          alternate_phone: '',
+          address_line_1: settings.dtdcConfig.address || settings.xpressbeesConfig.address || 'J.K. NAGAR, NANDLALPUR HATHRAS ROAD KUBERPUR',
+          address_line_2: settings.dtdcConfig.address2 || settings.xpressbeesConfig.address2 || 'Kuberpur',
+          pincode: settings.dtdcConfig.pincode || settings.xpressbeesConfig.pincode || '282006',
+          city: settings.dtdcConfig.city || settings.xpressbeesConfig.city || 'Agra',
+          state: settings.dtdcConfig.state || settings.xpressbeesConfig.state || 'Uttar Pradesh'
+        },
+        destination_details: {
+          name: order.customerName,
+          phone: order.phonePrimary,
+          alternate_phone: order.phoneSecondary || '',
+          address_line_1: order.address,
+          address_line_2: '',
+          pincode: order.pincode,
+          city: order.area || 'New Delhi',
+          state: order.state || 'Delhi'
+        },
+        customer_reference_number: order.orderId,
+        commodity_id: commodityId,
+        description: order.productDetails || 'Fulfillment parcel',
+        reference_number: ''
+      };
+
+      const isCod = order.paymentType === 'COD';
+      const codCollectible = isCod ? (order.orderValue - (order.partiallyPaidAmount || 0)) : 0;
+      if (codCollectible > 0) {
+        consignmentObj.cod_collection_mode = 'cash';
+        consignmentObj.cod_amount = String(codCollectible);
+      }
+
       const payload = {
-        consignments: [
-          {
-            customer_code: customerCode,
-            service_type_id: serviceTypeId,
-            load_type: 'NON-DOCUMENT',
-            consignment_type: 'Forward',
-            dimension_unit: 'cm',
-            length: '10.0',
-            width: '10.0',
-            height: '10.0',
-            weight_unit: 'kg',
-            weight: weight ? String(weight) : String(order.weight || '0.5'),
-            declared_value: String(order.orderValue),
-            num_pieces: '1',
-            origin_details: {
-              name: settings.dtdcConfig.contactName || settings.xpressbeesConfig.contactName || 'Vishnu Singh Sikarwar',
-              phone: settings.dtdcConfig.phone || settings.xpressbeesConfig.phone || '8057023592',
-              alternate_phone: '',
-              address_line_1: settings.dtdcConfig.address || settings.xpressbeesConfig.address || 'J.K. NAGAR, NANDLALPUR HATHRAS ROAD KUBERPUR',
-              address_line_2: settings.dtdcConfig.address2 || settings.xpressbeesConfig.address2 || 'Kuberpur',
-              pincode: settings.dtdcConfig.pincode || settings.xpressbeesConfig.pincode || '282006',
-              city: settings.dtdcConfig.city || settings.xpressbeesConfig.city || 'Agra',
-              state: settings.dtdcConfig.state || settings.xpressbeesConfig.state || 'Uttar Pradesh'
-            },
-            destination_details: {
-              name: order.customerName,
-              phone: order.phonePrimary,
-              alternate_phone: order.phoneSecondary || '',
-              address_line_1: order.address,
-              address_line_2: '',
-              pincode: order.pincode,
-              city: order.area || 'New Delhi',
-              state: order.state || 'Delhi'
-            },
-            customer_reference_number: order.orderId,
-            cod_collection_mode: (order.paymentType === 'COD' || (order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 && order.orderValue > order.partiallyPaidAmount)) ? 'cash' : '',
-            cod_amount: (order.paymentType === 'COD' || (order.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0 && order.orderValue > order.partiallyPaidAmount)) ? String(order.orderValue - (order.partiallyPaidAmount || 0)) : '',
-            commodity_id: commodityId,
-            description: order.productDetails || 'Fulfillment parcel',
-            reference_number: ''
-          }
-        ]
+        consignments: [consignmentObj]
       };
 
       try {

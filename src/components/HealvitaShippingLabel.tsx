@@ -181,8 +181,9 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
             </div>
           </div>
           <div style={{
-            backgroundColor: '#000000',
-            color: '#FFFFFF',
+            backgroundColor: '#FFFFFF',
+            border: '1px solid #000000',
+            color: '#000000',
             fontSize: '6.5px',
             fontWeight: 'bold',
             width: '100%',
@@ -199,8 +200,9 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
         {/* Tax invoice */}
         <div style={{ padding: '0 6px', borderRight: '1px solid #000000', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div style={{
-            backgroundColor: '#000000',
-            color: '#FFFFFF',
+            backgroundColor: '#FFFFFF',
+            border: '1px solid #000000',
+            color: '#000000',
             fontSize: '8px',
             fontWeight: 'bold',
             textAlign: 'center',
@@ -239,7 +241,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
       }}>
         {/* Consignee */}
         <div style={{ borderRight: '2px solid #000000', padding: '6px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', backgroundColor: '#000000', color: '#FFFFFF', padding: '2px 6px', borderRadius: '2px', fontSize: '7.5px', fontWeight: 'bold', width: 'fit-content' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', backgroundColor: '#FFFFFF', border: '1px solid #000000', color: '#000000', padding: '2px 6px', borderRadius: '2px', fontSize: '7.5px', fontWeight: 'bold', width: 'fit-content' }}>
             📍 C/gn (Consignee) Details
           </div>
           <div style={{ fontSize: '8.5px', marginTop: '2px' }}>
@@ -259,8 +261,9 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {/* Header */}
           <div style={{
-            backgroundColor: '#000000',
-            color: '#FFFFFF',
+            backgroundColor: '#FFFFFF',
+            borderBottom: '1px solid #000000',
+            color: '#000000',
             display: 'flex',
             alignItems: 'center',
             padding: '4px 6px',
@@ -270,6 +273,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
               width: '18px',
               height: '18px',
               borderRadius: '50%',
+              border: '1px solid #000000',
               backgroundColor: '#FFFFFF',
               color: '#000000',
               display: 'flex',
@@ -348,7 +352,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
           gap: '4px'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-            <span style={{ backgroundColor: '#000000', color: '#FFFFFF', padding: '1px 6px', borderRadius: '2px', fontSize: '7.5px', fontWeight: 'bold' }}>
+            <span style={{ backgroundColor: '#FFFFFF', border: '1px solid #000000', color: '#000000', padding: '1px 6px', borderRadius: '2px', fontSize: '7.5px', fontWeight: 'bold' }}>
               🚚 TRACKING ID
             </span>
             <span style={{ fontSize: '8px', fontWeight: 'bold', textTransform: 'uppercase' }}>
@@ -381,8 +385,9 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
             textAlign: 'center',
             fontWeight: 'bold',
             fontSize: '8px',
-            backgroundColor: '#000000',
-            color: '#FFFFFF',
+            backgroundColor: '#FFFFFF',
+            border: '1px solid #000000',
+            color: '#000000',
             height: '100%',
             borderRadius: '4px',
             padding: '4px'
@@ -409,7 +414,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
         {/* Order barcode */}
         <div style={{ borderRight: '2px solid #000000', paddingRight: '6px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div style={{ display: 'flex', justifyContent: 'flex-start', width: '100%' }}>
-            <span style={{ backgroundColor: '#000000', color: '#FFFFFF', padding: '1px 6px', borderRadius: '2px', fontSize: '7.5px', fontWeight: 'bold' }}>
+            <span style={{ backgroundColor: '#FFFFFF', border: '1px solid #000000', color: '#000000', padding: '1px 6px', borderRadius: '2px', fontSize: '7.5px', fontWeight: 'bold' }}>
               📋 ORDER ID
             </span>
           </div>
@@ -433,7 +438,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
       }}>
         {/* Sender details */}
         <div style={{ borderRight: '2px solid #000000', padding: '6px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <div style={{ backgroundColor: '#000000', color: '#FFFFFF', padding: '1px 6px', borderRadius: '2px', fontSize: '7.5px', fontWeight: 'bold', width: 'fit-content' }}>
+          <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #000000', color: '#000000', padding: '1px 6px', borderRadius: '2px', fontSize: '7.5px', fontWeight: 'bold', width: 'fit-content' }}>
             👤 SENDER DETAILS
           </div>
           <div style={{ fontSize: '7.5px', lineHeight: '1.2', marginTop: '2px' }}>
@@ -448,7 +453,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
 
         {/* Product description */}
         <div style={{ padding: '6px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <div style={{ backgroundColor: '#000000', color: '#FFFFFF', padding: '1px 6px', borderRadius: '2px', fontSize: '7.5px', fontWeight: 'bold', width: 'fit-content' }}>
+          <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #000000', color: '#000000', padding: '1px 6px', borderRadius: '2px', fontSize: '7.5px', fontWeight: 'bold', width: 'fit-content' }}>
             📦 PRODUCT DESCRIPTION
           </div>
 
@@ -475,7 +480,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
 
       {/* 6. Invoice Details Table */}
       <div style={{ padding: '6px', borderBottom: '2px solid #000000' }}>
-        <div style={{ backgroundColor: '#000000', color: '#FFFFFF', padding: '1px 6px', borderRadius: '2px', fontSize: '7.5px', fontWeight: 'bold', width: 'fit-content', marginBottom: '4px' }}>
+        <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #000000', color: '#000000', padding: '1px 6px', borderRadius: '2px', fontSize: '7.5px', fontWeight: 'bold', width: 'fit-content', marginBottom: '4px' }}>
           📄 INVOICE DETAILS
         </div>
 
@@ -550,8 +555,8 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
                   <td colSpan={4} style={{ borderRight: '1px solid #000000', padding: '2px 4px', textAlign: 'left', borderBottom: '1px solid #000000' }}>LESS: PAID AMOUNT</td>
                   <td style={{ padding: '2px 4px', textAlign: 'right', borderBottom: '1px solid #000000' }}>-₹{order.partiallyPaidAmount.toFixed(2)}</td>
                 </tr>
-                <tr style={{ backgroundColor: '#000000', color: '#FFFFFF', fontWeight: 'bold' }}>
-                  <td colSpan={4} style={{ borderRight: '1px solid #FFFFFF', padding: '3px 4px', textAlign: 'left' }}>
+                <tr style={{ backgroundColor: '#FFFFFF', color: '#000000', fontWeight: 'bold', borderTop: '2px solid #000000' }}>
+                  <td colSpan={4} style={{ borderRight: '1px solid #000000', padding: '3px 4px', textAlign: 'left' }}>
                     {(order.paymentType === 'COD' || (order.partiallyPaidAmount > 0 && order.orderValue > order.partiallyPaidAmount)) ? 'BALANCE TO COLLECT (COD)' : 'TOTAL AMOUNT'}
                   </td>
                   <td style={{ padding: '3px 4px', textAlign: 'right' }}>
@@ -560,8 +565,8 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
                 </tr>
               </>
             ) : (
-              <tr style={{ backgroundColor: '#000000', color: '#FFFFFF', fontWeight: 'bold' }}>
-                <td colSpan={4} style={{ borderRight: '1px solid #FFFFFF', padding: '3px 4px', textAlign: 'left' }}>TOTAL AMOUNT</td>
+              <tr style={{ backgroundColor: '#FFFFFF', color: '#000000', fontWeight: 'bold', borderTop: '2px solid #000000' }}>
+                <td colSpan={4} style={{ borderRight: '1px solid #000000', padding: '3px 4px', textAlign: 'left' }}>TOTAL AMOUNT</td>
                 <td style={{ padding: '3px 4px', textAlign: 'right' }}>₹{orderVal.toFixed(2)}</td>
               </tr>
             )}
@@ -615,10 +620,11 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
         </div>
       </div>
 
-      {/* 8. Black Bottom Bar */}
+      {/* 8. Bottom Bar */}
       <div style={{
-        backgroundColor: '#000000',
-        color: '#FFFFFF',
+        backgroundColor: '#FFFFFF',
+        borderTop: '2px solid #000000',
+        color: '#000000',
         textAlign: 'center',
         padding: '3px 0',
         fontSize: '7px',

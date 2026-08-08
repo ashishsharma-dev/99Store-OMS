@@ -16,7 +16,8 @@ import {
   AlertCircle,
   Eye,
   Star,
-  Clock
+  Clock,
+  Download
 } from 'lucide-react';
 import { Order, OrderStatus, User as DbUser } from '@/lib/types';
 import { InspectTooltipButton } from '@/components/InspectTooltipButton';
@@ -315,6 +316,13 @@ export default function OfdManagement() {
     }
   };
 
+  const handleExportCsv = () => {
+    let url = `/api/reports?status=OFD&assigned=${activeTab === 'working_sheet' ? 'true' : 'false'}`;
+    if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
+    if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
+    window.open(url);
+  };
+
   // Tab filters
   const unassignedOfd = orders.filter(o => !o.assignedTo);
   const workingSheetOfd = orders.filter(o => o.assignedTo);
@@ -334,7 +342,11 @@ export default function OfdManagement() {
 
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <DateRangeFilter value={dateRange} onChange={setDateRange} />
-          <button onClick={fetchOfdOrders} className="premium-btn premium-btn-secondary" disabled={loading || actionLoading}>
+          <button onClick={handleExportCsv} className="premium-btn premium-btn-secondary" style={{ padding: '8px 12px' }}>
+            <Download size={14} />
+            <span>Export CSV</span>
+          </button>
+          <button onClick={fetchOfdOrders} className="premium-btn premium-btn-secondary" disabled={loading || actionLoading} style={{ padding: '8px 12px' }}>
             <RefreshCcw size={14} />
             <span>Reload Feeds</span>
           </button>

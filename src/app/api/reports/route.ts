@@ -9,13 +9,26 @@ export async function GET(request: Request) {
     const vip = searchParams.get('vip');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const courier = searchParams.get('courier');
+    const search = searchParams.get('search');
+    const queue = searchParams.get('queue');
+    const assigned = searchParams.get('assigned');
 
     let orders = await db.getOrders();
 
-    // Apply the same filters as the main search listing if provided
-    if (status && status !== 'all') {
+    // Apply filters
+    if (queue === 'packing') {
+      const todayStr = new Date().toISOString().split('T')[0];
+      orders = orders.filter(o => {
+        const isCorrectStatus = o.status === 'Created' || o.status === 'Packing' || o.status === 'Label Generated';
+        if (!isCorrectStatus) return false;
+        if (o.futureDeliveryDate && o.futureDeliveryDate > todayStr) return false;
+        return true;
+      });
+    } else if (status && status !== 'all') {
       orders = orders.filter(o => o.status === status);
     }
+
     if (payment && payment !== 'all') {
       orders = orders.filter(o => o.paymentType === payment);
     }
@@ -23,6 +36,28 @@ export async function GET(request: Request) {
       const isVip = vip === 'true';
       orders = orders.filter(o => o.isVip === isVip);
     }
+    if (courier && courier !== 'all') {
+      orders = orders.filter(o => o.courier === courier);
+    }
+    if (assigned === 'true') {
+      orders = orders.filter(o => !!o.assignedTo);
+    } else if (assigned === 'false') {
+      orders = orders.filter(o => !o.assignedTo);
+    }
+
+    if (search && search.trim() !== '') {
+      const q = search.trim().toLowerCase();
+      orders = orders.filter(o => 
+        o.customerName.toLowerCase().includes(q) ||
+        o.orderId.toLowerCase().includes(q) ||
+        (o.phonePrimary && o.phonePrimary.includes(q)) ||
+        (o.phoneSecondary && o.phoneSecondary.includes(q)) ||
+        (o.awb && o.awb.toLowerCase().includes(q)) ||
+        (o.pincode && o.pincode.includes(q)) ||
+        (o.address && o.address.toLowerCase().includes(q))
+      );
+    }
+
     if (startDate) {
       const start = new Date(startDate).getTime();
       orders = orders.filter(o => new Date(o.createdAt).getTime() >= start);

@@ -19,7 +19,8 @@ import {
   MessageSquare,
   Trash2,
   Star,
-  Clock
+  Clock,
+  Download
 } from 'lucide-react';
 import { NdrRecord, Order, User as DbUser } from '@/lib/types';
 import { InspectTooltipButton } from '@/components/InspectTooltipButton';
@@ -419,6 +420,55 @@ export default function NdrManagement() {
     }
   };
 
+  const handleExportCsv = () => {
+    const listToExport = activeTab === 'ndr' ? activeNdrTickets : workingSheetTickets;
+
+    const headers = [
+      'Order ID',
+      'Customer Name',
+      'Primary Phone',
+      'Courier',
+      'AWB/Tracking Number',
+      'NDR Reason',
+      'NDR Status',
+      'Re-attempt Date',
+      'Internal Notes',
+      'Date Logged'
+    ];
+
+    const escapeCsv = (str: any) => {
+      if (str === undefined || str === null) return '""';
+      let clean = String(str).replace(/"/g, '""');
+      if (clean.includes(',') || clean.includes('\n') || clean.includes('"')) {
+        return `"${clean}"`;
+      }
+      return clean;
+    };
+
+    const rows = listToExport.map(r => [
+      r.orderId,
+      escapeCsv(r.customerName),
+      r.phonePrimary,
+      r.courier,
+      r.awb,
+      escapeCsv(r.reason),
+      r.status,
+      r.reattemptDate || 'N/A',
+      escapeCsv(r.internalNotes),
+      r.createdAt.split('T')[0]
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `ndr_export_${activeTab}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleOpenResolve = (record: NdrRecord) => {
     setSelectedNdr(record);
     setActionDropdown('Arranged');
@@ -532,7 +582,11 @@ export default function NdrManagement() {
 
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <DateRangeFilter value={dateRange} onChange={setDateRange} />
-          <button onClick={fetchData} className="premium-btn premium-btn-secondary" disabled={loading || bulkLoading}>
+          <button onClick={handleExportCsv} className="premium-btn premium-btn-secondary" style={{ padding: '8px 12px' }}>
+            <Download size={14} />
+            <span>Export CSV</span>
+          </button>
+          <button onClick={fetchData} className="premium-btn premium-btn-secondary" disabled={loading || bulkLoading} style={{ padding: '8px 12px' }}>
             <RefreshCcw size={14} />
             <span>Reload Queue</span>
           </button>

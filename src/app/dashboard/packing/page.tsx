@@ -10,7 +10,8 @@ import {
   RefreshCcw, 
   ArrowRight,
   Barcode,
-  Calendar
+  Calendar,
+  Download
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
 import { HealvitaShippingLabel } from '@/components/HealvitaShippingLabel';
@@ -468,6 +469,13 @@ export default function Packing() {
     window.print();
   };
 
+  const handleExportCsv = () => {
+    let url = `/api/reports?queue=packing&courier=${courierFilter}`;
+    if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
+    if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
+    window.open(url);
+  };
+
   const handleOpenReassign = (order: Order) => {
     const activeCourier = courierOverrides[order.id] || order.courier || 'DTDC';
     setReassignOrder(order);
@@ -561,7 +569,11 @@ export default function Packing() {
 
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <DateRangeFilter value={dateRange} onChange={setDateRange} />
-          <button onClick={fetchPackingQueue} className="premium-btn premium-btn-secondary" disabled={loading || bulkProcessing}>
+          <button onClick={handleExportCsv} className="premium-btn premium-btn-secondary" style={{ padding: '8px 12px' }}>
+            <Download size={14} />
+            <span>Export CSV</span>
+          </button>
+          <button onClick={fetchPackingQueue} className="premium-btn premium-btn-secondary" disabled={loading || bulkProcessing} style={{ padding: '8px 12px' }}>
             <RefreshCcw size={14} />
             <span>Reload Queue</span>
           </button>

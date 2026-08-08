@@ -171,6 +171,23 @@ export async function POST(request: Request) {
 
     const parsedValue = parseFloat(orderValue);
     const parsedPaidAmount = body.partiallyPaidAmount ? parseFloat(body.partiallyPaidAmount) : 0;
+
+    if (parsedValue <= 0) {
+      return NextResponse.json({ error: 'Order value must be greater than 0.' }, { status: 400 });
+    }
+    if (paymentType === 'Paid') {
+      if (parsedPaidAmount > 0) {
+        return NextResponse.json({ error: 'For prepaid (Paid) orders, the partially paid amount must be 0.' }, { status: 400 });
+      }
+    } else if (paymentType === 'COD') {
+      if (parsedPaidAmount < 0) {
+        return NextResponse.json({ error: 'Partially paid amount cannot be negative.' }, { status: 400 });
+      }
+      if (parsedPaidAmount >= parsedValue) {
+        return NextResponse.json({ error: 'For COD orders, the partially paid amount must be less than the total order value.' }, { status: 400 });
+      }
+    }
+
     const finalPayableAmount = parsedValue - parsedPaidAmount;
     const now = new Date().toISOString();
 

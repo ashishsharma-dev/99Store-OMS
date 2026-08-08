@@ -16,7 +16,8 @@ import {
   ChevronDown,
   ArrowUpDown,
   MessageSquare,
-  Copy
+  Copy,
+  Download
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
 import { InspectTooltipButton } from '@/components/InspectTooltipButton';
@@ -238,6 +239,14 @@ export default function AllShipments() {
     }
   };
 
+  const handleExportCsv = () => {
+    let url = `/api/reports?status=${statusFilter}&courier=${courierFilter}`;
+    if (search.trim() !== '') url += `&search=${encodeURIComponent(search)}`;
+    if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
+    if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
+    window.open(url);
+  };
+
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
@@ -252,6 +261,10 @@ export default function AllShipments() {
 
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <DateRangeFilter value={dateRange} onChange={(range) => { setDateRange(range); setPage(1); }} />
+          <button onClick={handleExportCsv} className="premium-btn premium-btn-secondary" style={{ padding: '8px 14px' }}>
+            <Download size={14} />
+            <span>Export CSV</span>
+          </button>
           <button onClick={() => fetchShipmentsList()} className="premium-btn premium-btn-secondary" style={{ padding: '8px 14px' }}>
             <RefreshCcw size={14} />
             <span>Sync Feeds</span>
