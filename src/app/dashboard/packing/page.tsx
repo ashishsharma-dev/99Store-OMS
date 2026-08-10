@@ -11,7 +11,8 @@ import {
   ArrowRight,
   Barcode,
   Calendar,
-  Download
+  Download,
+  Info
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
 import { HealvitaShippingLabel } from '@/components/HealvitaShippingLabel';
@@ -726,6 +727,17 @@ export default function Packing() {
                     </td>
                     <td style={{ fontWeight: 700, fontFamily: 'monospace' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span 
+                          title={o.internalRemarks ? `Internal Fulfillment Remarks: ${o.internalRemarks}` : 'No internal remarks'} 
+                          style={{ 
+                            cursor: 'help', 
+                            color: o.internalRemarks ? '#3B82F6' : '#737373', 
+                            display: 'inline-flex',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <Info size={13} />
+                        </span>
                         <span>{o.orderId}</span>
                         {o.isVip && <span style={{ color: 'var(--color-vip)' }}>⭐</span>}
                       </div>

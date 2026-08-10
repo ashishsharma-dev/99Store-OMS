@@ -8,11 +8,12 @@ import {
   FileText, 
   Check, 
   MapPin, 
-  Phone,
-  ListFilter,
-  User,
-  ChevronRight,
+  Phone, 
+  ListFilter, 
+  User, 
+  ChevronRight, 
   Eye,
+  Info,
   Settings,
   PlusCircle,
   UserCheck,
@@ -747,7 +748,22 @@ export default function NdrManagement() {
                           style={{ cursor: 'pointer', width: '16px', height: '16px' }}
                         />
                       </td>
-                      <td style={{ fontWeight: 700, fontFamily: 'monospace' }}>{n.orderId}</td>
+                      <td style={{ fontWeight: 700, fontFamily: 'monospace' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span 
+                            title={order?.internalRemarks ? `Internal Fulfillment Remarks: ${order.internalRemarks}` : 'No internal remarks'} 
+                            style={{ 
+                              cursor: 'help', 
+                              color: order?.internalRemarks ? '#3B82F6' : '#737373', 
+                              display: 'inline-flex',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <Info size={13} />
+                          </span>
+                          <span>{n.orderId}</span>
+                        </div>
+                      </td>
                       <td>
                         <div style={{ fontWeight: 500 }}>{n.customerName}</div>
                         <div style={{ fontSize: '11px', color: '#737373' }}>Tel: {n.phonePrimary}</div>
@@ -872,7 +888,22 @@ export default function NdrManagement() {
                         backgroundColor: isPartiallyPaid ? 'rgba(16,185,129,0.08)' : 'transparent'
                       }}
                     >
-                      <td style={{ fontWeight: 700, fontFamily: 'monospace' }}>{n.orderId}</td>
+                      <td style={{ fontWeight: 700, fontFamily: 'monospace' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span 
+                            title={order?.internalRemarks ? `Internal Fulfillment Remarks: ${order.internalRemarks}` : 'No internal remarks'} 
+                            style={{ 
+                              cursor: 'help', 
+                              color: order?.internalRemarks ? '#3B82F6' : '#737373', 
+                              display: 'inline-flex',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <Info size={13} />
+                          </span>
+                          <span>{n.orderId}</span>
+                        </div>
+                      </td>
                       <td>
                         <div style={{ fontWeight: 500 }}>{n.customerName}</div>
                         <div style={{ fontSize: '11px', color: '#737373' }}>Tel: {n.phonePrimary}</div>

@@ -13,6 +13,7 @@ import {
   User,
   Clock,
   ExternalLink,
+  Info,
   Printer,
   Barcode
 } from 'lucide-react';
@@ -287,6 +288,17 @@ export default function Tracking() {
                   >
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span 
+                          title={o.internalRemarks ? `Internal Fulfillment Remarks: ${o.internalRemarks}` : 'No internal remarks'} 
+                          style={{ 
+                            cursor: 'help', 
+                            color: o.internalRemarks ? '#3B82F6' : '#737373', 
+                            display: 'inline-flex',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <Info size={13} />
+                        </span>
                         <span style={{ fontWeight: 700, color: '#FAFAFA', fontSize: '13.5px', fontFamily: 'monospace' }}>
                           {o.orderId}
                         </span>

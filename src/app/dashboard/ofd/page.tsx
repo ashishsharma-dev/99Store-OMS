@@ -15,6 +15,7 @@ import {
   UserCheck,
   AlertCircle,
   Eye,
+  Info,
   Star,
   Clock,
   Download
@@ -495,7 +496,22 @@ export default function OfdManagement() {
                           style={{ cursor: 'pointer', width: '16px', height: '16px' }}
                         />
                       </td>
-                      <td style={{ fontWeight: 700, fontFamily: 'monospace' }}>{o.orderId}</td>
+                      <td style={{ fontWeight: 700, fontFamily: 'monospace' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span 
+                            title={o.internalRemarks ? `Internal Fulfillment Remarks: ${o.internalRemarks}` : 'No internal remarks'} 
+                            style={{ 
+                              cursor: 'help', 
+                              color: o.internalRemarks ? '#3B82F6' : '#737373', 
+                              display: 'inline-flex',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <Info size={13} />
+                          </span>
+                          <span>{o.orderId}</span>
+                        </div>
+                      </td>
                       <td>
                         <div style={{ fontWeight: 500 }}>{o.customerName}</div>
                         <div style={{ fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
@@ -627,7 +643,22 @@ export default function OfdManagement() {
                         backgroundColor: isPartiallyPaid ? 'rgba(16,185,129,0.08)' : 'transparent'
                       }}
                     >
-                      <td style={{ fontWeight: 700, fontFamily: 'monospace' }}>{o.orderId}</td>
+                      <td style={{ fontWeight: 700, fontFamily: 'monospace' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span 
+                            title={o.internalRemarks ? `Internal Fulfillment Remarks: ${o.internalRemarks}` : 'No internal remarks'} 
+                            style={{ 
+                              cursor: 'help', 
+                              color: o.internalRemarks ? '#3B82F6' : '#737373', 
+                              display: 'inline-flex',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <Info size={13} />
+                          </span>
+                          <span>{o.orderId}</span>
+                        </div>
+                      </td>
                       <td>
                         <div style={{ fontWeight: 500 }}>{o.customerName}</div>
                         <div style={{ fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>

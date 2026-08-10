@@ -9,6 +9,7 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Eye,
+  Info,
   Star,
   RefreshCcw,
   Clock,
@@ -456,6 +457,17 @@ export default function AllShipments() {
                     >
                       <td style={{ fontWeight: 700, fontFamily: 'monospace' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span 
+                            title={o.internalRemarks ? `Internal Fulfillment Remarks: ${o.internalRemarks}` : 'No internal remarks'} 
+                            style={{ 
+                              cursor: 'help', 
+                              color: o.internalRemarks ? '#3B82F6' : '#737373', 
+                              display: 'inline-flex',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <Info size={13} />
+                          </span>
                           <span>{o.orderId}</span>
                           {o.isVip && <span style={{ color: 'var(--color-vip)' }}>⭐</span>}
                         </div>
