@@ -24,16 +24,22 @@ export async function POST(request: Request) {
     }
 
     if (runInBackground) {
-      // Execute sequentially in the background to prevent db write race conditions
+      // Execute in batches in the background to yield the Node.js event loop
       (async () => {
-        for (const order of activeOrders) {
-          const courierParam = order.courier ? `&courier=${order.courier}` : '';
-          try {
-            const url = `${baseUrl}/api/integrations/courier?action=track&waybill=${encodeURIComponent(order.awb!)}${courierParam}`;
-            await fetch(url);
-          } catch (err) {
-            console.error(`Failed background sync for AWB ${order.awb}:`, err);
-          }
+        const batchSize = 5;
+        for (let i = 0; i < activeOrders.length; i += batchSize) {
+          const batch = activeOrders.slice(i, i + batchSize);
+          await Promise.all(batch.map(async (order) => {
+            const courierParam = order.courier ? `&courier=${order.courier}` : '';
+            try {
+              const url = `${baseUrl}/api/integrations/courier?action=track&waybill=${encodeURIComponent(order.awb!)}${courierParam}`;
+              await fetch(url);
+            } catch (err) {
+              console.error(`Failed background sync for AWB ${order.awb}:`, err);
+            }
+          }));
+          // Yield to event loop to prevent server blocking
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
       })().catch(err => console.error('Background bulk sync process error:', err));
 
@@ -43,34 +49,40 @@ export async function POST(request: Request) {
       });
     }
 
-    // Synchronous execution for manual requests
+    // Synchronous execution for manual requests with controlled concurrency
     const updates: { orderId: string; awb: string; previousStatus: string; newStatus: string }[] = [];
     let totalUpdated = 0;
+    const batchSize = 5;
 
-    for (const order of activeOrders) {
-      const courierParam = order.courier ? `&courier=${order.courier}` : '';
-      const previousStatus = order.status;
+    for (let i = 0; i < activeOrders.length; i += batchSize) {
+      const batch = activeOrders.slice(i, i + batchSize);
+      await Promise.all(batch.map(async (order) => {
+        const courierParam = order.courier ? `&courier=${order.courier}` : '';
+        const previousStatus = order.status;
 
-      try {
-        const url = `${baseUrl}/api/integrations/courier?action=track&waybill=${encodeURIComponent(order.awb!)}${courierParam}`;
-        const response = await fetch(url);
-        
-        if (response.ok) {
-          // Re-fetch order from database to see if status updated via tracking GET side-effect
-          const updatedOrder = await db.getOrderById(order.id);
-          if (updatedOrder && updatedOrder.status !== previousStatus) {
-            totalUpdated++;
-            updates.push({
-              orderId: order.orderId,
-              awb: order.awb!,
-              previousStatus,
-              newStatus: updatedOrder.status
-            });
+        try {
+          const url = `${baseUrl}/api/integrations/courier?action=track&waybill=${encodeURIComponent(order.awb!)}${courierParam}`;
+          const response = await fetch(url);
+          
+          if (response.ok) {
+            // Re-fetch order from database to see if status updated via tracking GET side-effect
+            const updatedOrder = await db.getOrderById(order.id);
+            if (updatedOrder && updatedOrder.status !== previousStatus) {
+              totalUpdated++;
+              updates.push({
+                orderId: order.orderId,
+                awb: order.awb!,
+                previousStatus,
+                newStatus: updatedOrder.status
+              });
+            }
           }
+        } catch (err) {
+          console.error(`Failed to sync waybill ${order.awb} for order ${order.orderId}:`, err);
         }
-      } catch (err) {
-        console.error(`Failed to sync waybill ${order.awb} for order ${order.orderId}:`, err);
-      }
+      }));
+      // Yield to event loop to keep server responsive
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     return NextResponse.json({

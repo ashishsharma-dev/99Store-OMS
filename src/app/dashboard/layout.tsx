@@ -132,15 +132,15 @@ export default function DashboardLayout({
   useEffect(() => {
     const runBackgroundSync = async () => {
       try {
-        const lastSync = sessionStorage.getItem('99store_last_tracking_sync');
+        const lastSync = localStorage.getItem('99store_last_tracking_sync');
         const now = Date.now();
         
-        // Rate limit: only run background sync once every 3 minutes
-        if (lastSync && now - parseInt(lastSync) < 180000) {
+        // Rate limit: only run background sync once every 1 hour (3,600,000 ms)
+        if (lastSync && now - parseInt(lastSync) < 3600000) {
           return;
         }
         
-        sessionStorage.setItem('99store_last_tracking_sync', now.toString());
+        localStorage.setItem('99store_last_tracking_sync', now.toString());
         await fetch('/api/integrations/courier/sync?background=true', { method: 'POST' });
       } catch (err) {
         console.error('Background tracking sync failed:', err);
