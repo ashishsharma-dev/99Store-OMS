@@ -1301,7 +1301,7 @@ export default function DashboardLayout({
       {isChatOpen && (
         <div style={{
           position: 'fixed',
-          bottom: '90px',
+          bottom: '150px',
           right: '24px',
           width: '360px',
           height: '480px',
@@ -1696,7 +1696,7 @@ export default function DashboardLayout({
         onClick={() => setIsChatOpen(!isChatOpen)}
         style={{
           position: 'fixed',
-          bottom: '24px',
+          bottom: '85px',
           right: '24px',
           width: '56px',
           height: '56px',

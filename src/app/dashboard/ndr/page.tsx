@@ -255,7 +255,7 @@ export default function NdrManagement() {
       }
 
       // 2. Fetch Orders to determine which are in working sheet
-      let ordersUrl = '/api/orders?limit=150';
+      let ordersUrl = '/api/orders?limit=10000';
       if (dateRange.startDate) ordersUrl += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
       if (dateRange.endDate) ordersUrl += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
       const ordersRes = await fetch(ordersUrl);

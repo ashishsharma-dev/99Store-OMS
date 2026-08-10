@@ -104,7 +104,7 @@ export default function Tracking() {
   const fetchActiveShipments = async (isBackground = false) => {
     if (!isBackground) setLoading(true);
     try {
-      let url = '/api/orders?limit=100';
+      let url = '/api/orders?limit=10000';
       if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
       if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
       const res = await fetch(url);
