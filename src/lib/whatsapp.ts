@@ -462,7 +462,7 @@ export function startQueueProcessor() {
           const lastSentOrPending = logs.find(l => 
             l.orderId === log.orderId && 
             l.id !== log.id && 
-            (l.status === 'Sent' || l.status === 'Pending') &&
+            l.status === 'Sent' &&
             l.timestamp &&
             now - new Date(l.timestamp).getTime() < 60000
           );
