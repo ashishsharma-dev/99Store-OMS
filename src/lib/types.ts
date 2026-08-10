@@ -272,3 +272,23 @@ export interface Message {
   isAlertBanner?: boolean; // True if it should display as a global dashboard banner
 }
 
+export interface BulkJobResult {
+  orderId: string;
+  success: boolean;
+  message: string;
+  awb?: string;
+}
+
+export interface BulkJob {
+  id: string;
+  status: 'Pending' | 'Processing' | 'Completed' | 'Failed';
+  total: number;
+  current: number;
+  successCount: number;
+  failedCount: number;
+  activeOrder: string;
+  results: BulkJobResult[];
+  createdAt: string;
+  updatedAt: string;
+}
+

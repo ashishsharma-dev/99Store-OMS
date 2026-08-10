@@ -58,6 +58,7 @@ let memoryCourierLogs: CourierApiLog[] = localDb.courierLogs || [...mockCourierL
 let memorySettings: SystemSettings = localDb.settings ? { ...mockSettings, ...localDb.settings } : { ...mockSettings };
 let memoryMessages: Message[] = localDb.messages || [...mockMessages];
 let memoryTrackingEvents: any[] = localDb.tracking_events || [];
+let memoryBulkJobs: any[] = localDb.bulk_jobs || [];
 
 // Helper to sync memory state to db.json
 function saveMemoryToLocalFile() {
@@ -69,7 +70,8 @@ function saveMemoryToLocalFile() {
     courierLogs: memoryCourierLogs,
     settings: memorySettings,
     messages: memoryMessages,
-    tracking_events: memoryTrackingEvents
+    tracking_events: memoryTrackingEvents,
+    bulk_jobs: memoryBulkJobs
   };
   writeLocalDbFile(data);
 }
@@ -735,6 +737,52 @@ export const db = {
         console.warn('MongoDB addTrackingEvent error:', e);
       }
     }
+  },
+  getBulkJob: async (id: string): Promise<any | null> => {
+    const database = await safeGetDb();
+    if (database) {
+      try {
+        const result = await database.collection('bulk_jobs').findOne({ id });
+        if (result) { const { _id, ...rest } = result as any; return rest; }
+      } catch (e) {
+        console.warn('MongoDB getBulkJob error, using memory:', e);
+      }
+    }
+    const local = readLocalDbFile() || {};
+    if (local.bulk_jobs) memoryBulkJobs = local.bulk_jobs;
+    return memoryBulkJobs.find(j => j.id === id) || null;
+  },
+  saveBulkJob: async (job: any): Promise<void> => {
+    const local = readLocalDbFile() || {};
+    if (local.bulk_jobs) memoryBulkJobs = local.bulk_jobs;
+    const existingIdx = memoryBulkJobs.findIndex(j => j.id === job.id);
+    if (existingIdx !== -1) {
+      memoryBulkJobs[existingIdx] = job;
+    } else {
+      memoryBulkJobs.push(job);
+    }
+    saveMemoryToLocalFile();
+    const database = await safeGetDb();
+    if (database) {
+      try {
+        await database.collection('bulk_jobs').replaceOne({ id: job.id }, job, { upsert: true });
+      } catch (e) {
+        console.warn('MongoDB saveBulkJob error:', e);
+      }
+    }
+  },
+  listBulkJobs: async (): Promise<any[]> => {
+    const database = await safeGetDb();
+    if (database) {
+      try {
+        return await database.collection('bulk_jobs').find({}).toArray();
+      } catch (e) {
+        console.warn('MongoDB listBulkJobs error, using memory:', e);
+      }
+    }
+    const local = readLocalDbFile() || {};
+    if (local.bulk_jobs) memoryBulkJobs = local.bulk_jobs;
+    return memoryBulkJobs;
   }
 };
 

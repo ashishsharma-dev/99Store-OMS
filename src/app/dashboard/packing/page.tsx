@@ -335,6 +335,9 @@ export default function Packing() {
       return;
     }
 
+    const firstOrder = pendingAWB[0];
+    const selectedCourier = courierOverrides[firstOrder.id] || firstOrder.courier || 'DTDC';
+
     setBulkProgress({
       total: pendingAWB.length,
       current: 0,
@@ -345,84 +348,66 @@ export default function Packing() {
     });
     setBulkProcessing(true);
 
-    let currentIdx = 0;
-    let successCount = 0;
-    let failedCount = 0;
-    const completedList: { orderId: string; success: boolean; message: string }[] = [];
+    try {
+      const startRes = await fetch('/api/bulk-jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderIds: pendingAWB.map(o => o.id),
+          courier: selectedCourier,
+          username: currentUser?.username || 'packing_operator'
+        })
+      });
 
-    const CONCURRENCY_LIMIT = 4;
-
-    const worker = async () => {
-      while (currentIdx < pendingAWB.length) {
-        const idx = currentIdx++;
-        const order = pendingAWB[idx];
-        if (!order) continue;
-
-        setBulkProgress(prev => ({
-          ...prev,
-          activeOrder: order.orderId
-        }));
-
-        const selectedCourier = courierOverrides[order.id] || order.courier || 'DTDC';
-        const targetPhone = phoneSelections[order.id] || order.phonePrimary;
-
-        try {
-          const res = await fetch(`/api/orders/${order.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              status: 'Label Generated',
-              courier: selectedCourier,
-              phonePrimary: targetPhone,
-              updatedBy: currentUser?.username || 'packing_operator',
-              remarks: `Bulk Packed items verified. Routing via ${selectedCourier} with phone ${targetPhone}.`
-            })
-          });
-
-          const data = await res.json().catch(() => ({}));
-          if (res.ok && !data.awbError) {
-            successCount++;
-            completedList.push({
-              orderId: order.orderId,
-              success: true,
-              message: `AWB generated successfully via ${selectedCourier}.`
-            });
-          } else {
-            failedCount++;
-            completedList.push({
-              orderId: order.orderId,
-              success: false,
-              message: data.awbError || data.error || 'Courier API AWB generation failed.'
-            });
-          }
-        } catch (err: any) {
-          failedCount++;
-          completedList.push({
-            orderId: order.orderId,
-            success: false,
-            message: err.message || 'Network connectivity error.'
-          });
-        }
-
-        setBulkProgress(prev => ({
-          ...prev,
-          current: idx + 1,
-          success: successCount,
-          failed: failedCount,
-          completedList: [...completedList]
-        }));
+      const startData = await startRes.json();
+      if (!startRes.ok || !startData.success || !startData.job) {
+        alert(startData.error || 'Failed to initialize background bulk AWB job.');
+        setBulkProcessing(false);
+        return;
       }
-    };
 
-    const workers = Array.from(
-      { length: Math.min(CONCURRENCY_LIMIT, pendingAWB.length) },
-      () => worker()
-    );
-    await Promise.all(workers);
+      const jobId = startData.job.id;
 
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setBulkProcessing(false);
-    fetchPackingQueue();
+      const pollInterval = setInterval(async () => {
+        try {
+          const pollRes = await fetch(`/api/bulk-jobs?jobId=${jobId}`);
+          const pollData = await pollRes.json();
+
+          if (pollRes.ok && pollData.success && pollData.job) {
+            const job = pollData.job;
+            setBulkProgress({
+              total: job.total,
+              current: job.current,
+              success: job.successCount,
+              failed: job.failedCount,
+              activeOrder: job.activeOrder,
+              completedList: job.results.map((r: any) => ({
+                orderId: r.orderId,
+                success: r.success,
+                message: r.message
+              }))
+            });
+
+            if (job.status === 'Completed' || job.status === 'Failed') {
+              clearInterval(pollInterval);
+              setBulkProcessing(false);
+              fetchPackingQueue();
+            }
+          } else {
+            clearInterval(pollInterval);
+            alert('Error occurred while polling bulk job progress.');
+            setBulkProcessing(false);
+            fetchPackingQueue();
+          }
+        } catch (pollErr) {
+          console.error('Error polling bulk job:', pollErr);
+        }
+      }, 1500);
+
+    } catch (err: any) {
+      alert(err.message || 'Fatal error initiating bulk generation.');
+      setBulkProcessing(false);
+    }
   };
 
   const handleBulkPrintLabels = () => {
