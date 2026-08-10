@@ -3,8 +3,8 @@ import { WhatsAppLog } from '@/lib/types';
 
 // Deropo WhatsApp API Credentials (configured via environment variables)
 const API_URL = process.env.WHATSAPP_API_URL || 'https://api.deropo.com/api/send';
-const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || 'f6e962bd642bdcb19019af646ee047a0';
-const DEVICE_ID = process.env.WHATSAPP_DEVICE_ID || '2755';
+const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || '3b66835690546597e55f36f2605c0b8a';
+const DEVICE_ID = process.env.WHATSAPP_DEVICE_ID || '3483';
 
 import { generatePackingSlipImage } from '@/lib/screenshot';
 
@@ -121,6 +121,7 @@ export interface TriggerWhatsAppParams {
   productName?: string;
   baseUrl?: string;
   targetNumbers?: string[];
+  isOnDemand?: boolean;
 }
 
 export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams): Promise<WhatsAppLog[]> {
@@ -137,7 +138,8 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
     paymentType,
     productName,
     baseUrl,
-    targetNumbers
+    targetNumbers,
+    isOnDemand
   } = params;
 
   const logsSent: WhatsAppLog[] = [];
@@ -374,21 +376,42 @@ ${paymentType === 'COD'
     }
   }
 
+  const isTransactional = !isOnDemand;
+  const scheduledTime = isTransactional
+    ? new Date(Date.now() + 60000).toISOString()
+    : undefined;
+
   // Send the detailed message to all unique numbers attached to the order
   for (const phone of uniqueNumbers) {
-    console.log(`[WhatsApp] Dispatching notification to number: ${phone}`);
-    const result = await sendWhatsAppMessage(phone, primaryMessage, imageUrl);
-
+    const logId = `wa-dispatch-${phone}-${Date.now()}`;
     const log: WhatsAppLog = {
-      id: `wa-dispatch-${phone}-${Date.now()}`,
+      id: logId,
       timestamp: new Date().toISOString(),
       phone: phone,
       type: phone === phonePrimary ? 'Primary' : 'Secondary',
-      message: result.success ? primaryMessage : `${primaryMessage}\n\n❌ Error: ${result.error}`,
-      status: result.success ? 'Sent' : 'Failed'
+      message: primaryMessage,
+      status: isTransactional ? 'Pending' : 'Failed', // Pending for transactional, placeholder for manual
+      orderId: order?.orderId || orderId,
+      templateName: status,
+      imageUrl: imageUrl,
+      scheduledTime: scheduledTime
     };
-    await db.addWhatsAppLog(log);
-    logsSent.push(log);
+
+    if (isTransactional) {
+      await db.saveWhatsAppLog(log);
+      logsSent.push(log);
+      console.log(`[WhatsApp Queue] Transactional message queued for ${phone} (order ${orderId}). Will send at ${scheduledTime}`);
+    } else {
+      // Manual/On-demand message gets sent immediately
+      console.log(`[WhatsApp] Dispatching manual notification to: ${phone}`);
+      const result = await sendWhatsAppMessage(phone, primaryMessage, imageUrl);
+      log.status = result.success ? 'Sent' : 'Failed';
+      if (!result.success) {
+        log.message = `${primaryMessage}\n\n❌ Error: ${result.error}`;
+      }
+      await db.saveWhatsAppLog(log);
+      logsSent.push(log);
+    }
   }
 
   return logsSent;
@@ -412,4 +435,66 @@ export async function sendLoginOTP(phone: string, otp: string): Promise<{ succes
 
   await db.addWhatsAppLog(otpLog);
   return result;
+}
+
+let isQueueRunning = false;
+
+export function startQueueProcessor() {
+  if (isQueueRunning) return;
+  isQueueRunning = true;
+  console.log('[WhatsApp Queue] Starting background queue processor...');
+  
+  setInterval(async () => {
+    try {
+      const logs = await db.getWhatsAppLogs();
+      const now = Date.now();
+      
+      // Get all pending logs whose scheduledTime is due
+      const pendingLogs = logs.filter(l => 
+        l.status === 'Pending' && 
+        l.scheduledTime && 
+        new Date(l.scheduledTime).getTime() <= now
+      );
+
+      for (const log of pendingLogs) {
+        // Enforce rate limiting: 1-minute interval between consecutive messages for the same orderId
+        if (log.orderId) {
+          const lastSentOrPending = logs.find(l => 
+            l.orderId === log.orderId && 
+            l.id !== log.id && 
+            (l.status === 'Sent' || l.status === 'Pending') &&
+            l.timestamp &&
+            now - new Date(l.timestamp).getTime() < 60000
+          );
+
+          if (lastSentOrPending) {
+            // Postpone this pending message by pushing its scheduledTime out by 1 minute from the last sent
+            const newScheduled = new Date(new Date(lastSentOrPending.timestamp).getTime() + 60000).toISOString();
+            log.scheduledTime = newScheduled;
+            await db.saveWhatsAppLog(log);
+            console.log(`[WhatsApp Queue] Postponing pending log ${log.id} for order ${log.orderId} due to rate limiting.`);
+            continue;
+          }
+        }
+
+        // Send the message
+        console.log(`[WhatsApp Queue] Sending pending log ${log.id} for order ${log.orderId}...`);
+        const result = await sendWhatsAppMessage(log.phone, log.message, log.imageUrl);
+        
+        log.status = result.success ? 'Sent' : 'Failed';
+        if (!result.success) {
+          log.message = `${log.message}\n\n❌ Error: ${result.error}`;
+        }
+        log.timestamp = new Date().toISOString(); // Update timestamp to actual send time
+        await db.saveWhatsAppLog(log);
+      }
+    } catch (err) {
+      console.error('[WhatsApp Queue] Error processing queue:', err);
+    }
+  }, 10000); // Check every 10 seconds
+}
+
+// Auto-start the background queue processor server-side
+if (typeof window === 'undefined') {
+  startQueueProcessor();
 }

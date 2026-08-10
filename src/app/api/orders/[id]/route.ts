@@ -13,7 +13,14 @@ export async function GET(
     if (!order) {
       return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
     }
-    return NextResponse.json({ success: true, order });
+    const allLogs = await db.getWhatsAppLogs();
+    const orderLogs = allLogs.filter(log => 
+      log.orderId === order.orderId ||
+      log.phone === order.phonePrimary ||
+      log.phone === order.phoneSecondary ||
+      log.phone === order.phoneWhatsApp
+    );
+    return NextResponse.json({ success: true, order, logs: orderLogs });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to fetch order.' }, { status: 500 });
   }

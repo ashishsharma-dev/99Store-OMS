@@ -489,6 +489,29 @@ export const db = {
       }
     }
   },
+  saveWhatsAppLog: async (log: WhatsAppLog): Promise<void> => {
+    const local = readLocalDbFile() || {};
+    if (local.whatsappLogs) memoryWhatsAppLogs = local.whatsappLogs;
+    const idx = memoryWhatsAppLogs.findIndex(l => l.id === log.id);
+    if (idx >= 0) {
+      memoryWhatsAppLogs[idx] = log;
+    } else {
+      memoryWhatsAppLogs.unshift(log);
+      if (memoryWhatsAppLogs.length > 500) memoryWhatsAppLogs.pop();
+    }
+    saveMemoryToLocalFile();
+    performWeeklyBackupIfDue().catch(console.error);
+
+    const database = await safeGetDb();
+    if (database) {
+      try {
+        const { ...logDoc } = log as any;
+        await database.collection('whatsappLogs').replaceOne({ id: log.id }, logDoc, { upsert: true });
+      } catch (e) {
+        console.warn('MongoDB saveWhatsAppLog error:', e);
+      }
+    }
+  },
 
   // Courier Logs
   getCourierLogs: async (): Promise<CourierApiLog[]> => {
@@ -576,6 +599,21 @@ export const db = {
             ).catch(err => console.error('Failed to auto-migrate Velocity settings in MongoDB:', err));
           }
 
+          // Self-healing: Auto-migrate WhatsApp credentials in MongoDB
+          if (
+            settings.whatsappDeviceId !== '3483' ||
+            settings.whatsappAccessToken !== '3b66835690546597e55f36f2605c0b8a'
+          ) {
+            settings.whatsappDeviceId = '3483';
+            settings.whatsappAccessToken = '3b66835690546597e55f36f2605c0b8a';
+            
+            // Asynchronously update MongoDB settings collection
+            database.collection('settings').updateOne(
+              { key: 'system-settings' },
+              { $set: { whatsappDeviceId: '3483', whatsappAccessToken: '3b66835690546597e55f36f2605c0b8a' } }
+            ).catch(err => console.error('Failed to auto-migrate WhatsApp credentials in MongoDB:', err));
+          }
+
           return settings;
         }
       } catch (e) {
@@ -584,6 +622,17 @@ export const db = {
     }
     const local = readLocalDbFile() || {};
     if (local.settings) memorySettings = local.settings;
+
+    // Self-healing for local memory settings
+    if (
+      memorySettings.whatsappDeviceId !== '3483' ||
+      memorySettings.whatsappAccessToken !== '3b66835690546597e55f36f2605c0b8a'
+    ) {
+      memorySettings.whatsappDeviceId = '3483';
+      memorySettings.whatsappAccessToken = '3b66835690546597e55f36f2605c0b8a';
+      saveMemoryToLocalFile();
+    }
+
     return memorySettings;
   },
   saveSettings: async (settings: SystemSettings): Promise<SystemSettings> => {

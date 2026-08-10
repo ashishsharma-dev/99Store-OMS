@@ -65,6 +65,8 @@ export const mockSettings: SystemSettings = {
   whatsappSupportNumber: '+91 9876543210',
   whatsappCourierSupportName: 'Courier Helpdesk',
   whatsappCourierSupportNumber: '+91 9123456789',
+  whatsappDeviceId: '3483',
+  whatsappAccessToken: '3b66835690546597e55f36f2605c0b8a',
   ipWhitelist: ['127.0.0.1', '::1', '192.168.1.10', '192.168.1.11'],
   isIpWhitelistEnabled: false, // Turned off by default to make local testing seamless, but can toggle in settings
   autoCourierEnabled: true,

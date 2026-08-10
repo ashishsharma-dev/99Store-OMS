@@ -146,7 +146,11 @@ export interface WhatsAppLog {
   phone: string;
   type: 'Primary' | 'Secondary';
   message: string;
-  status: 'Sent' | 'Failed';
+  status: 'Sent' | 'Failed' | 'Pending';
+  orderId?: string;
+  templateName?: string;
+  scheduledTime?: string;
+  imageUrl?: string | null;
 }
 
 export interface SystemSettings {
