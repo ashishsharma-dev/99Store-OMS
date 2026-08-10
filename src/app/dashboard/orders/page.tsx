@@ -88,12 +88,14 @@ export default function Orders() {
     selectedNumbers: string[];
     loading: boolean;
     sendingTemplate?: string;
+    logsLoading: boolean;
     logs?: any[];
   }>({
     show: false,
     order: null,
     selectedNumbers: [],
-    loading: false
+    loading: false,
+    logsLoading: false
   });
 
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
@@ -187,7 +189,8 @@ export default function Orders() {
       show: true,
       order,
       selectedNumbers: uniqueDefaults,
-      loading: true,
+      loading: false,
+      logsLoading: true,
       logs: []
     });
 
@@ -198,14 +201,14 @@ export default function Orders() {
         setWhatsAppSelectModal(prev => ({
           ...prev,
           logs: data.logs || [],
-          loading: false
+          logsLoading: false
         }));
       } else {
-        setWhatsAppSelectModal(prev => ({ ...prev, loading: false }));
+        setWhatsAppSelectModal(prev => ({ ...prev, logsLoading: false }));
       }
     } catch (err) {
       console.error('Failed to load order logs:', err);
-      setWhatsAppSelectModal(prev => ({ ...prev, loading: false }));
+      setWhatsAppSelectModal(prev => ({ ...prev, logsLoading: false }));
     }
   };
 
@@ -1726,7 +1729,7 @@ export default function Orders() {
               </h3>
               {!whatsAppSelectModal.loading && (
                 <button 
-                  onClick={() => setWhatsAppSelectModal({ show: false, order: null, selectedNumbers: [], loading: false })}
+                  onClick={() => setWhatsAppSelectModal({ show: false, order: null, selectedNumbers: [], loading: false, logsLoading: false })}
                   style={{ background: 'none', border: 'none', color: '#737373', cursor: 'pointer', fontSize: '13px' }}
                 >
                   Cancel
@@ -1735,166 +1738,167 @@ export default function Orders() {
             </div>
 
             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {whatsAppSelectModal.loading && !whatsAppSelectModal.sendingTemplate ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px 0', gap: '16px' }}>
-                  <div className="spinner" style={{ width: '36px', height: '36px', borderTopColor: '#10B981', borderWidth: '3px' }} />
-                  <p style={{ color: '#E4E4E7', fontSize: '13px', margin: 0, textAlign: 'center', lineHeight: '1.6' }}>
-                    Loading WhatsApp messaging log history...
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <p style={{ color: '#A3A3A3', fontSize: '13px', margin: 0, lineHeight: '1.5' }}>
-                    Select recipient numbers for order <strong>{whatsAppSelectModal.order.orderId}</strong>:
-                  </p>
+              <p style={{ color: '#A3A3A3', fontSize: '13px', margin: 0, lineHeight: '1.5' }}>
+                Select recipient numbers for order <strong>{whatsAppSelectModal.order.orderId}</strong>:
+              </p>
 
-                  {/* Recipient select checkboxes */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    {[
-                      { label: 'Primary Contact (Customer)', value: whatsAppSelectModal.order.phonePrimary },
-                      { label: 'Secondary Contact (Alternate)', value: whatsAppSelectModal.order.phoneSecondary },
-                      { label: 'Tertiary Contact (Alternate)', value: whatsAppSelectModal.order.phoneTertiary },
-                      { label: 'WhatsApp Number', value: whatsAppSelectModal.order.phoneWhatsApp },
-                    ].filter(item => item.value && item.value.trim() !== '').map((item, idx) => {
-                      const cleanNum = item.value!.trim();
-                      const isChecked = whatsAppSelectModal.selectedNumbers.includes(cleanNum);
-                      return (
-                        <label 
-                          key={idx}
-                          style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '10px', 
-                            padding: '10px 12px', 
-                            backgroundColor: 'rgba(255, 255, 255, 0.01)', 
-                            border: '1px solid var(--border)', 
-                            borderRadius: '6px', 
-                            cursor: 'pointer',
-                            transition: 'background 0.2s'
-                          }}
-                        >
-                          <input 
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => {
-                              setWhatsAppSelectModal(prev => {
-                                const newNumbers = prev.selectedNumbers.includes(cleanNum)
-                                  ? prev.selectedNumbers.filter(n => n !== cleanNum)
-                                  : [...prev.selectedNumbers, cleanNum];
-                                return { ...prev, selectedNumbers: newNumbers };
-                              });
-                            }}
-                            style={{ width: '15px', height: '15px', accentColor: '#10B981', cursor: 'pointer' }}
-                          />
-                          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                            <span style={{ fontSize: '12px', color: '#FAFAFA', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cleanNum}</span>
-                            <span style={{ fontSize: '9.5px', color: '#737373', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
-                          </div>
-                        </label>
-                      );
-                    })}
-                  </div>
-
-                  <p style={{ color: '#A3A3A3', fontSize: '13px', margin: '10px 0 0 0', lineHeight: '1.5' }}>
-                    Available Templates:
-                  </p>
-
-                  {/* Templates List */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '250px', overflowY: 'auto', paddingRight: '4px' }}>
-                    {WHATSAPP_TEMPLATES.map((tmpl) => {
-                      const isSent = (whatsAppSelectModal.logs || []).some(
-                        log => log.templateName === tmpl.key && log.status === 'Sent'
-                      );
-                      const isSendingThis = whatsAppSelectModal.loading && whatsAppSelectModal.sendingTemplate === tmpl.key;
-
-                      return (
-                        <div 
-                          key={tmpl.key} 
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '10px 14px',
-                            backgroundColor: 'rgba(255, 255, 255, 0.01)',
-                            border: '1px solid var(--border)',
-                            borderRadius: '8px',
-                            gap: '12px'
-                          }}
-                        >
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ fontSize: '12.5px', color: '#FAFAFA', fontWeight: 600 }}>{tmpl.name}</span>
-                              <span style={{ fontSize: '9px', color: '#737373', backgroundColor: 'rgba(255,255,255,0.03)', padding: '1px 4px', borderRadius: '3px' }}>{tmpl.key}</span>
-                            </div>
-                            <p style={{ fontSize: '11px', color: '#8A8A8A', margin: '2px 0 0 0', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                              {tmpl.desc}
-                            </p>
-                          </div>
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            {isSent ? (
-                              <span style={{
-                                fontSize: '10px',
-                                fontWeight: 'bold',
-                                color: '#10B981',
-                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                                padding: '2px 6px',
-                                borderRadius: '4px'
-                              }}>
-                                SENT
-                              </span>
-                            ) : (
-                              <span style={{
-                                fontSize: '10px',
-                                fontWeight: 500,
-                                color: '#737373',
-                                padding: '2px 6px',
-                              }}>
-                                NOT SENT
-                              </span>
-                            )}
-
-                            <button
-                              onClick={() => handleTriggerWhatsAppSend(tmpl.key)}
-                              disabled={cooldownSeconds > 0 || whatsAppSelectModal.selectedNumbers.length === 0 || whatsAppSelectModal.loading}
-                              className="premium-btn premium-btn-primary"
-                              style={{
-                                padding: '6px 12px',
-                                fontSize: '11.5px',
-                                minWidth: '85px',
-                                justifyContent: 'center',
-                                backgroundColor: cooldownSeconds > 0 ? 'rgba(255,255,255,0.03)' : undefined,
-                                borderColor: cooldownSeconds > 0 ? 'var(--border)' : undefined,
-                                color: cooldownSeconds > 0 ? '#737373' : undefined
-                              }}
-                              title={cooldownSeconds > 0 ? `Please wait ${cooldownSeconds}s before sending another message.` : undefined}
-                            >
-                              {isSendingThis ? (
-                                <span className="spinner" style={{ width: '12px', height: '12px', borderWidth: '1.5px' }} />
-                              ) : cooldownSeconds > 0 ? (
-                                `Wait ${cooldownSeconds}s`
-                              ) : (
-                                'Send'
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '16px', justifyContent: 'flex-end' }}>
-                    <button 
-                      type="button" 
-                      onClick={() => setWhatsAppSelectModal({ show: false, order: null, selectedNumbers: [], loading: false })}
-                      className="premium-btn premium-btn-secondary"
-                      style={{ padding: '8px 16px', fontSize: '13px' }}
+              {/* Recipient select checkboxes */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                {[
+                  { label: 'Primary Contact (Customer)', value: whatsAppSelectModal.order.phonePrimary },
+                  { label: 'Secondary Contact (Alternate)', value: whatsAppSelectModal.order.phoneSecondary },
+                  { label: 'Tertiary Contact (Alternate)', value: whatsAppSelectModal.order.phoneTertiary },
+                  { label: 'WhatsApp Number', value: whatsAppSelectModal.order.phoneWhatsApp },
+                ].filter(item => item.value && item.value.trim() !== '').map((item, idx) => {
+                  const cleanNum = item.value!.trim();
+                  const isChecked = whatsAppSelectModal.selectedNumbers.includes(cleanNum);
+                  return (
+                    <label 
+                      key={idx}
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '10px', 
+                        padding: '10px 12px', 
+                        backgroundColor: 'rgba(255, 255, 255, 0.01)', 
+                        border: '1px solid var(--border)', 
+                        borderRadius: '6px', 
+                        cursor: 'pointer',
+                        transition: 'background 0.2s'
+                      }}
                     >
-                      Close Modal
-                    </button>
-                  </div>
-                </>
-              )}
+                      <input 
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          setWhatsAppSelectModal(prev => {
+                            const newNumbers = prev.selectedNumbers.includes(cleanNum)
+                              ? prev.selectedNumbers.filter(n => n !== cleanNum)
+                              : [...prev.selectedNumbers, cleanNum];
+                            return { ...prev, selectedNumbers: newNumbers };
+                          });
+                        }}
+                        style={{ width: '15px', height: '15px', accentColor: '#10B981', cursor: 'pointer' }}
+                      />
+                      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                        <span style={{ fontSize: '12px', color: '#FAFAFA', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cleanNum}</span>
+                        <span style={{ fontSize: '9.5px', color: '#737373', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+
+              <p style={{ color: '#A3A3A3', fontSize: '13px', margin: '10px 0 0 0', lineHeight: '1.5' }}>
+                Available Templates:
+              </p>
+
+              {/* Templates List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '250px', overflowY: 'auto', paddingRight: '4px' }}>
+                {WHATSAPP_TEMPLATES.map((tmpl) => {
+                  const isSent = (whatsAppSelectModal.logs || []).some(
+                    log => log.templateName === tmpl.key && log.status === 'Sent'
+                  );
+                  const isSendingThis = whatsAppSelectModal.loading && whatsAppSelectModal.sendingTemplate === tmpl.key;
+
+                  return (
+                    <div 
+                      key={tmpl.key} 
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 14px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.01)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        gap: '12px'
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '12.5px', color: '#FAFAFA', fontWeight: 600 }}>{tmpl.name}</span>
+                          <span style={{ fontSize: '9px', color: '#737373', backgroundColor: 'rgba(255,255,255,0.03)', padding: '1px 4px', borderRadius: '3px' }}>{tmpl.key}</span>
+                        </div>
+                        <p style={{ fontSize: '11px', color: '#8A8A8A', margin: '2px 0 0 0', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                          {tmpl.desc}
+                        </p>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        {whatsAppSelectModal.logsLoading ? (
+                          <span style={{
+                            fontSize: '10px',
+                            fontWeight: 500,
+                            color: '#A1A1AA',
+                            padding: '2px 6px',
+                            animation: 'pulse 1.5s infinite'
+                          }}>
+                            Checking...
+                          </span>
+                        ) : isSent ? (
+                          <span style={{
+                            fontSize: '10px',
+                            fontWeight: 'bold',
+                            color: '#10B981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            padding: '2px 6px',
+                            borderRadius: '4px'
+                          }}>
+                            SENT
+                          </span>
+                        ) : (
+                          <span style={{
+                            fontSize: '10px',
+                            fontWeight: 500,
+                            color: '#737373',
+                            padding: '2px 6px',
+                          }}>
+                            NOT SENT
+                          </span>
+                        )}
+
+                        <button
+                          onClick={() => handleTriggerWhatsAppSend(tmpl.key)}
+                          disabled={whatsAppSelectModal.logsLoading || cooldownSeconds > 0 || whatsAppSelectModal.selectedNumbers.length === 0 || whatsAppSelectModal.loading}
+                          className="premium-btn premium-btn-primary"
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '11.5px',
+                            minWidth: '85px',
+                            justifyContent: 'center',
+                            backgroundColor: (whatsAppSelectModal.logsLoading || cooldownSeconds > 0) ? 'rgba(255,255,255,0.03)' : undefined,
+                            borderColor: (whatsAppSelectModal.logsLoading || cooldownSeconds > 0) ? 'var(--border)' : undefined,
+                            color: (whatsAppSelectModal.logsLoading || cooldownSeconds > 0) ? '#737373' : undefined
+                          }}
+                          title={whatsAppSelectModal.logsLoading ? 'Loading status...' : cooldownSeconds > 0 ? `Please wait ${cooldownSeconds}s before sending another message.` : undefined}
+                        >
+                          {isSendingThis ? (
+                            <span className="spinner" style={{ width: '12px', height: '12px', borderWidth: '1.5px' }} />
+                          ) : whatsAppSelectModal.logsLoading ? (
+                            'Loading...'
+                          ) : cooldownSeconds > 0 ? (
+                            `Wait ${cooldownSeconds}s`
+                          ) : (
+                            'Send'
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '16px', justifyContent: 'flex-end' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setWhatsAppSelectModal({ show: false, order: null, selectedNumbers: [], loading: false, logsLoading: false })}
+                  className="premium-btn premium-btn-secondary"
+                  style={{ padding: '8px 16px', fontSize: '13px' }}
+                >
+                  Close Modal
+                </button>
+              </div>
             </div>
           </div>
         </div>
