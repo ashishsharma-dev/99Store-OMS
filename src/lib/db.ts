@@ -303,7 +303,6 @@ export const db = {
 
   // Orders Operations
   getOrders: async (): Promise<Order[]> => {
-    performWeeklyBackupIfDue().catch(console.error);
     const database = await safeGetDb();
     if (database) {
       try {
@@ -356,7 +355,6 @@ export const db = {
     if (idx >= 0) memoryOrders[idx] = order;
     else memoryOrders.push(order);
     saveMemoryToLocalFile();
-    performWeeklyBackupIfDue().catch(console.error);
 
     const database = await safeGetDb();
     if (database) {
@@ -374,7 +372,6 @@ export const db = {
     if (local.orders) memoryOrders = local.orders;
     memoryOrders = memoryOrders.filter(o => o.id !== id);
     saveMemoryToLocalFile();
-    performWeeklyBackupIfDue().catch(console.error);
 
     const database = await safeGetDb();
     if (database) {
@@ -442,7 +439,6 @@ export const db = {
     if (idx >= 0) memoryNdrs[idx] = record;
     else memoryNdrs.push(record);
     saveMemoryToLocalFile();
-    performWeeklyBackupIfDue().catch(console.error);
 
     const database = await safeGetDb();
     if (database) {
@@ -461,7 +457,7 @@ export const db = {
     const database = await safeGetDb();
     if (database) {
       try {
-        const result = await database.collection('whatsappLogs').find({}).sort({ timestamp: -1 }).limit(500).toArray();
+        const result = await database.collection('whatsappLogs').find({}).sort({ timestamp: -1 }).limit(100).toArray();
         if (result) return result.map(l => { const { _id, ...rest } = l as any; return rest as WhatsAppLog; });
       } catch (e) {
         console.warn('MongoDB getWhatsAppLogs error, using memory:', e);
@@ -469,7 +465,7 @@ export const db = {
     }
     const local = readLocalDbFile() || {};
     if (local.whatsappLogs) memoryWhatsAppLogs = local.whatsappLogs;
-    return memoryWhatsAppLogs;
+    return memoryWhatsAppLogs.slice(0, 100);
   },
   addWhatsAppLog: async (log: WhatsAppLog): Promise<void> => {
     const local = readLocalDbFile() || {};
@@ -477,7 +473,6 @@ export const db = {
     memoryWhatsAppLogs.unshift(log);
     if (memoryWhatsAppLogs.length > 500) memoryWhatsAppLogs.pop();
     saveMemoryToLocalFile();
-    performWeeklyBackupIfDue().catch(console.error);
 
     const database = await safeGetDb();
     if (database) {
@@ -500,7 +495,6 @@ export const db = {
       if (memoryWhatsAppLogs.length > 500) memoryWhatsAppLogs.pop();
     }
     saveMemoryToLocalFile();
-    performWeeklyBackupIfDue().catch(console.error);
 
     const database = await safeGetDb();
     if (database) {
@@ -518,7 +512,7 @@ export const db = {
     const database = await safeGetDb();
     if (database) {
       try {
-        const result = await database.collection('courierLogs').find({}).sort({ timestamp: -1 }).limit(500).toArray();
+        const result = await database.collection('courierLogs').find({}).sort({ timestamp: -1 }).limit(100).toArray();
         if (result) return result.map(l => { const { _id, ...rest } = l as any; return rest as CourierApiLog; });
       } catch (e) {
         console.warn('MongoDB getCourierLogs error, using memory:', e);
@@ -526,7 +520,7 @@ export const db = {
     }
     const local = readLocalDbFile() || {};
     if (local.courierLogs) memoryCourierLogs = local.courierLogs;
-    return memoryCourierLogs;
+    return memoryCourierLogs.slice(0, 100);
   },
   addCourierLog: async (log: CourierApiLog): Promise<void> => {
     const local = readLocalDbFile() || {};
@@ -534,7 +528,6 @@ export const db = {
     memoryCourierLogs.unshift(log);
     if (memoryCourierLogs.length > 500) memoryCourierLogs.pop();
     saveMemoryToLocalFile();
-    performWeeklyBackupIfDue().catch(console.error);
 
     const database = await safeGetDb();
     if (database) {
@@ -549,7 +542,6 @@ export const db = {
 
   // Settings Operations
   getSettings: async (): Promise<SystemSettings> => {
-    performWeeklyBackupIfDue().catch(console.error);
     const database = await safeGetDb();
     if (database) {
       try {
@@ -638,7 +630,6 @@ export const db = {
   saveSettings: async (settings: SystemSettings): Promise<SystemSettings> => {
     memorySettings = { ...settings };
     saveMemoryToLocalFile();
-    performWeeklyBackupIfDue().catch(console.error);
     const database = await safeGetDb();
     if (database) {
       try {
@@ -673,7 +664,6 @@ export const db = {
     if (idx >= 0) memoryMessages[idx] = msg;
     else memoryMessages.push(msg);
     saveMemoryToLocalFile();
-    performWeeklyBackupIfDue().catch(console.error);
 
     const database = await safeGetDb();
     if (database) {
@@ -697,7 +687,6 @@ export const db = {
       }
     });
     saveMemoryToLocalFile();
-    performWeeklyBackupIfDue().catch(console.error);
 
     const database = await safeGetDb();
     if (database) {
@@ -738,7 +727,6 @@ export const db = {
     if (local.tracking_events) memoryTrackingEvents = local.tracking_events;
     memoryTrackingEvents.push(event);
     saveMemoryToLocalFile();
-    performWeeklyBackupIfDue().catch(console.error);
     const database = await safeGetDb();
     if (database) {
       try {
@@ -749,3 +737,14 @@ export const db = {
     }
   }
 };
+
+// Start background weekly backup runner (polls every 24 hours, and once on server start)
+if (typeof window === 'undefined') {
+  setTimeout(() => {
+    performWeeklyBackupIfDue().catch(console.error);
+  }, 10000); // 10 seconds delay after startup to avoid blocking startup tasks
+
+  setInterval(() => {
+    performWeeklyBackupIfDue().catch(console.error);
+  }, 24 * 60 * 60 * 1000); // 24 hours check
+}

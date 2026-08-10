@@ -68,6 +68,9 @@ export default function Packing() {
   const [serviceabilityCache, setServiceabilityCache] = useState<Record<string, boolean>>({});
   const fetchingKeys = useRef<Set<string>>(new Set());
   const [modalServiceability, setModalServiceability] = useState<Record<string, 'loading' | 'serviceable' | 'unserviceable'>>({});
+  const [showBulkReassignModal, setShowBulkReassignModal] = useState(false);
+  const [bulkReassignCourier, setBulkReassignCourier] = useState('Delhivery');
+  const [bulkReassignLoading, setBulkReassignLoading] = useState(false);
   const [inlineReassignLoading, setInlineReassignLoading] = useState<string | null>(null);
 
   useEffect(() => {
@@ -556,6 +559,43 @@ export default function Packing() {
     }
   };
 
+  const handleBulkReassign = async () => {
+    if (selectedIds.length === 0) return;
+    setBulkReassignLoading(true);
+
+    try {
+      const pendingReassign = orders.filter(o => selectedIds.includes(o.id));
+      
+      const reassignPromises = pendingReassign.map(async (order) => {
+        const res = await fetch(`/api/orders/${order.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: 'Created',
+            courier: bulkReassignCourier,
+            awb: '',
+            eta: '',
+            futureDeliveryDate: '',
+            remarks: `Bulk courier reassign. Courier changed to ${bulkReassignCourier}.`,
+            updatedBy: currentUser?.username || 'packing_operator'
+          })
+        });
+        return res.ok;
+      });
+
+      const results = await Promise.all(reassignPromises);
+      const successCount = results.filter(Boolean).length;
+      
+      alert(`Successfully reassigned ${successCount} of ${pendingReassign.length} orders to ${bulkReassignCourier}.`);
+      setShowBulkReassignModal(false);
+      fetchPackingQueue();
+    } catch (err) {
+      alert('Network error when bulk reassigning.');
+    } finally {
+      setBulkReassignLoading(false);
+    }
+  };
+
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
@@ -634,6 +674,14 @@ export default function Packing() {
           </span>
 
           <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+              onClick={() => setShowBulkReassignModal(true)} 
+              className="premium-btn premium-btn-secondary" 
+              style={{ padding: '6px 12px', fontSize: '12.5px', borderColor: '#EF4444', color: '#EF4444' }}
+              disabled={bulkProcessing}
+            >
+              Bulk Reassign Courier
+            </button>
             <button 
               onClick={handleBulkGenerateLabels} 
               className="premium-btn premium-btn-secondary" 
@@ -1296,6 +1344,51 @@ export default function Packing() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Bulk Reassign Courier */}
+      {showBulkReassignModal && (
+        <div className="premium-modal-backdrop" style={{ zIndex: 1100 }}>
+          <div className="premium-modal" style={{ maxWidth: '500px' }}>
+            <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '17px', color: '#FAFAFA' }}>Bulk Reassign Courier ({selectedIds.length} Orders)</h3>
+              <button onClick={() => setShowBulkReassignModal(false)} style={{ background: 'none', border: 'none', color: '#8A8A8A', cursor: 'pointer' }}>Close</button>
+            </div>
+
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <p style={{ fontSize: '13px', color: '#A3A3A3', margin: 0, lineHeight: '1.5' }}>
+                You have selected <strong>{selectedIds.length}</strong> orders to reassign. Choose an alternative courier partner to route these shipments. This will clear any previously generated AWB numbers for these orders and set them back to ready state.
+              </p>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '6px', textTransform: 'uppercase' }}>Select New Courier Partner *</label>
+                <select
+                  className="premium-input"
+                  value={bulkReassignCourier}
+                  onChange={(e) => setBulkReassignCourier(e.target.value)}
+                  required
+                >
+                  <option value="DTDC">DTDC Express</option>
+                  <option value="XpressBees">XpressBees Logistics</option>
+                  <option value="Delhivery">Delhivery Express</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '20px', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setShowBulkReassignModal(false)} className="premium-btn premium-btn-secondary">Cancel</button>
+                <button 
+                  type="button" 
+                  onClick={handleBulkReassign} 
+                  className="premium-btn premium-btn-primary" 
+                  style={{ backgroundColor: '#EF4444', borderColor: '#EF4444', color: '#FFFFFF' }}
+                  disabled={bulkReassignLoading}
+                >
+                  {bulkReassignLoading ? 'Reassigning...' : 'Confirm Bulk Reassign'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
