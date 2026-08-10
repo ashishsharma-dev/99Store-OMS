@@ -438,6 +438,7 @@ export async function sendLoginOTP(phone: string, otp: string): Promise<{ succes
 }
 
 let isQueueRunning = false;
+let isQueueProcessing = false;
 
 export function startQueueProcessor() {
   if (isQueueRunning) return;
@@ -445,6 +446,10 @@ export function startQueueProcessor() {
   console.log('[WhatsApp Queue] Starting background queue processor...');
   
   setInterval(async () => {
+    if (isQueueProcessing) {
+      return;
+    }
+    isQueueProcessing = true;
     try {
       const logs = await db.getWhatsAppLogs();
       const now = Date.now();
@@ -490,6 +495,8 @@ export function startQueueProcessor() {
       }
     } catch (err) {
       console.error('[WhatsApp Queue] Error processing queue:', err);
+    } finally {
+      isQueueProcessing = false;
     }
   }, 10000); // Check every 10 seconds
 }
