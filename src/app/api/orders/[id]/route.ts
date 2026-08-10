@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { Order, OrderStatus, NdrRecord } from '@/lib/types';
 import { triggerWhatsAppNotification } from '@/lib/whatsapp';
+import { bookCourierShipment } from '@/lib/courierHelper';
 
 export async function GET(
   request: Request,
@@ -99,25 +100,25 @@ export async function PATCH(
     if (targetStatus === 'Label Generated' && !order.awb) {
       const selectedCourier = courier || order.courier || 'DTDC';
       try {
-        const courierRes = await fetch(`${baseUrl}/api/integrations/courier`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            orderId: order.orderId,
-            courier: selectedCourier,
-            weight: order.weight,
-            paymentType: order.paymentType,
-            codAmount: order.orderValue - (order.partiallyPaidAmount || 0),
-            customerName: order.customerName,
-            pincode: order.pincode
-          })
-        });
-        const courierData = await courierRes.json();
+        const settings = await db.getSettings();
+        const courierData = await bookCourierShipment(
+          order,
+          settings,
+          order.weight,
+          selectedCourier,
+          order.phonePrimary
+        );
 
-        if (courierRes.ok && courierData.success) {
+        if (courierData.success) {
           order.awb = courierData.awb;
           order.eta = courierData.eta;
-          order.courier = courierData.courier;
+          order.courier = courierData.courier as any;
+          if (courierData.velocity_label_url) {
+            order.velocity_label_url = courierData.velocity_label_url;
+          }
+          if (courierData.velocity_shipment_id) {
+            order.velocity_shipment_id = courierData.velocity_shipment_id;
+          }
           systemRemarks += ` (Automated: AWB ${courierData.awb} generated via ${selectedCourier} API successfully.)`;
         } else {
           awbError = courierData.error || 'Unknown Error';
