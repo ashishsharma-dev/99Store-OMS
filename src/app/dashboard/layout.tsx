@@ -520,14 +520,14 @@ export default function DashboardLayout({
   const isAuthorized = currentNav ? currentNav.roles.includes(user.role) : true;
 
   return (
-    <div style={{
+    <div className="dashboard-layout-root" style={{
       display: 'flex',
       minHeight: '100vh',
       backgroundColor: '#0A0A0A',
       color: '#FAFAFA'
     }}>
       {/* 1. Dynamic Role-Switching Debug Overlay Bar */}
-      <div style={{
+      <div className="reviewer-debug-bar" style={{
         position: 'fixed',
         top: 0,
         left: 0,
@@ -1771,7 +1771,7 @@ export default function DashboardLayout({
             box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
           }
         }
-        @media (max-width: 1024px) {
+        @media screen and (max-width: 1024px) {
           .desktop-sidebar {
             display: none !important;
           }
@@ -1785,7 +1785,7 @@ export default function DashboardLayout({
             padding: 20px 16px !important;
           }
         }
-        @media (max-width: 640px) {
+        @media screen and (max-width: 640px) {
           .dashboard-main {
             padding: 16px 12px !important;
           }

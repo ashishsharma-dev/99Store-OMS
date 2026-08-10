@@ -13,7 +13,7 @@ export default async function PackingSlipPage({ params }: Props) {
 
   return (
     <div style={{ padding: 0, margin: 0, backgroundColor: '#FFFFFF', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
-      <div style={{ width: '4in', backgroundColor: '#FFFFFF' }}>
+      <div className="thermal-shipping-label" style={{ width: '4in', backgroundColor: '#FFFFFF' }}>
         <HealvitaShippingLabel order={order} />
       </div>
     </div>

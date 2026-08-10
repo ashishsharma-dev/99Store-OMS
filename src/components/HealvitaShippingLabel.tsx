@@ -253,7 +253,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
                 {/* <AddressRatingIndicator address={order.address} mode="print" /> */}
               </span>
             </div>
-            <div style={{ marginTop: '2px' }}><strong>Mobile</strong> : <span style={{ fontWeight: 'bold' }}>{finalPhone}</span></div>
+            {/* <div style={{ marginTop: '2px' }}><strong>Mobile</strong> : <span style={{ fontWeight: 'bold' }}>{finalPhone}</span></div> */}
           </div>
         </div>
 

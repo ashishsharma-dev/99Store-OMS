@@ -382,7 +382,7 @@ export default function Dashboard() {
       </div>
       
       <style jsx>{`
-        @media (max-width: 1024px) {
+        @media screen and (max-width: 1024px) {
           .desktop-analytics-split {
             grid-template-columns: 1fr !important;
           }

@@ -1,0 +1,387 @@
+{
+  "info": {
+    "_postman_id": "f0a1f2a6-3f46-43bb-99d6-98acd0335d1f",
+    "name": "XpressBees Shipment API",
+    "description": "XpressBees Courier API collection covering authentication, courier listing, serviceability check, shipment creation, tracking, cancellation, and NDR management. Base URL: https://shipment.xpressbees.com/api",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "33074085"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login - Get Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data) {",
+                  "  pm.environment.set(\"auth_token\", jsonData.data);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/users/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Courier",
+      "item": [
+        {
+          "name": "Courier List",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/courier",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "courier"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Rate & Serviceability",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origin\": \"110001\",\n  \"destination\": \"400001\",\n  \"payment_type\": \"prepaid\",\n  \"order_amount\": 500,\n  \"weight\": 0.5,\n  \"length\": 10,\n  \"breadth\": 10,\n  \"height\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/courier/serviceability",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "courier",
+                "serviceability"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Shipments",
+      "item": [
+        {
+          "name": "Create Shipment (AWB)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_number\": \"ORD-001\",\n  \"payment_type\": \"prepaid\",\n  \"order_amount\": 500,\n  \"package_weight\": 0.5,\n  \"package_length\": 10,\n  \"package_breadth\": 10,\n  \"package_height\": 10,\n  \"request_auto_pickup\": \"yes\",\n  \"consignee\": {\n    \"name\": \"John Doe\",\n    \"address\": \"123 Main Street\",\n    \"address_2\": \"\",\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\",\n    \"pincode\": \"400001\",\n    \"phone\": \"9876543210\"\n  },\n  \"pickup\": {\n    \"warehouse_name\": \"My Warehouse\",\n    \"name\": \"Pickup Person\",\n    \"address\": \"456 Warehouse Road\",\n    \"city\": \"Delhi\",\n    \"state\": \"Delhi\",\n    \"pincode\": \"110001\",\n    \"phone\": \"9876543211\"\n  },\n  \"products\": [\n    {\n      \"name\": \"Product Name\",\n      \"qty\": 1,\n      \"price\": 500,\n      \"sku\": \"SKU-001\"\n    }\n  ],\n  \"courier_id\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/shipments2",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "shipments2"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Track Shipment",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/shipments2/track/{{awb_number}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "shipments2",
+                "track",
+                "{{awb_number}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Shipment",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"awb\": \"{{awb_number}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/shipments2/cancel",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "shipments2",
+                "cancel"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Shipment Details",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/shipments2/{{awb_number}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "shipments2",
+                "{{awb_number}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "NDR (Non-Delivery Report)",
+      "item": [
+        {
+          "name": "NDR List",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/ndr",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ndr"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create NDR Action",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"awb\": \"{{awb_number}}\",\n  \"action\": \"re-attempt\",\n  \"preferred_date\": \"2024-01-15\",\n  \"address\": \"\",\n  \"phone\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/ndr/create",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ndr",
+                "create"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://shipment.xpressbees.com/api"
+    },
+    {
+      "key": "auth_token",
+      "value": ""
+    },
+    {
+      "key": "email",
+      "value": ""
+    },
+    {
+      "key": "password",
+      "value": ""
+    },
+    {
+      "key": "awb_number",
+      "value": ""
+    }
+  ]
+}

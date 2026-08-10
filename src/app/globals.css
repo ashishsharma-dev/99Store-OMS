@@ -361,109 +361,84 @@ h1, h2, h3, h4, h5, h6 {
 .premium-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .premium-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
   .premium-grid-2, .premium-grid-3, .premium-grid-4 {
     grid-template-columns: 1fr;
   }
 }
 
-/* Unified Thermal Shipping Label Printing Styles */
+/* Thermal Shipping Label Print Styles
+ * Used by /packing-slip/[id] direct print route.
+ * Dashboard modal printing uses a popup window (src/lib/printLabel.ts) and does NOT rely on these.
+ */
 @media print {
-  /* Hide the rest of the application interface */
-  body * {
-    visibility: hidden;
-  }
-
-  /* Show only the printable shipping labels */
-  #printable-shipping-label,
-  #printable-shipping-label *,
-  #printable-labels-boundary,
-  #printable-labels-boundary * {
-    visibility: visible;
-  }
-
-  /* Set print page parameters for 4x6 in thermal labels */
   @page {
     size: 4in 6in;
     margin: 0;
   }
 
-  body {
-    background-color: #FFFFFF !important;
-    color: #000000 !important;
+  html, body {
+    width: 4in;
+    height: 6in;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    color: #000;
   }
 
-  /* Style single label print container */
-  #printable-shipping-label {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 4in !important;
-    height: 6in !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    box-sizing: border-box !important;
+  /* Hide everything except the label */
+  body > * {
+    display: none !important;
   }
 
-  /* Style bulk labels boundary */
-  #printable-labels-boundary {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 4in !important;
-    margin: 0 !important;
-    padding: 0 !important;
+  body > div:has(.thermal-shipping-label) {
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+    width: 4in;
+    height: 6in;
   }
 
-  /* Thermal label wrapper size and page-breaks */
   .thermal-shipping-label {
+    display: block !important;
     width: 4in !important;
     height: 6in !important;
-    max-height: 6in !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: none !important;
-    page-break-after: always !important;
-    page-break-inside: avoid !important;
     overflow: hidden !important;
-    box-sizing: border-box !important;
-    background-color: #FFFFFF !important;
+    page-break-after: always !important;
+    break-after: page !important;
   }
 
-  /* Optimize internal component elements for 4x6in print dimensions */
   .healvita-label {
-    width: 4in !important;
-    height: 6in !important;
-    max-height: 6in !important;
-    border: 2px solid #000000 !important;
-    box-sizing: border-box !important;
+    width: 100% !important;
+    height: 100% !important;
+    border: 2px solid #000 !important;
     font-size: 8px !important;
     line-height: 1.1 !important;
     overflow: hidden !important;
+    background: #fff !important;
+    color: #000 !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
-  /* Compact spacing to prevent vertical cut-offs */
   .healvita-label > div {
-    padding: 3px 4px !important;
+    padding: 2px 3px !important;
   }
 
-  /* Header sizing */
   .healvita-label h2 {
     font-size: 12px !important;
   }
 
-  /* Barcode SVG scaling */
   .healvita-label svg {
     max-height: 28px !important;
   }
 
-  /* QR code scaling */
   .healvita-label img[alt="Scan QR"] {
-    width: 42px !important;
-    height: 42px !important;
+    width: 44px !important;
+    height: 44px !important;
   }
 
-  /* Table layout and font size */
   .healvita-label table {
     font-size: 6.5px !important;
   }
@@ -473,7 +448,6 @@ h1, h2, h3, h4, h5, h6 {
     padding: 1px 2px !important;
   }
 
-  /* Amount text scaling */
   .healvita-label div[style*="font-size: 28px"] {
     font-size: 18px !important;
     padding: 0 !important;

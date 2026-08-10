@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
 import { HealvitaShippingLabel } from '@/components/HealvitaShippingLabel';
+import { printThermalLabel } from '@/lib/printLabel';
 import { InspectTooltipButton } from '@/components/InspectTooltipButton';
 import { CourierLogo } from '@/components/CourierLogo';
 import { AddressRatingIndicator } from '@/components/AddressRatingIndicator';
@@ -733,7 +734,7 @@ export default function Orders() {
   };
 
   const handlePrint = () => {
-    window.print();
+    printThermalLabel('printable-shipping-label');
   };
 
   return (
@@ -1657,14 +1658,16 @@ export default function Orders() {
       {/* Shipping Label CSS Printing Mock Modal */}
       {showPrintLabel && printingOrder && (
         <div className="premium-modal-backdrop">
-          <div className="premium-modal" style={{ maxWidth: '520px', backgroundColor: '#FFFFFF', color: '#000000', border: '2px solid #000000' }}>
+          <div className="premium-modal" style={{ maxWidth: '520px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: '#FFFFFF', color: '#000000', border: '2px solid #000000', padding: 0 }}>
             {/* Real Visual Shipping Invoice Label Card */}
-            <div id="printable-shipping-label" className="thermal-shipping-label" style={{ padding: '0', backgroundColor: '#FFFFFF', width: '4in', margin: '0 auto' }}>
-              <HealvitaShippingLabel order={printingOrder} />
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', justifyContent: 'center' }}>
+              <div id="printable-shipping-label" className="thermal-shipping-label" style={{ padding: '0', backgroundColor: '#FFFFFF', width: '4in', margin: '0 auto' }}>
+                <HealvitaShippingLabel order={printingOrder} />
+              </div>
             </div>
 
-            {/* Print operations bar */}
-            <div style={{ padding: '16px', backgroundColor: '#F4F4F5', borderTop: '2px solid #000000', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            {/* Print operations bar - fixed at bottom */}
+            <div className="print-operations-bar" style={{ padding: '16px', backgroundColor: '#F4F4F5', borderTop: '2px solid #000000', display: 'flex', gap: '12px', justifyContent: 'flex-end', flexShrink: 0, position: 'sticky', bottom: 0, zIndex: 10 }}>
               <button
                 onClick={() => setShowPrintLabel(false)}
                 className="premium-btn premium-btn-secondary"

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
 import { HealvitaShippingLabel } from '@/components/HealvitaShippingLabel';
+import { printThermalLabel } from '@/lib/printLabel';
 import { CourierLogo } from '@/components/CourierLogo';
 import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
 import { checkCourierServiceability } from '@/lib/utils';
@@ -140,7 +141,7 @@ export default function Packing() {
     setLoading(true);
     setSelectedIds([]);
     try {
-      let url = '/api/orders?limit=10000';
+      let url = '/api/orders?limit=100000';
       if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
       if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
       const res = await fetch(url);
@@ -148,7 +149,7 @@ export default function Packing() {
       if (res.ok && data.orders) {
         const todayStr = new Date().toISOString().split('T')[0];
         const queue = (data.orders as Order[]).filter(o => {
-          const isCorrectStatus = o.status === 'Created' || o.status === 'Packing' || o.status === 'Label Generated';
+          const isCorrectStatus = o.status === 'Created' || o.status === 'Packing' || o.status === 'Label Generated' || o.status === 'Dispatched';
           if (!isCorrectStatus) return false;
           if (o.futureDeliveryDate && o.futureDeliveryDate > todayStr) return false;
           return true;
@@ -455,7 +456,7 @@ export default function Packing() {
   };
 
   const handlePrint = () => {
-    window.print();
+    printThermalLabel('printable-labels-boundary');
   };
 
   const handleExportCsv = () => {
@@ -615,7 +616,7 @@ export default function Packing() {
           </span>
         </div>
         <div style={{ fontSize: '14px', color: '#8A8A8A', flex: 1, minWidth: '240px' }}>
-          <strong>{orders.filter(o => o.status === 'Created').length}</strong> New Orders | <strong>{orders.filter(o => o.status === 'Packing').length}</strong> Currently Packing | <strong>{orders.filter(o => o.status === 'Label Generated').length}</strong> Ready to Dispatch
+          <strong>{orders.filter(o => o.status === 'Created').length}</strong> New Orders | <strong>{orders.filter(o => o.status === 'Packing').length}</strong> Currently Packing | <strong>{orders.filter(o => o.status === 'Label Generated').length}</strong> Ready to Dispatch | <strong>{orders.filter(o => o.status === 'Dispatched').length}</strong> Dispatched
         </div>
 
         {/* Module 4: Header Dropdown Filters */}
@@ -896,15 +897,17 @@ export default function Packing() {
                               <span>Print Label</span>
                             </button>
 
-                            <button
-                              onClick={() => handleDispatch(o)}
-                              className="premium-btn premium-btn-primary animate-fade-in"
-                              style={{ padding: '6px 12px', fontSize: '12px', backgroundColor: '#10B981', borderColor: '#10B981', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                              disabled={isProcessing}
-                            >
-                              {isProcessing ? <span className="spinner spinner-sm" /> : <Send size={12} />}
-                              <span>Dispatch</span>
-                            </button>
+                            {o.status !== 'Dispatched' && (
+                              <button
+                                onClick={() => handleDispatch(o)}
+                                className="premium-btn premium-btn-primary animate-fade-in"
+                                style={{ padding: '6px 12px', fontSize: '12px', backgroundColor: '#10B981', borderColor: '#10B981', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                                disabled={isProcessing}
+                              >
+                                {isProcessing ? <span className="spinner spinner-sm" /> : <Send size={12} />}
+                                <span>Dispatch</span>
+                              </button>
+                            )}
                           </>
                         )}
                       </div>
@@ -920,10 +923,10 @@ export default function Packing() {
       {/* Shipping Label CSS Printing Modal - Configured for 4x6 inch format */}
       {showPrintLabel && printingOrders.length > 0 && (
         <div className="premium-modal-backdrop">
-          <div className="premium-modal" style={{ maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="premium-modal" style={{ maxWidth: '520px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 0 }}>
             
             {/* Header info */}
-            <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
               <h3 style={{ fontSize: '16px', color: '#FAFAFA' }}>
                 Print queue: {printingOrders.length} Shipping Labels (4 x 6 in)
               </h3>
@@ -931,7 +934,7 @@ export default function Packing() {
             </div>
 
             {/* Scrollable preview wrapper */}
-            <div style={{ backgroundColor: '#1A1A1E', padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center' }}>
+            <div style={{ backgroundColor: '#1A1A1E', padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center', flex: 1, overflowY: 'auto' }}>
               
               {/* Outer Printable boundary */}
               <div id="printable-labels-boundary">
@@ -952,8 +955,8 @@ export default function Packing() {
               </div>
             </div>
 
-            {/* Print operations bar */}
-            <div style={{ padding: '16px 24px', backgroundColor: '#F4F4F5', borderTop: '1px solid var(--border)', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            {/* Print operations bar - fixed at bottom */}
+            <div className="print-operations-bar" style={{ padding: '16px 24px', backgroundColor: '#F4F4F5', borderTop: '1px solid var(--border)', display: 'flex', gap: '12px', justifyContent: 'flex-end', flexShrink: 0, position: 'sticky', bottom: 0, zIndex: 10 }}>
               <button 
                 onClick={() => setShowPrintLabel(false)} 
                 className="premium-btn premium-btn-secondary" 
@@ -1378,35 +1381,6 @@ export default function Packing() {
         </div>
       )}
 
-      {/* Thermal printing css styles overrides */}
-      <style jsx global>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          #printable-labels-boundary, 
-          #printable-labels-boundary * {
-            visibility: visible;
-          }
-          #printable-labels-boundary {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-          .thermal-shipping-label {
-            margin-bottom: 0 !important;
-            border: none !important;
-            width: 4in !important;
-            height: 6in !important;
-            page-break-after: always !important;
-          }
-          @page {
-            size: 4in 6in;
-            margin: 0;
-          }
-        }
-      `}</style>
     </div>
   );
 }
