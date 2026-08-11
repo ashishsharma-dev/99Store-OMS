@@ -40,11 +40,14 @@ function writeLocalDbFile(data: any): void {
 }
 
 async function safeGetDb() {
-  try {
-    return await getDatabase();
-  } catch (err) {
-    return null;
+  if (process.env.USE_MONGODB === 'true') {
+    try {
+      return await getDatabase();
+    } catch (err) {
+      return null;
+    }
   }
+  return null;
 }
 
 // Load local DB on startup
