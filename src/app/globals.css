@@ -400,17 +400,22 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .thermal-shipping-label {
-    display: block !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
     width: 4in !important;
     height: 6in !important;
+    padding: 0.12in !important;
+    box-sizing: border-box !important;
     overflow: hidden !important;
     page-break-after: always !important;
     break-after: page !important;
   }
 
   .healvita-label {
-    width: 100% !important;
-    height: 100% !important;
+    width: 3.76in !important;
+    height: 5.76in !important;
+    max-height: 5.76in !important;
     border: 2px solid #000 !important;
     font-size: 8px !important;
     line-height: 1.1 !important;
@@ -420,6 +425,7 @@ h1, h2, h3, h4, h5, h6 {
     box-sizing: border-box !important;
     display: flex !important;
     flex-direction: column !important;
+    margin: 0 auto !important;
   }
 
   .healvita-label > div {

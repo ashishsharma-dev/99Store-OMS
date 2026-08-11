@@ -53,11 +53,12 @@ export function printThermalLabel(containerId: string): void {
       width: 4in;
     }
 
-    /* Each individual label page */
+    /* Each individual label page - 4x6 page container with flexbox centering */
     .thermal-shipping-label {
       width: 4in !important;
       height: 6in !important;
       max-height: 6in !important;
+      box-sizing: border-box !important;
       overflow: hidden !important;
       page-break-after: always !important;
       break-after: page !important;
@@ -65,14 +66,16 @@ export function printThermalLabel(containerId: string): void {
       break-inside: avoid !important;
       background: #fff !important;
       display: flex !important;
-      align-items: stretch !important;
+      justify-content: center !important;
+      align-items: center !important;
+      padding: 0.12in !important;
     }
 
-    /* The actual label component */
+    /* The actual visual label - sized 3.76in x 5.76in to sit dead center inside 4x6 paper */
     .healvita-label {
-      width: 100% !important;
-      height: 100% !important;
-      max-height: 6in !important;
+      width: 3.76in !important;
+      height: 5.76in !important;
+      max-height: 5.76in !important;
       border: 2px solid #000 !important;
       box-sizing: border-box !important;
       font-size: 8px !important;
@@ -83,6 +86,7 @@ export function printThermalLabel(containerId: string): void {
       display: flex !important;
       flex-direction: column !important;
       font-family: sans-serif !important;
+      margin: 0 auto !important;
     }
 
     /* Reduce all section paddings to fit content */
