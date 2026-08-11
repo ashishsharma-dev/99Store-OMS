@@ -35,6 +35,8 @@ export default function Tracking() {
   });
   const [syncLoading, setSyncLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [courierFilter, setCourierFilter] = useState('all');
   
   // Selected Order for detailing and logistics control
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -190,11 +192,29 @@ export default function Tracking() {
     }
   };
 
-  const filteredOrders = orders.filter(o => 
-    o.orderId.toLowerCase().includes(search.toLowerCase()) ||
-    (o.awb && o.awb.toLowerCase().includes(search.toLowerCase())) ||
-    o.customerName.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredOrders = orders.filter(o => {
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const match =
+        o.orderId.toLowerCase().includes(q) ||
+        (o.awb && o.awb.toLowerCase().includes(q)) ||
+        o.customerName.toLowerCase().includes(q) ||
+        o.phonePrimary.includes(q);
+      if (!match) return false;
+    }
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'Ready to Dispatch') {
+        if (o.status !== 'Label Generated') return false;
+      } else if (o.status !== statusFilter) {
+        return false;
+      }
+    }
+    if (courierFilter !== 'all') {
+      const c = o.courier || 'DTDC';
+      if (!c.toLowerCase().includes(courierFilter.toLowerCase())) return false;
+    }
+    return true;
+  });
 
   const openLogisticsControl = (order: Order) => {
     setSelectedOrder(order);
@@ -241,17 +261,49 @@ export default function Tracking() {
         
         {/* Left Side: Shipment list and AWB search */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div className="premium-card" style={{ padding: '16px' }}>
+          <div className="premium-card" style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ position: 'relative' }}>
               <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#737373' }} />
               <input
                 type="text"
                 className="premium-input"
                 style={{ paddingLeft: '38px' }}
-                placeholder="Search AWB or Order ID..."
+                placeholder="Search AWB, Order ID, Name..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <select
+                className="premium-input"
+                style={{ fontSize: '12px', padding: '4px 8px', borderColor: '#3B82F6' }}
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="all">Status (All)</option>
+                <option value="Created">Created</option>
+                <option value="Packing">Packing</option>
+                <option value="Ready to Dispatch">Ready to Dispatch</option>
+                <option value="Dispatched">Dispatched</option>
+                <option value="OFD">OFD (Out for Delivery)</option>
+                <option value="Delivered">Delivered</option>
+                <option value="NDR">NDR Failure</option>
+                <option value="Return">Returned</option>
+              </select>
+
+              <select
+                className="premium-input"
+                style={{ fontSize: '12px', padding: '4px 8px', borderColor: '#10B981' }}
+                value={courierFilter}
+                onChange={(e) => setCourierFilter(e.target.value)}
+              >
+                <option value="all">Courier (All)</option>
+                <option value="DTDC">DTDC Express</option>
+                <option value="XpressBees">XpressBees</option>
+                <option value="Delhivery">Delhivery</option>
+                <option value="Aggregator">Aggregator</option>
+              </select>
             </div>
           </div>
 

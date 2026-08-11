@@ -295,6 +295,7 @@ export default function Orders() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [paymentFilter, setPaymentFilter] = useState('all');
   const [vipFilter, setVipFilter] = useState('all');
+  const [courierFilter, setCourierFilter] = useState('all');
   const [sortField, setSortField] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
   const [page, setPage] = useState(1);
@@ -411,14 +412,14 @@ export default function Orders() {
 
   useEffect(() => {
     fetchOrdersList();
-  }, [search, statusFilter, paymentFilter, vipFilter, sortField, sortOrder, page, limit, dateRange]);
+  }, [search, statusFilter, paymentFilter, vipFilter, courierFilter, sortField, sortOrder, page, limit, dateRange]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       fetchOrdersList(true);
     }, 20000);
     return () => clearInterval(interval);
-  }, [search, statusFilter, paymentFilter, vipFilter, sortField, sortOrder, page, limit, dateRange]);
+  }, [search, statusFilter, paymentFilter, vipFilter, courierFilter, sortField, sortOrder, page, limit, dateRange]);
 
   // Autofetch State/Area via Pincode API when 6 digits are typed
   useEffect(() => {
@@ -449,7 +450,7 @@ export default function Orders() {
   const fetchOrdersList = async (isBackground = false) => {
     if (!isBackground) setLoading(true);
     try {
-      let url = `/api/orders?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}&status=${statusFilter}&payment=${paymentFilter}&vip=${vipFilter}&sortField=${sortField}&sortOrder=${sortOrder}`;
+      let url = `/api/orders?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}&status=${statusFilter}&payment=${paymentFilter}&vip=${vipFilter}&courier=${encodeURIComponent(courierFilter)}&sortField=${sortField}&sortOrder=${sortOrder}`;
       if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
       if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
       const res = await fetch(url);
@@ -819,7 +820,7 @@ export default function Orders() {
             <option value="Created">Created</option>
             <option value="Packing">Packing</option>
             <option value="Courier Selected">Courier Selected</option>
-            <option value="Label Generated">Label Generated</option>
+            <option value="Label Generated">Ready to Dispatch (Label Generated)</option>
             <option value="Dispatched">Dispatched</option>
             <option value="OFD">OFD (Out for Delivery)</option>
             <option value="Delivered">Delivered</option>
@@ -827,6 +828,34 @@ export default function Orders() {
             <option value="Return">Returned</option>
             <option value="RDC">RDC Update</option>
             <option value="NDR">NDR Failure</option>
+          </select>
+          <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
+        </div>
+
+        {/* Filter Courier */}
+        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+          <select
+            className="premium-input"
+            style={{
+              width: 'auto',
+              minWidth: '130px',
+              padding: '6px 28px 6px 12px',
+              height: '34px',
+              fontSize: '13px',
+              backgroundColor: '#18181B',
+              borderColor: '#10B981',
+              appearance: 'none',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
+            value={courierFilter}
+            onChange={(e) => { setCourierFilter(e.target.value); setPage(1); }}
+          >
+            <option value="all">Courier (All)</option>
+            <option value="DTDC">DTDC Express</option>
+            <option value="XpressBees">XpressBees</option>
+            <option value="Delhivery">Delhivery</option>
+            <option value="Aggregator">Aggregator</option>
           </select>
           <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
         </div>

@@ -69,6 +69,12 @@ export async function GET(request: Request) {
       orders = orders.filter(o => o.paymentType === payment);
     }
 
+    // 4b. Courier filtering
+    const courier = searchParams.get('courier');
+    if (courier && courier !== 'all') {
+      orders = orders.filter(o => o.courier && o.courier.toLowerCase().includes(courier.toLowerCase()));
+    }
+
     // 5. Sorting
     orders.sort((a: any, b: any) => {
       let valA = a[sortField];

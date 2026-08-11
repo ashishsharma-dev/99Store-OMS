@@ -12,7 +12,10 @@ import {
   Barcode,
   Calendar,
   Download,
-  Info
+  Info,
+  Search,
+  Filter,
+  ChevronDown
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
 import { HealvitaShippingLabel } from '@/components/HealvitaShippingLabel';
@@ -56,6 +59,8 @@ export default function Packing() {
 
   // Module 4: Bulk Logistics header dropdown filters
   const [courierFilter, setCourierFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [search, setSearch] = useState<string>('');
   const [contactBindingFilter, setContactBindingFilter] = useState<string>('Primary');
 
   // Reassign Modal States
@@ -178,9 +183,34 @@ export default function Packing() {
   };
 
   const filteredOrders = orders.filter(o => {
-    if (courierFilter === 'all') return true;
-    const c = courierOverrides[o.id] || o.courier || 'DTDC';
-    return c.toLowerCase().includes(courierFilter.toLowerCase());
+    // 1. Status Filter
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'Ready to Dispatch' || statusFilter === 'Label Generated') {
+        if (o.status !== 'Label Generated') return false;
+      } else if (o.status !== statusFilter) {
+        return false;
+      }
+    }
+    // 2. Courier Filter
+    if (courierFilter !== 'all') {
+      const c = courierOverrides[o.id] || o.courier || 'DTDC';
+      if (!c.toLowerCase().includes(courierFilter.toLowerCase())) return false;
+    }
+    // 3. Search Filter
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const match =
+        o.orderId.toLowerCase().includes(q) ||
+        o.customerName.toLowerCase().includes(q) ||
+        o.phonePrimary.includes(q) ||
+        (o.phoneSecondary && o.phoneSecondary.includes(q)) ||
+        (o.phoneTertiary && o.phoneTertiary.includes(q)) ||
+        (o.awb && o.awb.toLowerCase().includes(q)) ||
+        (o.pincode && o.pincode.includes(q)) ||
+        o.address.toLowerCase().includes(q);
+      if (!match) return false;
+    }
+    return true;
   });
 
   // Perform background live serviceability checks for visible orders
@@ -607,48 +637,163 @@ export default function Packing() {
         </div>
       </div>
 
-      {/* Queue Counter Dashboard banner & Module 4 Bulk Header Filters */}
-      <div className="premium-card" style={{ padding: '16px 24px', display: 'flex', gap: '24px', alignItems: 'center', backgroundColor: '#0F0F11', borderStyle: 'dashed', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Package size={20} style={{ color: '#3B82F6' }} />
-          <span style={{ fontSize: '14px', fontWeight: 600, color: '#FAFAFA' }}>
-            Packing Department Load:
+      {/* Queue Counter Dashboard banner */}
+      <div className="premium-card" style={{ padding: '14px 20px', display: 'flex', gap: '16px', alignItems: 'center', backgroundColor: '#0F0F11', borderStyle: 'dashed', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Package size={18} style={{ color: '#3B82F6' }} />
+          <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#FAFAFA' }}>
+            Packing Load:
           </span>
         </div>
-        <div style={{ fontSize: '14px', color: '#8A8A8A', flex: 1, minWidth: '240px' }}>
-          <strong>{orders.filter(o => o.status === 'Created').length}</strong> New Orders | <strong>{orders.filter(o => o.status === 'Packing').length}</strong> Currently Packing | <strong>{orders.filter(o => o.status === 'Label Generated').length}</strong> Ready to Dispatch | <strong>{orders.filter(o => o.status === 'Dispatched').length}</strong> Dispatched
+        <div style={{ fontSize: '13px', color: '#8A8A8A', flex: 1, display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button 
+            onClick={() => setStatusFilter('all')}
+            style={{ background: statusFilter === 'all' ? 'rgba(59,130,246,0.2)' : 'none', border: '1px solid ' + (statusFilter === 'all' ? '#3B82F6' : '#27272A'), color: statusFilter === 'all' ? '#60A5FA' : '#A1A1AA', padding: '3px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+          >
+            <strong>{orders.length}</strong> All Orders
+          </button>
+
+          <button 
+            onClick={() => setStatusFilter('Created')}
+            style={{ background: statusFilter === 'Created' ? 'rgba(59,130,246,0.2)' : 'none', border: '1px solid ' + (statusFilter === 'Created' ? '#3B82F6' : '#27272A'), color: statusFilter === 'Created' ? '#60A5FA' : '#A1A1AA', padding: '3px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+          >
+            <strong>{orders.filter(o => o.status === 'Created').length}</strong> New Orders
+          </button>
+
+          <button 
+            onClick={() => setStatusFilter('Packing')}
+            style={{ background: statusFilter === 'Packing' ? 'rgba(245,158,11,0.2)' : 'none', border: '1px solid ' + (statusFilter === 'Packing' ? '#F59E0B' : '#27272A'), color: statusFilter === 'Packing' ? '#FBBF24' : '#A1A1AA', padding: '3px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+          >
+            <strong>{orders.filter(o => o.status === 'Packing').length}</strong> Currently Packing
+          </button>
+
+          <button 
+            onClick={() => setStatusFilter('Ready to Dispatch')}
+            style={{ background: (statusFilter === 'Ready to Dispatch' || statusFilter === 'Label Generated') ? 'rgba(16,185,129,0.2)' : 'none', border: '1px solid ' + ((statusFilter === 'Ready to Dispatch' || statusFilter === 'Label Generated') ? '#10B981' : '#27272A'), color: (statusFilter === 'Ready to Dispatch' || statusFilter === 'Label Generated') ? '#34D399' : '#A1A1AA', padding: '3px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+          >
+            <strong>{orders.filter(o => o.status === 'Label Generated').length}</strong> Ready to Dispatch
+          </button>
+
+          <button 
+            onClick={() => setStatusFilter('Dispatched')}
+            style={{ background: statusFilter === 'Dispatched' ? 'rgba(139,92,246,0.2)' : 'none', border: '1px solid ' + (statusFilter === 'Dispatched' ? '#8B5CF6' : '#27272A'), color: statusFilter === 'Dispatched' ? '#A78BFA' : '#A1A1AA', padding: '3px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+          >
+            <strong>{orders.filter(o => o.status === 'Dispatched').length}</strong> Dispatched
+          </button>
+        </div>
+      </div>
+
+      {/* Global Search & Filters Toolboard */}
+      <div 
+        className="premium-card" 
+        style={{ 
+          padding: '10px 14px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '10px',
+          flexWrap: 'wrap',
+          backgroundColor: '#09090B',
+          borderColor: '#27272A'
+        }}
+      >
+        {/* Search */}
+        <div style={{ position: 'relative', minWidth: '220px', maxWidth: '300px', flex: 1 }}>
+          <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#737373' }} />
+          <input
+            type="text"
+            className="premium-input"
+            style={{ 
+              paddingLeft: '32px', 
+              height: '34px', 
+              fontSize: '13px', 
+              backgroundColor: '#18181B', 
+              borderColor: '#27272A' 
+            }}
+            placeholder="Search Order ID, Name, Phone, AWB, Pincode..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
 
-        {/* Module 4: Header Dropdown Filters */}
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <div>
-            <span style={{ fontSize: '10px', color: '#737373', display: 'block', textTransform: 'uppercase', marginBottom: '2px' }}>Courier Partner Filter</span>
-            <select
-              className="premium-input"
-              style={{ padding: '4px 8px', fontSize: '12px', borderColor: '#3B82F6' }}
-              value={courierFilter}
-              onChange={(e) => setCourierFilter(e.target.value)}
-            >
-              <option value="all">All Carrier Partners</option>
-              <option value="DTDC">DTDC Express</option>
-              <option value="XpressBees">XpressBees Logistics</option>
-              <option value="Delhivery">Delhivery Express</option>
-              <option value="Aggregator">Aggregator API</option>
-            </select>
-          </div>
-          <div>
-            <span style={{ fontSize: '10px', color: '#737373', display: 'block', textTransform: 'uppercase', marginBottom: '2px' }}>Pickup Contact Binding</span>
-            <select
-              className="premium-input"
-              style={{ padding: '4px 8px', fontSize: '12px', borderColor: '#F59E0B' }}
-              value={contactBindingFilter}
-              onChange={(e) => setContactBindingFilter(e.target.value)}
-            >
-              <option value="Primary">Primary Store Contact</option>
-              <option value="Secondary">Secondary Fulfillment Hub</option>
-              <option value="Tertiary">CUSTOMER_NUMBER (Masked Coordination)</option>
-            </select>
-          </div>
+        <Filter size={14} style={{ color: '#737373', flexShrink: 0 }} />
+
+        {/* Status filter */}
+        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+          <select
+            className="premium-input"
+            style={{ 
+              width: 'auto', 
+              minWidth: '150px', 
+              padding: '6px 28px 6px 12px',
+              height: '34px',
+              fontSize: '12.5px',
+              backgroundColor: '#18181B',
+              borderColor: '#3B82F6',
+              appearance: 'none',
+              cursor: 'pointer'
+            }}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">Status (All Orders)</option>
+            <option value="Created">Created (New Orders)</option>
+            <option value="Packing">Currently Packing</option>
+            <option value="Ready to Dispatch">Ready to Dispatch</option>
+            <option value="Dispatched">Dispatched</option>
+          </select>
+          <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
+        </div>
+
+        {/* Courier Partner filter */}
+        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+          <select
+            className="premium-input"
+            style={{ 
+              width: 'auto', 
+              minWidth: '160px', 
+              padding: '6px 28px 6px 12px',
+              height: '34px',
+              fontSize: '12.5px',
+              backgroundColor: '#18181B',
+              borderColor: '#10B981',
+              appearance: 'none',
+              cursor: 'pointer'
+            }}
+            value={courierFilter}
+            onChange={(e) => setCourierFilter(e.target.value)}
+          >
+            <option value="all">All Carrier Partners</option>
+            <option value="DTDC">DTDC Express</option>
+            <option value="XpressBees">XpressBees Logistics</option>
+            <option value="Delhivery">Delhivery Express</option>
+            <option value="Aggregator">Aggregator API</option>
+          </select>
+          <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
+        </div>
+
+        {/* Pickup Contact Binding */}
+        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+          <select
+            className="premium-input"
+            style={{ 
+              width: 'auto', 
+              minWidth: '170px', 
+              padding: '6px 28px 6px 12px',
+              height: '34px',
+              fontSize: '12.5px',
+              backgroundColor: '#18181B',
+              borderColor: '#F59E0B',
+              appearance: 'none',
+              cursor: 'pointer'
+            }}
+            value={contactBindingFilter}
+            onChange={(e) => setContactBindingFilter(e.target.value)}
+          >
+            <option value="Primary">Primary Store Contact</option>
+            <option value="Secondary">Secondary Fulfillment Hub</option>
+            <option value="Tertiary">CUSTOMER_NUMBER (Masked)</option>
+          </select>
+          <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
         </div>
       </div>
 
