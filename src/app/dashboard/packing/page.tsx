@@ -79,6 +79,25 @@ export default function Packing() {
   const [bulkReassignLoading, setBulkReassignLoading] = useState(false);
   const [inlineReassignLoading, setInlineReassignLoading] = useState<string | null>(null);
 
+  // Infinite Scroll Batch Limit State
+  const [displayLimit, setDisplayLimit] = useState<number>(20);
+
+  // Single AWB Dispatch Modal State
+  const [singleDispatchOrder, setSingleDispatchOrder] = useState<Order | null>(null);
+  const [singleDispatchCourier, setSingleDispatchCourier] = useState<string>('DTDC');
+  const [singleDispatchPhoneChoice, setSingleDispatchPhoneChoice] = useState<string>('Primary');
+  const [singleDispatchCustomPhone, setSingleDispatchCustomPhone] = useState<string>('');
+
+  // Bulk AWB Dispatch Modal State
+  const [showBulkDispatchModal, setShowBulkDispatchModal] = useState<boolean>(false);
+  const [bulkDispatchCourier, setBulkDispatchCourier] = useState<string>('DTDC');
+  const [bulkDispatchPhoneBinding, setBulkDispatchPhoneBinding] = useState<string>('Primary');
+
+  // Infinite Scroll Reset
+  useEffect(() => {
+    setDisplayLimit(20);
+  }, [search, statusFilter, courierFilter, dateRange]);
+
   useEffect(() => {
     if (showAwbErrorModal && awbErrorDetails) {
       const checkAllCouriers = async () => {
@@ -277,6 +296,16 @@ export default function Packing() {
     };
   }, [filteredOrders, courierOverrides]);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 350) {
+        setDisplayLimit(prev => Math.min(prev + 20, filteredOrders.length));
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [filteredOrders.length]);
+
   const handleSelectAll = () => {
     if (selectedIds.length === filteredOrders.length && filteredOrders.length > 0) {
       setSelectedIds([]);
@@ -285,11 +314,38 @@ export default function Packing() {
     }
   };
 
+  // Open single dispatch modal
+  const handleOpenSingleDispatchModal = (order: Order) => {
+    setSingleDispatchOrder(order);
+    setSingleDispatchCourier(courierOverrides[order.id] || order.courier || 'DTDC');
+    setSingleDispatchPhoneChoice('Primary');
+    setSingleDispatchCustomPhone('');
+  };
+
+  // Confirm & Generate Single AWB
+  const confirmSingleDispatch = async () => {
+    if (!singleDispatchOrder) return;
+
+    let targetPhone = singleDispatchOrder.phonePrimary;
+    if (singleDispatchPhoneChoice === 'Secondary' && singleDispatchOrder.phoneSecondary) {
+      targetPhone = singleDispatchOrder.phoneSecondary;
+    } else if (singleDispatchPhoneChoice === 'Tertiary' && singleDispatchOrder.phoneTertiary) {
+      targetPhone = singleDispatchOrder.phoneTertiary;
+    } else if (singleDispatchPhoneChoice === 'Custom' && singleDispatchCustomPhone.trim()) {
+      targetPhone = singleDispatchCustomPhone.trim();
+    }
+
+    const orderToProcess = singleDispatchOrder;
+    const courierChoice = singleDispatchCourier;
+    setSingleDispatchOrder(null);
+    handleGenerateLabel(orderToProcess, courierChoice, targetPhone);
+  };
+
   // Generate AWB for single order
-  const handleGenerateLabel = async (order: Order) => {
+  const handleGenerateLabel = async (order: Order, courierChoice?: string, phoneChoice?: string) => {
     setProcessingOrderId(order.id);
-    const selectedCourier = courierOverrides[order.id] || order.courier || 'DTDC';
-    const targetPhone = phoneSelections[order.id] || order.phonePrimary;
+    const selectedCourier = courierChoice || courierOverrides[order.id] || order.courier || 'DTDC';
+    const targetPhone = phoneChoice || phoneSelections[order.id] || order.phonePrimary;
 
     try {
       const res = await fetch(`/api/orders/${order.id}`, {
@@ -356,8 +412,19 @@ export default function Packing() {
     }
   };
 
+  // Open bulk dispatch modal
+  const handleOpenBulkDispatchModal = () => {
+    if (selectedIds.length === 0) return;
+    const pendingAWB = orders.filter(o => selectedIds.includes(o.id) && !o.awb);
+    if (pendingAWB.length === 0) {
+      alert('No selected orders require AWB generation.');
+      return;
+    }
+    setShowBulkDispatchModal(true);
+  };
+
   // BULK ACTIONS
-  const handleBulkGenerateLabels = async () => {
+  const executeBulkGenerateLabels = async (chosenCourier: string, chosenPhoneBinding: string) => {
     if (selectedIds.length === 0) return;
 
     const pendingAWB = orders.filter(o => selectedIds.includes(o.id) && !o.awb);
@@ -365,9 +432,6 @@ export default function Packing() {
       alert('No selected orders require AWB generation.');
       return;
     }
-
-    const firstOrder = pendingAWB[0];
-    const selectedCourier = courierOverrides[firstOrder.id] || firstOrder.courier || 'DTDC';
 
     setBulkProgress({
       total: pendingAWB.length,
@@ -385,7 +449,8 @@ export default function Packing() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderIds: pendingAWB.map(o => o.id),
-          courier: selectedCourier,
+          courier: chosenCourier,
+          phoneBinding: chosenPhoneBinding,
           username: currentUser?.username || 'packing_operator'
         })
       });
@@ -814,7 +879,7 @@ export default function Packing() {
               Bulk Reassign Courier
             </button>
             <button 
-              onClick={handleBulkGenerateLabels} 
+              onClick={handleOpenBulkDispatchModal} 
               className="premium-btn premium-btn-secondary" 
               style={{ padding: '6px 12px', fontSize: '12.5px', borderColor: '#3B82F6', color: '#3B82F6' }}
               disabled={bulkProcessing}
@@ -873,7 +938,7 @@ export default function Packing() {
               </tr>
             </thead>
             <tbody>
-              {filteredOrders.map((o) => {
+              {filteredOrders.slice(0, displayLimit).map((o) => {
                 const isProcessing = processingOrderId === o.id || bulkProcessing;
                 const activeCourier = courierOverrides[o.id] || o.courier || 'DTDC';
                 const hasMultiplePhones = o.phoneSecondary || o.phoneTertiary;
@@ -996,7 +1061,7 @@ export default function Packing() {
                         {!o.awb && (
                           isServiceable ? (
                             <button
-                              onClick={() => handleGenerateLabel(o)}
+                              onClick={() => handleOpenSingleDispatchModal(o)}
                               className="premium-btn premium-btn-primary animate-fade-in"
                               style={{ padding: '6px 12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                               disabled={isProcessing}
@@ -1521,6 +1586,158 @@ export default function Packing() {
                   {bulkReassignLoading ? 'Reassigning...' : 'Confirm Bulk Reassign'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Single AWB Generation Dispatch Modal */}
+      {singleDispatchOrder && (
+        <div className="premium-modal-backdrop" style={{ zIndex: 1200 }}>
+          <div className="premium-modal animate-fade-in" style={{ maxWidth: '460px' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Tag size={16} style={{ color: '#3B82F6' }} />
+                <h3 style={{ fontSize: '15px', color: '#FAFAFA', fontWeight: 600, margin: 0 }}>Configure Parcel Dispatch ({singleDispatchOrder.orderId})</h3>
+              </div>
+              <button 
+                onClick={() => setSingleDispatchOrder(null)} 
+                style={{ background: 'none', border: 'none', color: '#737373', cursor: 'pointer', fontSize: '13px' }}
+              >
+                Close
+              </button>
+            </div>
+
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ fontSize: '11px', color: '#A1A1AA', display: 'block', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 600 }}>
+                  Select Courier Partner:
+                </label>
+                <select
+                  className="premium-input"
+                  style={{ padding: '8px 12px', fontSize: '13px', width: '100%', borderColor: '#3B82F6' }}
+                  value={singleDispatchCourier}
+                  onChange={(e) => setSingleDispatchCourier(e.target.value)}
+                >
+                  <option value="DTDC">DTDC Express (Priority 1)</option>
+                  <option value="XpressBees">XpressBees Logistics</option>
+                  <option value="Delhivery">Delhivery Express</option>
+                  <option value="Aggregator">Aggregator API</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '11px', color: '#A1A1AA', display: 'block', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 600 }}>
+                  Select Primary Parcel Contact Number:
+                </label>
+                <select
+                  className="premium-input"
+                  style={{ padding: '8px 12px', fontSize: '13px', width: '100%', borderColor: '#F59E0B' }}
+                  value={singleDispatchPhoneChoice}
+                  onChange={(e) => setSingleDispatchPhoneChoice(e.target.value)}
+                >
+                  <option value="Primary">Primary Customer Phone: {singleDispatchOrder.phonePrimary}</option>
+                  {singleDispatchOrder.phoneSecondary && (
+                    <option value="Secondary">Secondary Phone: {singleDispatchOrder.phoneSecondary}</option>
+                  )}
+                  {singleDispatchOrder.phoneTertiary && (
+                    <option value="Tertiary">Tertiary Customer Number</option>
+                  )}
+                  <option value="Custom">Custom Phone Number Input</option>
+                </select>
+
+                {singleDispatchPhoneChoice === 'Custom' && (
+                  <input
+                    type="text"
+                    className="premium-input"
+                    style={{ marginTop: '8px', padding: '8px 12px', fontSize: '13px', width: '100%' }}
+                    placeholder="Enter 10-digit primary phone number..."
+                    value={singleDispatchCustomPhone}
+                    onChange={(e) => setSingleDispatchCustomPhone(e.target.value)}
+                  />
+                )}
+              </div>
+            </div>
+
+            <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '10px', backgroundColor: '#09090B' }}>
+              <button onClick={() => setSingleDispatchOrder(null)} className="premium-btn premium-btn-secondary" style={{ padding: '6px 14px' }}>
+                Cancel
+              </button>
+              <button onClick={confirmSingleDispatch} className="premium-btn premium-btn-primary" style={{ padding: '6px 16px', backgroundColor: '#3B82F6', borderColor: '#3B82F6' }}>
+                Confirm & Generate AWB
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Bulk AWB Generation Dispatch Modal */}
+      {showBulkDispatchModal && (
+        <div className="premium-modal-backdrop" style={{ zIndex: 1200 }}>
+          <div className="premium-modal animate-fade-in" style={{ maxWidth: '460px' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Tag size={16} style={{ color: '#3B82F6' }} />
+                <h3 style={{ fontSize: '15px', color: '#FAFAFA', fontWeight: 600, margin: 0 }}>Bulk Configure Parcel Dispatches</h3>
+              </div>
+              <button 
+                onClick={() => setShowBulkDispatchModal(false)} 
+                style={{ background: 'none', border: 'none', color: '#737373', cursor: 'pointer', fontSize: '13px' }}
+              >
+                Close
+              </button>
+            </div>
+
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <span style={{ fontSize: '13px', color: '#A1A1AA' }}>
+                Configuring bulk AWB generation for <strong style={{ color: '#FAFAFA' }}>{orders.filter(o => selectedIds.includes(o.id) && !o.awb).length}</strong> selected pending parcels.
+              </span>
+
+              <div>
+                <label style={{ fontSize: '11px', color: '#A1A1AA', display: 'block', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 600 }}>
+                  Select Courier Partner:
+                </label>
+                <select
+                  className="premium-input"
+                  style={{ padding: '8px 12px', fontSize: '13px', width: '100%', borderColor: '#3B82F6' }}
+                  value={bulkDispatchCourier}
+                  onChange={(e) => setBulkDispatchCourier(e.target.value)}
+                >
+                  <option value="DTDC">DTDC Express (Priority 1)</option>
+                  <option value="XpressBees">XpressBees Logistics</option>
+                  <option value="Delhivery">Delhivery Express</option>
+                  <option value="Aggregator">Aggregator API</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '11px', color: '#A1A1AA', display: 'block', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 600 }}>
+                  Select Primary Parcel Phone Binding:
+                </label>
+                <select
+                  className="premium-input"
+                  style={{ padding: '8px 12px', fontSize: '13px', width: '100%', borderColor: '#F59E0B' }}
+                  value={bulkDispatchPhoneBinding}
+                  onChange={(e) => setBulkDispatchPhoneBinding(e.target.value)}
+                >
+                  <option value="Primary">Primary Store Phone (Default)</option>
+                  <option value="Secondary">Secondary Hub Phone</option>
+                  <option value="Tertiary">Tertiary Customer Phone</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '10px', backgroundColor: '#09090B' }}>
+              <button onClick={() => setShowBulkDispatchModal(false)} className="premium-btn premium-btn-secondary" style={{ padding: '6px 14px' }}>
+                Cancel
+              </button>
+              <button 
+                onClick={() => executeBulkGenerateLabels(bulkDispatchCourier, bulkDispatchPhoneBinding)} 
+                className="premium-btn premium-btn-primary" 
+                style={{ padding: '6px 16px', backgroundColor: '#3B82F6', borderColor: '#3B82F6' }}
+              >
+                Start Bulk AWB Generation
+              </button>
             </div>
           </div>
         </div>

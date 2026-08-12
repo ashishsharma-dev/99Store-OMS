@@ -5,7 +5,7 @@ import { enqueueBulkJob } from '@/lib/courierQueue';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { orderIds, courier, username } = body;
+    const { orderIds, courier, username, phoneBinding, contactBinding } = body;
 
     if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
       return NextResponse.json({ error: 'Missing or empty orderIds array.' }, { status: 400 });
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing courier partner selection.' }, { status: 400 });
     }
 
-    const job = await enqueueBulkJob(orderIds, courier, username || 'system');
+    const job = await enqueueBulkJob(orderIds, courier, username || 'system', phoneBinding || contactBinding || 'Primary');
     return NextResponse.json({ success: true, job });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to create bulk job.' }, { status: 500 });

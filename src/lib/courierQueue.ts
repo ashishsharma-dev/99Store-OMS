@@ -5,7 +5,7 @@ import { BulkJob } from './types';
 
 let isCourierQueueProcessing = false;
 
-export async function enqueueBulkJob(orderIds: string[], courierPartner: string, username: string): Promise<BulkJob> {
+export async function enqueueBulkJob(orderIds: string[], courierPartner: string, username: string, phoneBinding: string = 'Primary'): Promise<BulkJob> {
   const jobId = `job-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   const newJob: BulkJob = {
     id: jobId,
@@ -23,6 +23,7 @@ export async function enqueueBulkJob(orderIds: string[], courierPartner: string,
   (newJob as any).orderIds = orderIds;
   (newJob as any).courier = courierPartner;
   (newJob as any).createdBy = username;
+  (newJob as any).phoneBinding = phoneBinding;
 
   await db.saveBulkJob(newJob);
 
@@ -107,13 +108,21 @@ async function processCourierJobs() {
           continue;
         }
 
+        const phoneBinding: string = (pendingJob as any).phoneBinding || 'Primary';
+        let selectedPhone = order.phonePrimary;
+        if (phoneBinding === 'Secondary' && order.phoneSecondary) {
+          selectedPhone = order.phoneSecondary;
+        } else if (phoneBinding === 'Tertiary' && order.phoneTertiary) {
+          selectedPhone = order.phoneTertiary;
+        }
+
         try {
           const result = await bookCourierShipment(
             order,
             settings,
             order.weight,
             targetCourier,
-            order.phonePrimary
+            selectedPhone
           );
 
           if (result.success) {

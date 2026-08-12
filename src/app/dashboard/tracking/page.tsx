@@ -509,7 +509,13 @@ export default function Tracking() {
                         <div style={{ width: '13px', height: '13px', borderRadius: '50%', backgroundColor: dotColor, border: '2px solid ' + (isCompleted ? '#000' : 'var(--border-focus)'), zIndex: 1 }} />
                         <div>
                           <div style={{ fontSize: '13px', fontWeight: 600, color: isCompleted ? '#FAFAFA' : '#55555A' }}>Handed to Courier (In-Transit)</div>
-                          {isCompleted && <div style={{ fontSize: '11px', color: '#737373', marginTop: '2px' }}>Departed from Warehouse Delhi NCR Hub</div>}
+                          {isCompleted && (
+                            <div style={{ fontSize: '11px', color: '#737373', marginTop: '2px' }}>
+                              {liveTrackingData?.scans?.[0]?.instructions || 
+                               liveTrackingData?.scans?.[0]?.location || 
+                               `Handed over to ${selectedOrder.courier || 'courier'} network for transit`}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
