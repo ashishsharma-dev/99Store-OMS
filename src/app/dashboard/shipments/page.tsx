@@ -64,10 +64,22 @@ export default function AllShipments() {
   const [sortField, setSortField] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
   
-  // Pagination State
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
+  // Infinite Scroll Batch Loading (20 items per batch)
+  const [displayLimit, setDisplayLimit] = useState<number>(20);
+
+  useEffect(() => {
+    setDisplayLimit(20);
+  }, [search, statusFilter, courierFilter, dateRange]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 350) {
+        setDisplayLimit(prev => Math.min(prev + 20, orders.length));
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [orders.length]);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
 
@@ -171,21 +183,19 @@ export default function AllShipments() {
 
   useEffect(() => {
     fetchShipmentsList();
-  }, [search, statusFilter, courierFilter, sortField, sortOrder, page, dateRange]);
+  }, [search, statusFilter, courierFilter, sortField, sortOrder, dateRange]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       fetchShipmentsList(true);
     }, 20000);
     return () => clearInterval(interval);
-  }, [search, statusFilter, courierFilter, sortField, sortOrder, page, dateRange]);
+  }, [search, statusFilter, courierFilter, sortField, sortOrder, dateRange]);
 
   const fetchShipmentsList = async (isBackground = false) => {
     if (!isBackground) setLoading(true);
     try {
-      // Fetch all dispatches. We can query `/api/orders`
-      // We pass filters and pagination parameters.
-      let url = `/api/orders?page=${page}&limit=50&search=${encodeURIComponent(search)}&status=${statusFilter}&sortField=${sortField}&sortOrder=${sortOrder}`;
+      let url = `/api/orders?limit=100000&search=${encodeURIComponent(search)}&status=${statusFilter}&sortField=${sortField}&sortOrder=${sortOrder}`;
       if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
       if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
       const res = await fetch(url);
@@ -200,8 +210,6 @@ export default function AllShipments() {
         }
 
         setOrders(filtered);
-        setTotalPages(data.pagination.totalPages || 1);
-        setTotalCount(data.pagination.totalCount || 0);
       }
       setLoading(false);
     } catch (err) {
@@ -214,7 +222,7 @@ export default function AllShipments() {
     const [field, order] = combinedValue.split('-');
     setSortField(field);
     setSortOrder(order);
-    setPage(1);
+    setDisplayLimit(20);
   };
 
   const openOrderDetail = (order: Order) => {
@@ -261,7 +269,7 @@ export default function AllShipments() {
         </div>
 
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <DateRangeFilter value={dateRange} onChange={(range) => { setDateRange(range); setPage(1); }} />
+          <DateRangeFilter value={dateRange} onChange={(range) => { setDateRange(range); setDisplayLimit(20); }} />
           <button onClick={handleExportCsv} className="premium-btn premium-btn-secondary" style={{ padding: '8px 14px' }}>
             <Download size={14} />
             <span>Export CSV</span>
@@ -302,7 +310,7 @@ export default function AllShipments() {
             }}
             placeholder="Search shipments by Name, Phone, AWB, Order ID, Pincode..."
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            onChange={(e) => { setSearch(e.target.value); setDisplayLimit(20); }}
           />
         </div>
 
@@ -325,7 +333,7 @@ export default function AllShipments() {
               outline: 'none'
             }}
             value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+            onChange={(e) => { setStatusFilter(e.target.value); setDisplayLimit(20); }}
           >
             <option value="all">Status (All)</option>
             <option value="Created">Created</option>
@@ -361,7 +369,7 @@ export default function AllShipments() {
               outline: 'none'
             }}
             value={courierFilter}
-            onChange={(e) => { setCourierFilter(e.target.value); setPage(1); }}
+            onChange={(e) => { setCourierFilter(e.target.value); setDisplayLimit(20); }}
           >
             <option value="all">Courier (All)</option>
             <option value="DTDC">DTDC</option>
@@ -443,7 +451,7 @@ export default function AllShipments() {
                 </tr>
               </thead>
               <tbody>
-                {orders.map((o) => {
+                {orders.slice(0, displayLimit).map((o) => {
                   const isPartiallyPaid = o.partiallyPaidAmount !== undefined && o.partiallyPaidAmount > 0;
                   const isPrepaid = o.paymentType === 'Paid';
                   
@@ -591,30 +599,11 @@ export default function AllShipments() {
             </table>
           </div>
 
-          {/* Pagination Footer */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '13px', color: '#737373' }}>
-              Showing {orders.length} of {totalCount} dispatches (Page {page} of {totalPages})
+          {/* Infinite Scroll Footer Info */}
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '12px', color: '#737373', fontSize: '12px' }}>
+            <span>
+              Showing {Math.min(displayLimit, orders.length)} of {orders.length} dispatches (Scroll down to load more)
             </span>
-
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                className="premium-btn premium-btn-secondary"
-                style={{ padding: '6px 10px' }}
-                disabled={page <= 1}
-                onClick={() => setPage(p => Math.max(p - 1, 1))}
-              >
-                <ChevronLeft size={14} />
-              </button>
-              <button
-                className="premium-btn premium-btn-secondary"
-                style={{ padding: '6px 10px' }}
-                disabled={page >= totalPages}
-                onClick={() => setPage(p => Math.min(p + 1, totalPages))}
-              >
-                <ChevronRight size={14} />
-              </button>
-            </div>
           </div>
         </div>
       )}

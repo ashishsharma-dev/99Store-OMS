@@ -326,7 +326,25 @@ export default function OfdManagement() {
 
   // Tab filters
   const unassignedOfd = orders.filter(o => !o.assignedTo);
-  const workingSheetOfd = orders.filter(o => o.assignedTo);
+  const workingSheetOfd = orders.filter(o => !!o.assignedTo);
+
+  // Infinite Scroll Batch Loading (20 items per batch)
+  const [displayLimit, setDisplayLimit] = useState<number>(20);
+
+  useEffect(() => {
+    setDisplayLimit(20);
+  }, [activeTab, dateRange]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 350) {
+        const currentListLength = activeTab === 'all_ofd' ? unassignedOfd.length : workingSheetOfd.length;
+        setDisplayLimit(prev => Math.min(prev + 20, currentListLength));
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [activeTab, unassignedOfd.length, workingSheetOfd.length]);
   const activeUsers = systemUsers.filter(u => u.isActive);
 
   return (
@@ -465,7 +483,7 @@ export default function OfdManagement() {
                 </tr>
               </thead>
               <tbody>
-                {unassignedOfd.map((o) => {
+                {unassignedOfd.slice(0, displayLimit).map((o) => {
                   const isPartiallyPaid = o.partiallyPaidAmount !== undefined && o.partiallyPaidAmount > 0;
                   
                   let latestRemarkText = 'Initial OFD Dispatch';
@@ -620,7 +638,7 @@ export default function OfdManagement() {
                 </tr>
               </thead>
               <tbody>
-                {workingSheetOfd.map((o) => {
+                {workingSheetOfd.slice(0, displayLimit).map((o) => {
                   const isPartiallyPaid = o.partiallyPaidAmount !== undefined && o.partiallyPaidAmount > 0;
                   
                   let latestRemarkText = 'Assigned to Rider';

@@ -569,6 +569,24 @@ export default function NdrManagement() {
     return order && order.inNdrWorkingSheet;
   });
 
+  // Infinite Scroll Batch Loading (20 items per batch)
+  const [displayLimit, setDisplayLimit] = useState<number>(20);
+
+  useEffect(() => {
+    setDisplayLimit(20);
+  }, [activeTab, dateRange]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 350) {
+        const currentListLength = activeTab === 'ndr' ? activeNdrTickets.length : workingSheetTickets.length;
+        setDisplayLimit(prev => Math.min(prev + 20, currentListLength));
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [activeTab, activeNdrTickets.length, workingSheetTickets.length]);
+
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
@@ -716,7 +734,7 @@ export default function NdrManagement() {
                 </tr>
               </thead>
               <tbody>
-                {activeNdrTickets.map((n) => {
+                {activeNdrTickets.slice(0, displayLimit).map((n) => {
                   const order = getOrderForNdr(n.orderId);
                   const isPartiallyPaid = order?.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0;
                   
@@ -864,7 +882,7 @@ export default function NdrManagement() {
                 </tr>
               </thead>
               <tbody>
-                {workingSheetTickets.map((n) => {
+                {workingSheetTickets.slice(0, displayLimit).map((n) => {
                   const order = getOrderForNdr(n.orderId);
                   const isPartiallyPaid = order?.partiallyPaidAmount !== undefined && order.partiallyPaidAmount > 0;
                   

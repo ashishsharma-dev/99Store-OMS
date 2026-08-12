@@ -303,6 +303,23 @@ export default function Orders() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
+  // Infinite Scroll Batch Loading (20 items per batch)
+  const [displayLimit, setDisplayLimit] = useState<number>(20);
+
+  useEffect(() => {
+    setDisplayLimit(20);
+  }, [search, statusFilter, paymentFilter, vipFilter, courierFilter, dateRange]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 350) {
+        setDisplayLimit(prev => Math.min(prev + 20, orders.length));
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [orders.length]);
+
   // Selection & Deletion States
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
 
@@ -1007,7 +1024,7 @@ export default function Orders() {
                 </tr>
               </thead>
               <tbody>
-                {orders.map((o) => {
+                {orders.slice(0, displayLimit).map((o) => {
                   const isOrderPaid = o.paymentType === 'Paid';
                   const isPartiallyPaid = o.partiallyPaidAmount !== undefined && o.partiallyPaidAmount > 0;
 

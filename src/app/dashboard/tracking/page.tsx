@@ -216,6 +216,23 @@ export default function Tracking() {
     return true;
   });
 
+  // Infinite Scroll Batch Loading (20 items per batch)
+  const [displayLimit, setDisplayLimit] = useState<number>(20);
+
+  useEffect(() => {
+    setDisplayLimit(20);
+  }, [search, statusFilter, courierFilter, dateRange]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 350) {
+        setDisplayLimit(prev => Math.min(prev + 20, filteredOrders.length));
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [filteredOrders.length]);
+
   const openLogisticsControl = (order: Order) => {
     setSelectedOrder(order);
     setShowControlDrawer(true);
@@ -321,7 +338,7 @@ export default function Tracking() {
               <span style={{ fontSize: '13px', color: '#737373' }}>No active dispatches found.</span>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {filteredOrders.map((o) => (
+                {filteredOrders.slice(0, displayLimit).map((o) => (
                   <button
                     key={o.id}
                     onClick={() => openLogisticsControl(o)}
