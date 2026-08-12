@@ -4,55 +4,102 @@ import React from 'react';
 import { Order } from '@/lib/types';
 import { AddressRatingIndicator } from './AddressRatingIndicator';
 
-// Simple Code 39 Barcode Map
-const CODE39_MAP: { [key: string]: string } = {
-  '0': '101001101101', '1': '110100101011', '2': '101100101011', '3': '110110010101',
-  '4': '101001101011', '5': '110100110101', '6': '101100110101', '7': '101001011011',
-  '8': '110100101101', '9': '101100101101', 'A': '110101001011', 'B': '101101001011',
-  'C': '110110100101', 'D': '101011001011', 'E': '110101100101', 'F': '101101100101',
-  'G': '101010011011', 'H': '110101001101', 'I': '101101001101', 'J': '101011001101',
-  'K': '110101010011', 'L': '101101010011', 'M': '110110101001', 'N': '101011010011',
-  'O': '110101101001', 'P': '101101101001', 'Q': '101010110011', 'R': '110101011001',
-  'S': '101101011001', 'T': '101011011001', 'U': '110010101011', 'V': '100110101011',
-  'W': '110011010101', 'X': '100101101011', 'Y': '110010110101', 'Z': '100110110101',
-  '-': '100101011011', '.': '110010101101', ' ': '100110101101', '$': '100100100101',
-  '/': '100100101001', '+': '100101001001', '%': '101001001001', '*': '100101101101'
-};
+// High-Density Code 128 (B) Barcode Pattern Table (0-105 + 106 Stop)
+const CODE128_PATTERNS: number[][] = [
+  [2,1,2,2,2,2], [2,2,2,1,2,2], [2,2,2,2,2,1], [1,2,1,2,2,3], [1,2,1,3,2,2],
+  [1,3,1,2,2,2], [1,2,2,2,1,3], [1,2,2,3,1,2], [1,3,2,2,1,2], [2,2,1,2,1,3],
+  [2,2,1,3,1,2], [2,3,1,2,1,2], [1,1,2,2,3,2], [1,2,2,1,3,2], [1,2,2,2,3,1],
+  [1,1,3,2,2,2], [1,2,3,1,2,2], [1,2,3,2,2,1], [2,2,3,2,1,1], [2,2,1,1,3,2],
+  [2,2,1,2,3,1], [2,1,3,2,1,2], [2,2,3,1,1,2], [3,1,2,1,3,1], [3,1,1,2,2,2],
+  [3,2,1,1,2,2], [3,2,1,2,2,1], [3,1,2,2,1,2], [3,2,2,1,1,2], [3,2,2,2,1,1],
+  [2,1,2,1,2,3], [2,1,2,3,2,1], [2,3,2,1,2,1], [1,1,1,3,2,3], [1,3,1,1,2,3],
+  [1,3,1,3,2,1], [1,1,2,3,1,3], [1,3,2,1,1,3], [1,3,2,3,1,1], [2,1,1,3,1,3],
+  [2,3,1,1,1,3], [2,3,1,3,1,1], [1,1,2,1,3,3], [1,1,2,3,3,1], [1,3,2,1,3,1],
+  [1,1,3,1,2,3], [1,1,3,3,2,1], [1,3,3,1,2,1], [3,1,3,1,2,1], [2,1,1,3,3,1],
+  [2,3,1,1,3,1], [2,1,3,1,1,3], [2,1,3,3,1,1], [2,1,3,1,3,1], [3,1,1,1,2,3],
+  [3,1,1,3,2,1], [3,3,1,1,2,1], [3,1,2,1,1,3], [3,1,2,3,1,1], [3,3,2,1,1,1],
+  [3,1,4,1,1,1], [2,2,1,4,1,1], [4,3,1,1,1,1], [1,1,1,2,2,4], [1,1,1,4,2,2],
+  [1,2,1,1,2,4], [1,2,1,4,2,1], [1,4,1,1,2,2], [1,4,1,2,2,1], [1,1,2,2,1,4],
+  [1,1,2,4,1,2], [1,2,2,1,1,4], [1,2,2,4,1,1], [1,4,2,1,1,2], [1,4,2,2,1,1],
+  [2,4,1,2,1,1], [2,2,1,1,1,4], [4,1,3,1,1,1], [2,4,1,1,1,2], [1,3,4,1,1,1],
+  [1,1,1,2,4,2], [1,2,1,1,4,2], [1,2,1,2,4,1], [1,1,4,2,1,2], [1,2,4,1,1,2],
+  [1,2,4,2,1,1], [4,1,1,2,1,2], [4,2,1,1,1,2], [4,2,1,2,1,1], [2,1,2,1,4,1],
+  [2,1,4,1,2,1], [4,1,2,1,2,1], [1,1,1,1,4,3], [1,1,1,3,4,1], [1,3,1,1,4,1],
+  [1,1,4,1,1,3], [1,1,4,3,1,1], [4,1,1,1,1,3], [4,1,1,3,1,1], [1,1,3,1,4,1],
+  [1,1,4,1,3,1], [3,1,1,1,4,1], [4,1,1,1,3,1], [2,1,1,4,1,2], [2,1,1,2,1,4], // 100-104 (104 = Start B)
+  [2,1,1,2,3,2], // 105 (Start C)
+  [2,3,3,1,1,1,2] // 106 (Stop)
+];
 
-// Fix the Asterisk encoding mapping
-CODE39_MAP['*'] = '100101101101';
+export const Code128Barcode = ({ value, height = 45 }: { value: string; height?: number }) => {
+  const str = (value || 'PENDING').trim();
+  if (!str) return null;
 
-const Code39Barcode = ({ value, height = 45 }: { value: string; height?: number }) => {
-  const cleanValue = (value || 'PENDING').toUpperCase().replace(/[^0-9A-Z\-\.\ \$\/\+\%]/g, '');
-  const barcodeText = `*${cleanValue}*`;
+  // Code 128B Encoding
+  const startCode = 104; // Start B
+  const codes: number[] = [startCode];
 
-  let pattern = '';
-  for (let i = 0; i < barcodeText.length; i++) {
-    const char = barcodeText[i];
-    const charPattern = CODE39_MAP[char] || CODE39_MAP[' '];
-    pattern += charPattern + '0';
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    const val = (code >= 32 && code <= 127) ? (code - 32) : 0;
+    codes.push(val);
   }
 
-  const barWidth = 1.5;
-  const totalWidth = pattern.length * barWidth;
+  // Checksum calculation: (104 + sum(pos * val)) % 103
+  let checksum = startCode;
+  for (let i = 1; i < codes.length; i++) {
+    checksum += i * codes[i];
+  }
+  checksum %= 103;
+  codes.push(checksum);
+
+  // Stop character (106)
+  codes.push(106);
+
+  // Build pattern sequence
+  const barWidths: { isBar: boolean; width: number }[] = [];
+  codes.forEach(codeIdx => {
+    const pattern = CODE128_PATTERNS[codeIdx];
+    if (pattern) {
+      pattern.forEach((w, i) => {
+        barWidths.push({ isBar: i % 2 === 0, width: w });
+      });
+    }
+  });
+
+  const totalModules = barWidths.reduce((sum, item) => sum + item.width, 0);
+  const moduleWidth = 1.6;
+  const totalSvgWidth = totalModules * moduleWidth;
+
+  let currentX = 0;
+  const rects: React.ReactNode[] = [];
+
+  barWidths.forEach((item, idx) => {
+    const w = item.width * moduleWidth;
+    if (item.isBar) {
+      rects.push(
+        <rect
+          key={idx}
+          x={currentX}
+          y={0}
+          width={w}
+          height={height}
+          fill="#000000"
+        />
+      );
+    }
+    currentX += w;
+  });
 
   return (
-    <svg width="100%" height={height} viewBox={`0 0 ${totalWidth} ${height}`} preserveAspectRatio="none" style={{ display: 'block' }}>
-      {pattern.split('').map((bit, idx) => {
-        if (bit === '1') {
-          return (
-            <rect
-              key={idx}
-              x={idx * barWidth}
-              y={0}
-              width={barWidth}
-              height={height}
-              fill="#000000"
-            />
-          );
-        }
-        return null;
-      })}
+    <svg
+      width="100%"
+      height={height}
+      viewBox={`0 0 ${totalSvgWidth} ${height}`}
+      preserveAspectRatio="none"
+      style={{ display: 'block' }}
+    >
+      {rects}
     </svg>
   );
 };
@@ -362,7 +409,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
 
           {/* Barcode component */}
           <div style={{ width: '100%', margin: '2px 0' }}>
-            <Code39Barcode value={trackingAwb} height={38} />
+            <Code128Barcode value={trackingAwb} height={38} />
           </div>
 
           <span style={{ fontSize: '9px', fontWeight: 'bold', letterSpacing: '2px', fontFamily: 'monospace' }}>
@@ -419,7 +466,7 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
             </span>
           </div>
           <div style={{ width: '100%', margin: '2px 0' }}>
-            <Code39Barcode value={order.orderId} height={18} />
+            <Code128Barcode value={order.orderId} height={18} />
           </div>
         </div>
 
