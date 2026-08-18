@@ -128,28 +128,10 @@ export default function DashboardLayout({
     }
   }, [router]);
 
-  // Background bulk tracking status sync on route changes
+  // Background bulk tracking status sync on route changes (TEMPORARILY DISABLED)
   useEffect(() => {
-    const runBackgroundSync = async () => {
-      try {
-        const lastSync = localStorage.getItem('99store_last_tracking_sync');
-        const now = Date.now();
-        
-        // Rate limit: only run background sync once every 1 hour (3,600,000 ms)
-        if (lastSync && now - parseInt(lastSync) < 3600000) {
-          return;
-        }
-        
-        localStorage.setItem('99store_last_tracking_sync', now.toString());
-        await fetch('/api/integrations/courier/sync?background=true', { method: 'POST' });
-      } catch (err) {
-        console.error('Background tracking sync failed:', err);
-      }
-    };
-    
-    // Non-blocking delay of 1.5 seconds to let page load first
-    const timer = setTimeout(runBackgroundSync, 1500);
-    return () => clearTimeout(timer);
+    // Background courier sync disabled temporarily
+    return;
   }, [pathname]);
 
   // Module 8: SSE Real-Time Stream Event Listener

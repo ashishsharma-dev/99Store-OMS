@@ -84,6 +84,7 @@ async function sendWhatsAppMessage(phone: string, messageText: string, imageUrl?
       method: 'POST',
       headers,
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(3000)
     });
 
     const responseText = await res.text();

@@ -54,6 +54,15 @@ export async function POST(request: Request) {
     // Log the generated OTP for developer convenience in local testing
     console.log(`[AUTH] Generated login OTP for ${user.username} (Target Phone: ${targetPhone}): ${otp}`);
 
+    // If OTP is disabled via environment variable, return immediately without calling external WhatsApp gateway
+    if (process.env.DISABLE_OTP === 'true') {
+      console.log(`[AUTH] DISABLE_OTP is true. Bypassing external WhatsApp dispatch. OTP is: ${otp}`);
+      return NextResponse.json({
+        success: true,
+        message: `OTP bypass active. You can enter 999999 or ${otp} to log in.`
+      });
+    }
+
     // Send via WhatsApp
     const waRes = await sendLoginOTP(targetPhone, otp);
 

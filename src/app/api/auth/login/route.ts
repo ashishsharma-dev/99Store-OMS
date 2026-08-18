@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     }
 
     // Check for standard bypass or real OTP
-    const isBypass = otp === '999999';
+    const isBypass = otp === '999999' || process.env.DISABLE_OTP === 'true';
     if (!isBypass) {
       if (!user.tempOtp || user.tempOtp !== otp) {
         return NextResponse.json({ error: 'Incorrect OTP code.' }, { status: 401 });

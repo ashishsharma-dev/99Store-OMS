@@ -32,7 +32,7 @@ function writeLocalDbFile(data: any): void {
       fs.mkdirSync(dir, { recursive: true });
     }
     const tempPath = `${DB_FILE_PATH}.tmp`;
-    fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), 'utf-8');
+    fs.writeFileSync(tempPath, JSON.stringify(data), 'utf-8');
     fs.renameSync(tempPath, DB_FILE_PATH);
   } catch (err) {
     console.error('Error writing local db.json:', err);
