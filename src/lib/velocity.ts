@@ -1,4 +1,5 @@
 import { Order, SystemSettings } from './types';
+import { fetchWithRetry } from './fetchWithRetry';
 
 // In-memory token cache for Velocity
 const velocityTokenCache: Record<string, { token: string; expiresAt: number }> = {};
@@ -267,18 +268,23 @@ export async function trackVelocityShipment(
   }
 
   try {
-    const res = await fetch(`${config.baseUrl}/custom/api/v1/order-tracking`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': token
+    const res = await fetchWithRetry(
+      `${config.baseUrl}/custom/api/v1/order-tracking`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({ awbs: [waybill] })
       },
-      body: JSON.stringify({ awbs: [waybill] })
-    });
-
-    if (!res.ok) {
-      throw new Error(`Velocity tracking failed with HTTP status ${res.status}`);
-    }
+      {
+        awb: waybill,
+        courierName: 'Velocity',
+        timeoutMs: 10000,
+        maxAttempts: 3
+      }
+    );
 
     const data = await res.json();
     

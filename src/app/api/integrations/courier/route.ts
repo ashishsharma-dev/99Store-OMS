@@ -5,6 +5,7 @@ import { getXpressBeesToken, resolveXpressBeesConfig } from '@/lib/xpressbees';
 import { syncOrderStatus } from '@/lib/courierSync';
 import { trackVelocityShipment, cancelVelocityShipment } from '@/lib/velocity';
 import { bookCourierShipment, isDtdcStaging } from '@/lib/courierHelper';
+import { fetchWithRetry } from '@/lib/fetchWithRetry';
 
 export async function GET(request: Request) {
   try {
@@ -163,35 +164,53 @@ export async function GET(request: Request) {
         if (authType === 'new') {
           const trackUrl = xbConfig.trackBulkUrl || 'https://apishipmenttracking.xbees.in/GetCurrentShipmentStatus';
           reqPayloadStr = `POST ${trackUrl} body: { awb: ${waybill} }`;
-          res = await fetch(trackUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-              'Token': token,
-              'token': token,
-              'TokenNumber': token,
-              'XBKey': xbConfig.xbKey || '',
-              'xb-key': xbConfig.xbKey || '',
-              'versionnumber': 'v1'
+          res = await fetchWithRetry(
+            trackUrl,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'Token': token,
+                'token': token,
+                'TokenNumber': token,
+                'XBKey': xbConfig.xbKey || '',
+                'xb-key': xbConfig.xbKey || '',
+                'versionnumber': 'v1'
+              },
+              body: JSON.stringify({
+                awb: waybill,
+                awbs: [waybill],
+                TokenNumber: token,
+                Token: token
+              })
             },
-            body: JSON.stringify({
+            {
               awb: waybill,
-              awbs: [waybill],
-              TokenNumber: token,
-              Token: token
-            })
-          });
+              courierName: 'XpressBees',
+              timeoutMs: 10000,
+              maxAttempts: 3
+            }
+          );
           data = await res.json();
         } else {
           reqPayloadStr = `GET ${baseUrl}/shipments2/track/${waybill}`;
-          res = await fetch(`${baseUrl}/shipments2/track/${encodeURIComponent(waybill)}`, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'Authorization': `Bearer ${token}`
+          res = await fetchWithRetry(
+            `${baseUrl}/shipments2/track/${encodeURIComponent(waybill)}`,
+            {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${token}`
+              }
+            },
+            {
+              awb: waybill,
+              courierName: 'XpressBees',
+              timeoutMs: 10000,
+              maxAttempts: 3
             }
-          });
+          );
           data = await res.json();
         }
 
@@ -365,15 +384,24 @@ export async function GET(request: Request) {
         };
 
         try {
-          const trackRes = await fetch(trackDetailsUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-access-token': accessToken,
-              'X-Access-Token': accessToken
+          const trackRes = await fetchWithRetry(
+            trackDetailsUrl,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-access-token': accessToken,
+                'X-Access-Token': accessToken
+              },
+              body: JSON.stringify(trackPayload)
             },
-            body: JSON.stringify(trackPayload)
-          });
+            {
+              awb: waybill,
+              courierName: 'DTDC',
+              timeoutMs: 10000,
+              maxAttempts: 3
+            }
+          );
 
           const trackResText = await trackRes.text();
           let trackData;
@@ -622,10 +650,19 @@ export async function GET(request: Request) {
 
     if (action === 'track') {
       const url = `${delhiveryBaseUrl}/api/v1/packages/json/?token=${encodeURIComponent(apiKey)}&waybill=${encodeURIComponent(waybill)}`;
-      const res = await fetch(url, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' }
-      });
+      const res = await fetchWithRetry(
+        url,
+        {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        },
+        {
+          awb: waybill,
+          courierName: 'Delhivery',
+          timeoutMs: 10000,
+          maxAttempts: 3
+        }
+      );
       const data = await res.json();
 
       await db.addCourierLog({
