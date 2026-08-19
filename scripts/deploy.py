@@ -57,7 +57,7 @@ def main():
         sys.exit(1)
 
     remote_commands = [
-        ("Pulling latest code from GitHub", f"cd {APP_DIR} && git pull origin master"),
+        ("Stashing local changes & Pulling latest code from GitHub", f"cd {APP_DIR} && git checkout -- data/db.json 2>/dev/null || true && git pull origin master"),
         ("Updating VPS .env.local with MongoDB configuration", f"cd {APP_DIR} && (grep -q 'MONGODB_URI' .env.local || echo -e '\nMONGODB_URI=\"mongodb+srv://official_db_user:CRLbrDDHkCxHM63i@99storecluster0.o4cakf9.mongodb.net/99store-oms?appName=99StoreCluster0\"\nUSE_MONGODB=true\n' >> .env.local)"),
         ("Installing Node packages", f"cd {APP_DIR} && npm install --production=false"),
         ("Building Next.js application", f"cd {APP_DIR} && npm run build"),
