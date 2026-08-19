@@ -17,13 +17,24 @@ def run_local(cmd):
     return res.returncode == 0
 
 def main():
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
     print("=========================================")
-    print(" 🚀 99Store OMS Automatic 1-Click Deployer")
+    print(" [DEPLOY] 99Store OMS Automatic 1-Click Deployer")
     print("=========================================")
 
-    commit_msg = input("Enter commit message (or press Enter for default): ").strip()
-    if not commit_msg:
-        commit_msg = "Auto deploy update"
+    if len(sys.argv) > 1:
+        commit_msg = " ".join(sys.argv[1:])
+    else:
+        try:
+            commit_msg = input("Enter commit message (or press Enter for default): ").strip()
+        except (EOFError, Exception):
+            commit_msg = "Deploy update with MongoDB migration"
+        if not commit_msg:
+            commit_msg = "Deploy update with MongoDB migration"
 
     # 1. Local Git Add, Commit, and Push
     print("\n1. Staging and committing local changes...")
@@ -47,6 +58,7 @@ def main():
 
     remote_commands = [
         ("Pulling latest code from GitHub", f"cd {APP_DIR} && git pull origin master"),
+        ("Updating VPS .env.local with MongoDB configuration", f"cd {APP_DIR} && (grep -q 'MONGODB_URI' .env.local || echo -e '\nMONGODB_URI=\"mongodb+srv://official_db_user:CRLbrDDHkCxHM63i@99storecluster0.o4cakf9.mongodb.net/99store-oms?appName=99StoreCluster0\"\nUSE_MONGODB=true\n' >> .env.local)"),
         ("Installing Node packages", f"cd {APP_DIR} && npm install --production=false"),
         ("Building Next.js application", f"cd {APP_DIR} && npm run build"),
         ("Reloading PM2 service", f"cd {APP_DIR} && pm2 restart ecosystem.config.js --update-env && pm2 save")
@@ -65,7 +77,7 @@ def main():
             print(f"[VPS Notice/Stderr] {err_safe[-500:] if len(err_safe) > 500 else err_safe}")
 
     print("\n=========================================")
-    print(" ✅ VPS Deployment Completed Successfully!")
+    print(" [SUCCESS] VPS Deployment Completed Successfully!")
     print("=========================================")
     client.close()
 

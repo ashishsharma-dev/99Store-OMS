@@ -3,6 +3,11 @@ import { User, Order, NdrRecord, SystemSettings, WhatsAppLog, CourierApiLog, Mes
 import { mockUsers, mockSettings, mockOrders, mockNdrs, mockWhatsAppLogs, mockCourierLogs, mockMessages } from './mockData';
 import fs from 'fs';
 import path from 'path';
+import dns from 'dns';
+
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+} catch (e) {}
 
 // Helper to escape regex characters
 function escapeRegExp(string: string) {
