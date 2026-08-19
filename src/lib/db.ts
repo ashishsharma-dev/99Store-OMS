@@ -226,7 +226,7 @@ export const db = {
       try {
         const result = await database.collection('users').find({}).toArray();
         if (result && result.length > 0) {
-          return result.map(u => enrichUser(u));
+          return (result as any[]).map((u: any) => enrichUser(u));
         }
       } catch (e) {
         console.warn('MongoDB getUsers error, using memory:', e);
@@ -318,7 +318,7 @@ export const db = {
       try {
         const result = await database.collection('orders').find({}).toArray();
         if (result && result.length > 0) {
-          return result.map(o => { const { _id, ...rest } = o as any; return rest as Order; });
+          return (result as any[]).map((o: any) => { const { _id, ...rest } = o; return rest as Order; });
         }
       } catch (e) {
         console.warn('MongoDB getOrders error, using memory:', e);
@@ -402,7 +402,7 @@ export const db = {
       try {
         const result = await database.collection('ndr').find({}).toArray();
         if (result && result.length > 0) {
-          return result.map(n => { const { _id, ...rest } = n as any; return rest as NdrRecord; });
+          return (result as any[]).map((n: any) => { const { _id, ...rest } = n; return rest as NdrRecord; });
         }
       } catch (e) {
         console.warn('MongoDB getNdrRecords error, using memory:', e);
@@ -468,7 +468,7 @@ export const db = {
     if (database) {
       try {
         const result = await database.collection('whatsappLogs').find({}).sort({ timestamp: -1 }).limit(100).toArray();
-        if (result) return result.map(l => { const { _id, ...rest } = l as any; return rest as WhatsAppLog; });
+        if (result) return (result as any[]).map((l: any) => { const { _id, ...rest } = l; return rest as WhatsAppLog; });
       } catch (e) {
         console.warn('MongoDB getWhatsAppLogs error, using memory:', e);
       }
@@ -523,7 +523,7 @@ export const db = {
     if (database) {
       try {
         const result = await database.collection('courierLogs').find({}).sort({ timestamp: -1 }).limit(100).toArray();
-        if (result) return result.map(l => { const { _id, ...rest } = l as any; return rest as CourierApiLog; });
+        if (result) return (result as any[]).map((l: any) => { const { _id, ...rest } = l; return rest as CourierApiLog; });
       } catch (e) {
         console.warn('MongoDB getCourierLogs error, using memory:', e);
       }
@@ -586,7 +586,7 @@ export const db = {
             database.collection('settings').updateOne(
               { key: 'system-settings' },
               { $set: { dtdcConfig: settings.dtdcConfig } }
-            ).catch(err => console.error('Failed to auto-migrate DTDC settings in MongoDB:', err));
+            ).catch((err: any) => console.error('Failed to auto-migrate DTDC settings in MongoDB:', err));
           }
 
           // Self-healing: Auto-migrate Velocity settings in database if missing
@@ -598,7 +598,7 @@ export const db = {
             database.collection('settings').updateOne(
               { key: 'system-settings' },
               { $set: { velocityActive: true, velocityConfig: mockSettings.velocityConfig } }
-            ).catch(err => console.error('Failed to auto-migrate Velocity settings in MongoDB:', err));
+            ).catch((err: any) => console.error('Failed to auto-migrate Velocity settings in MongoDB:', err));
           }
 
           // Self-healing: Auto-migrate WhatsApp credentials in MongoDB
@@ -613,7 +613,7 @@ export const db = {
             database.collection('settings').updateOne(
               { key: 'system-settings' },
               { $set: { whatsappDeviceId: '3483', whatsappAccessToken: '3b66835690546597e55f36f2605c0b8a' } }
-            ).catch(err => console.error('Failed to auto-migrate WhatsApp credentials in MongoDB:', err));
+            ).catch((err: any) => console.error('Failed to auto-migrate WhatsApp credentials in MongoDB:', err));
           }
 
           return settings;
@@ -658,7 +658,7 @@ export const db = {
     if (database) {
       try {
         const result = await database.collection('messages').find({}).toArray();
-        if (result) return result.map(m => { const { _id, ...rest } = m as any; return rest as Message; });
+        if (result) return (result as any[]).map((m: any) => { const { _id, ...rest } = m; return rest as Message; });
       } catch (e) {
         console.warn('MongoDB getMessages error, using memory:', e);
       }
