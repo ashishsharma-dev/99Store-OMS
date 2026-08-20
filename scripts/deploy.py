@@ -29,12 +29,7 @@ def main():
     if len(sys.argv) > 1:
         commit_msg = " ".join(sys.argv[1:])
     else:
-        try:
-            commit_msg = input("Enter commit message (or press Enter for default): ").strip()
-        except (EOFError, Exception):
-            commit_msg = "Deploy update with MongoDB migration"
-        if not commit_msg:
-            commit_msg = "Deploy update with MongoDB migration"
+        commit_msg = "Deploy update with high performance optimizations"
 
     # 1. Local Git Add, Commit, and Push
     print("\n1. Staging and committing local changes...")
