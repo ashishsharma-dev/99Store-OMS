@@ -22,8 +22,10 @@ export async function getDatabase() {
       // Dynamically import mongodb so dns.setServers executes beforehand
       const { MongoClient } = await import('mongodb');
       const client = new MongoClient(mongoUri, {
-        serverSelectionTimeoutMS: 10000,
-        connectTimeoutMS: 10000,
+        serverSelectionTimeoutMS: 2000,
+        connectTimeoutMS: 2000,
+        tls: true,
+        tlsAllowInvalidCertificates: true,
       });
       clientPromise = client.connect();
     } catch (e) {

@@ -15,12 +15,21 @@ const pincodeMap: Record<string, { state: string; area: string }> = {
   '302001': { state: 'Rajasthan', area: 'M.I. Road, Jaipur' },
 };
 
+const pincodeCache = new Map<string, { state: string; area: string; cachedAt: number }>();
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const pincode = searchParams.get('pincode');
 
   if (!pincode || pincode.length !== 6 || !/^\d+$/.test(pincode)) {
     return NextResponse.json({ error: 'Invalid pincode format. Must be 6 digits.' }, { status: 400 });
+  }
+
+  // Check in-memory LRU cache
+  const cached = pincodeCache.get(pincode);
+  if (cached && Date.now() - cached.cachedAt < CACHE_TTL_MS) {
+    return NextResponse.json({ state: cached.state, area: cached.area });
   }
 
   // Try live Delhivery pincode serviceability lookup if active
@@ -92,31 +101,36 @@ export async function GET(request: Request) {
     console.error('Failed to fetch live Xpressbees serviceability:', error);
   }
 
+  function returnAndCache(result: { state: string; area: string }) {
+    pincodeCache.set(pincode, { ...result, cachedAt: Date.now() });
+    return NextResponse.json(result);
+  }
+
   // 1. Check exact map match
   if (pincodeMap[pincode]) {
-    return NextResponse.json(pincodeMap[pincode]);
+    return returnAndCache(pincodeMap[pincode]);
   }
 
   // 2. Fallback based on postal zones (first digit of pincode)
   const zone = pincode.charAt(0);
   switch (zone) {
     case '1':
-      return NextResponse.json({ state: 'Delhi/NCR', area: `Zone 1 Region (Pincode: ${pincode})` });
+      return returnAndCache({ state: 'Delhi/NCR', area: `Zone 1 Region (Pincode: ${pincode})` });
     case '2':
-      return NextResponse.json({ state: 'Uttar Pradesh', area: `Zone 2 Region (Pincode: ${pincode})` });
+      return returnAndCache({ state: 'Uttar Pradesh', area: `Zone 2 Region (Pincode: ${pincode})` });
     case '3':
-      return NextResponse.json({ state: 'Gujarat', area: `Zone 3 Region (Pincode: ${pincode})` });
+      return returnAndCache({ state: 'Gujarat', area: `Zone 3 Region (Pincode: ${pincode})` });
     case '4':
-      return NextResponse.json({ state: 'Maharashtra', area: `Zone 4 Region (Pincode: ${pincode})` });
+      return returnAndCache({ state: 'Maharashtra', area: `Zone 4 Region (Pincode: ${pincode})` });
     case '5':
-      return NextResponse.json({ state: 'Karnataka/Andhra', area: `Zone 5 Region (Pincode: ${pincode})` });
+      return returnAndCache({ state: 'Karnataka/Andhra', area: `Zone 5 Region (Pincode: ${pincode})` });
     case '6':
-      return NextResponse.json({ state: 'Tamil Nadu/Kerala', area: `Zone 6 Region (Pincode: ${pincode})` });
+      return returnAndCache({ state: 'Tamil Nadu/Kerala', area: `Zone 6 Region (Pincode: ${pincode})` });
     case '7':
-      return NextResponse.json({ state: 'West Bengal/NorthEast', area: `Zone 7 Region (Pincode: ${pincode})` });
+      return returnAndCache({ state: 'West Bengal/NorthEast', area: `Zone 7 Region (Pincode: ${pincode})` });
     case '8':
-      return NextResponse.json({ state: 'Bihar/Jharkhand', area: `Zone 8 Region (Pincode: ${pincode})` });
+      return returnAndCache({ state: 'Bihar/Jharkhand', area: `Zone 8 Region (Pincode: ${pincode})` });
     default:
-      return NextResponse.json({ state: 'Maharashtra', area: `Default Hub (Pincode: ${pincode})` });
+      return returnAndCache({ state: 'Maharashtra', area: `Default Hub (Pincode: ${pincode})` });
   }
 }
