@@ -45,7 +45,7 @@ def main():
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
-        client.connect(VPS_HOST, username=VPS_USER, password=VPS_PASS, timeout=10)
+        client.connect(VPS_HOST, username=VPS_USER, password=VPS_PASS, timeout=30)
         print("Connected to VPS successfully!")
     except Exception as e:
         print(f"[SSH ERROR] Failed to connect to VPS: {e}")
