@@ -102,7 +102,9 @@ export async function GET(request: Request) {
   }
 
   function returnAndCache(result: { state: string; area: string }) {
-    pincodeCache.set(pincode, { ...result, cachedAt: Date.now() });
+    if (pincode) {
+      pincodeCache.set(pincode, { ...result, cachedAt: Date.now() });
+    }
     return NextResponse.json(result);
   }
 
