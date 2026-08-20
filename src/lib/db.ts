@@ -128,11 +128,16 @@ async function safeGetDb() {
       setTimeout(() => reject(new Error('MongoDB Connection Timeout')), 1000)
     );
     const db = await Promise.race([getDatabase(), timeoutPromise]) as any;
+    if (!db) {
+      isMongoCircuitBroken = true;
+      nextMongoRetryTime = Date.now() + 5 * 60 * 1000; // 5 minutes cooldown
+      return null;
+    }
     isMongoCircuitBroken = false;
     return db;
   } catch (err) {
     isMongoCircuitBroken = true;
-    nextMongoRetryTime = Date.now() + 60000; // 60s cooldown
+    nextMongoRetryTime = Date.now() + 5 * 60 * 1000; // 5 minutes cooldown
     return null;
   }
 }
