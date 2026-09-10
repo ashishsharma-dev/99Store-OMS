@@ -53,7 +53,7 @@ def main():
 
     remote_commands = [
         ("Resetting dirty tracked files & Pulling latest code from GitHub", f"cd {APP_DIR} && git checkout -- . 2>/dev/null || true && git pull origin master"),
-        ("Configuring VPS environment variables (.env.local)", f"cd {APP_DIR} && (grep -q 'WALABZ_BASE_URL' .env.local || echo -e '\n# Walabz WhatsApp Business API\nWALABZ_BASE_URL=https://walabz.com\nWALABZ_USERNAME=viatvi\nWALABZ_PASSWORD=viatvi@07\nWALABZ_API_KEY=\n' >> .env.local) && (grep -q 'MONGODB_URI' .env.local || echo -e '\nMONGODB_URI=\"mongodb+srv://official_db_user:CRLbrDDHkCxHM63i@99storecluster0.o4cakf9.mongodb.net/99store-oms?appName=99StoreCluster0\"\nUSE_MONGODB=true\n' >> .env.local)"),
+        ("Configuring VPS environment variables (.env.local)", f"cd {APP_DIR} && sed -i 's/DISABLE_OTP=true/DISABLE_OTP=false/g' .env.local && (grep -q 'WALABZ_BASE_URL' .env.local || echo -e '\n# Walabz WhatsApp Business API\nWALABZ_BASE_URL=https://walabz.com\nWALABZ_USERNAME=viatvi\nWALABZ_PASSWORD=viatvi@07\nWALABZ_API_KEY=\n' >> .env.local) && (grep -q 'MONGODB_URI' .env.local || echo -e '\nMONGODB_URI=\"mongodb+srv://official_db_user:CRLbrDDHkCxHM63i@99storecluster0.o4cakf9.mongodb.net/99store-oms?appName=99StoreCluster0\"\nUSE_MONGODB=true\n' >> .env.local)"),
         ("Installing Node packages", f"cd {APP_DIR} && npm install --production=false"),
         ("Building Next.js production bundle", f"cd {APP_DIR} && npm run build"),
         ("Reloading PM2 service", f"cd {APP_DIR} && pm2 restart ecosystem.config.js --update-env && pm2 save"),

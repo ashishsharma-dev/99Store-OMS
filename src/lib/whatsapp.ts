@@ -479,7 +479,8 @@ export async function sendLoginOTP(
   });
 
   const cleanPhone = walabzClient.normalizePhoneNumber(phone);
-  const otpTemplateId = settings.walabzTemplates?.['login_otp'] || settings.walabzTemplates?.['otp'];
+  // Use configured OTP template or fall back to approved Walabz template
+  const otpTemplateId = settings.walabzTemplates?.['login_otp'] || settings.walabzTemplates?.['otp'] || '6a9eaa23a2e28b4d6dc555b6';
 
   const messageText = `🔐 Your 99Store login verification code is: ${otp}. It is valid for 5 minutes. Do not share this code with anyone.`;
 
@@ -494,23 +495,13 @@ export async function sendLoginOTP(
     status: 'Pending'
   };
 
-  // If no OTP template mapped, log failure
-  if (!otpTemplateId) {
-    const errorMsg = 'No Walabz template ID mapped for login_otp in Settings.';
-    log.status = 'Failed';
-    log.errorDetail = errorMsg;
-    log.message = `${messageText}\n\n❌ ${errorMsg}`;
-    await db.addWhatsAppLog(log);
-    return { success: false, error: errorMsg };
-  }
-
   try {
     const result = await walabzClient.sendCampaign({
       campaignName: `OTP-${Date.now()}`,
       templateId: otpTemplateId,
       recipients: [cleanPhone],
       variableMappings: {
-        '1': otp,
+        '1': `Admin (Your 99Store Login OTP is: ${otp})`,
         otp: otp,
         code: otp
       },
