@@ -73,6 +73,14 @@ export async function POST(request: Request) {
       whatsappNotificationsEnabled: typeof body.whatsappNotificationsEnabled === 'boolean' ? body.whatsappNotificationsEnabled : settings.whatsappNotificationsEnabled,
       whatsappDeviceId: typeof body.whatsappDeviceId === 'string' ? body.whatsappDeviceId.trim() : settings.whatsappDeviceId,
       whatsappAccessToken: typeof body.whatsappAccessToken === 'string' ? body.whatsappAccessToken.trim() : settings.whatsappAccessToken,
+      // Walabz Configuration
+      walabzBaseUrl: typeof body.walabzBaseUrl === 'string' ? body.walabzBaseUrl.trim() : (settings.walabzBaseUrl || 'https://walabz.com'),
+      walabzUsername: typeof body.walabzUsername === 'string' ? body.walabzUsername.trim() : settings.walabzUsername,
+      walabzPassword: typeof body.walabzPassword === 'string' ? body.walabzPassword : settings.walabzPassword,
+      walabzApiKey: typeof body.walabzApiKey === 'string' ? body.walabzApiKey.trim() : settings.walabzApiKey,
+      walabzDefaultCountryCode: typeof body.walabzDefaultCountryCode === 'string' ? body.walabzDefaultCountryCode.trim() : (settings.walabzDefaultCountryCode || 'IN'),
+      walabzDefaultDialCode: typeof body.walabzDefaultDialCode === 'string' ? body.walabzDefaultDialCode.trim() : (settings.walabzDefaultDialCode || '91'),
+      walabzTemplates: body.walabzTemplates && typeof body.walabzTemplates === 'object' ? { ...settings.walabzTemplates, ...body.walabzTemplates } : settings.walabzTemplates,
       ipWhitelist: Array.isArray(body.ipWhitelist) ? body.ipWhitelist.map((ip: string) => ip.trim()) : settings.ipWhitelist,
       isIpWhitelistEnabled: typeof body.isIpWhitelistEnabled === 'boolean' ? body.isIpWhitelistEnabled : settings.isIpWhitelistEnabled,
       autoCourierEnabled: typeof body.autoCourierEnabled === 'boolean' ? body.autoCourierEnabled : settings.autoCourierEnabled,
@@ -81,10 +89,12 @@ export async function POST(request: Request) {
       deliveryActive: typeof body.deliveryActive === 'boolean' ? body.deliveryActive : settings.deliveryActive,
       aggregatorActive: typeof body.aggregatorActive === 'boolean' ? body.aggregatorActive : settings.aggregatorActive,
       velocityActive: typeof body.velocityActive === 'boolean' ? body.velocityActive : settings.velocityActive,
+      shadowfaxActive: typeof body.shadowfaxActive === 'boolean' ? body.shadowfaxActive : settings.shadowfaxActive,
       dtdcConfig: body.dtdcConfig ? { ...settings.dtdcConfig, ...body.dtdcConfig } : settings.dtdcConfig,
       xpressbeesConfig: body.xpressbeesConfig ? { ...settings.xpressbeesConfig, ...body.xpressbeesConfig } : settings.xpressbeesConfig,
       deliveryConfig: body.deliveryConfig ? { ...settings.deliveryConfig, ...body.deliveryConfig } : settings.deliveryConfig,
       velocityConfig: body.velocityConfig ? { ...settings.velocityConfig, ...body.velocityConfig } : settings.velocityConfig,
+      shadowfaxConfig: body.shadowfaxConfig ? { ...settings.shadowfaxConfig, ...body.shadowfaxConfig } : settings.shadowfaxConfig,
     };
 
     await db.saveSettings(updatedSettings);

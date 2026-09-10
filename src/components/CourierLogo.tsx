@@ -22,6 +22,46 @@ export function CourierLogo({ courier = '', showName = true, size = 18 }: Courie
   } else if (lower.includes('delhivery')) {
     logoSrc = '/delhivery.webp';
     displayName = 'Delhivery';
+  } else if (lower.includes('shadowfax') || lower.includes('sfx')) {
+    displayName = 'Shadowfax';
+    return (
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', verticalAlign: 'middle' }}>
+        <span 
+          style={{ 
+            backgroundColor: '#FF6B00', 
+            color: '#FFFFFF', 
+            fontSize: `${Math.max(10, size - 4)}px`, 
+            fontWeight: 700, 
+            padding: '3px 8px', 
+            borderRadius: '4px',
+            letterSpacing: '0.5px'
+          }}
+        >
+          SFX
+        </span>
+        {showName && <span style={{ fontWeight: 500 }}>Shadowfax</span>}
+      </div>
+    );
+  } else if (lower.includes('velocity') || lower.includes('vel')) {
+    displayName = 'Velocity';
+    return (
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', verticalAlign: 'middle' }}>
+        <span 
+          style={{ 
+            backgroundColor: '#6366F1', 
+            color: '#FFFFFF', 
+            fontSize: `${Math.max(10, size - 4)}px`, 
+            fontWeight: 700, 
+            padding: '3px 8px', 
+            borderRadius: '4px',
+            letterSpacing: '0.5px'
+          }}
+        >
+          VEL
+        </span>
+        {showName && <span style={{ fontWeight: 500 }}>Velocity</span>}
+      </div>
+    );
   }
 
   if (!logoSrc) {

@@ -65,6 +65,17 @@ export async function POST(
       isOnDemand: true
     });
 
+    const hasSuccess = logs.some(l => l.status === 'Sent' || l.status === 'Queued');
+    const failedLog = logs.find(l => l.status === 'Failed');
+
+    if (!hasSuccess && failedLog) {
+      return NextResponse.json({
+        success: false,
+        error: failedLog.errorDetail || 'WhatsApp dispatch failed. Check Walabz template configuration.',
+        logs
+      }, { status: 400 });
+    }
+
     return NextResponse.json({
       success: true,
       message: 'On-demand WhatsApp tracking notification sent successfully.',

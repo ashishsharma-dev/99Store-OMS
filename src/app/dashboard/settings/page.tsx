@@ -20,7 +20,8 @@ import {
   Server,
   CheckCircle2,
   XCircle,
-  Trash2
+  Trash2,
+  RefreshCw
 } from 'lucide-react';
 import { SystemSettings, WhatsAppLog, CourierApiLog } from '@/lib/types';
 import { CourierLogo } from '@/components/CourierLogo';
@@ -33,7 +34,7 @@ export default function IntegrationsSettings() {
 
   // Tab states for organized clutter-free UX
   const [activeMainTab, setActiveMainTab] = useState<'couriers' | 'security' | 'console' | 'contacts'>('couriers');
-  const [activeCourierSubTab, setActiveCourierSubTab] = useState<'xpressbees' | 'dtdc' | 'delhivery' | 'velocity' | 'routing'>('xpressbees');
+  const [activeCourierSubTab, setActiveCourierSubTab] = useState<'xpressbees' | 'dtdc' | 'delhivery' | 'velocity' | 'shadowfax' | 'routing'>('xpressbees');
   const [activeXpressSubTab, setActiveXpressSubTab] = useState<'credentials' | 'endpoints' | 'warehouse'>('credentials');
   const [activeConsoleTab, setActiveConsoleTab] = useState<'courier' | 'whatsapp'>('courier');
   const [logSearchQuery, setLogSearchQuery] = useState('');
@@ -51,6 +52,18 @@ export default function IntegrationsSettings() {
   const [whatsappNotificationsEnabled, setWhatsappNotificationsEnabled] = useState(true);
   const [whatsappDeviceId, setWhatsappDeviceId] = useState('');
   const [whatsappAccessToken, setWhatsappAccessToken] = useState('');
+
+  // Walabz WhatsApp Business Configuration State
+  const [walabzBaseUrl, setWalabzBaseUrl] = useState('https://walabz.com');
+  const [walabzUsername, setWalabzUsername] = useState('');
+  const [walabzPassword, setWalabzPassword] = useState('');
+  const [walabzApiKey, setWalabzApiKey] = useState('');
+  const [walabzDefaultCountryCode, setWalabzDefaultCountryCode] = useState('IN');
+  const [walabzDefaultDialCode, setWalabzDefaultDialCode] = useState('91');
+  const [walabzTemplates, setWalabzTemplates] = useState<Record<string, string>>({});
+  const [availableWalabzTemplates, setAvailableWalabzTemplates] = useState<any[]>([]);
+  const [walabzTesting, setWalabzTesting] = useState(false);
+  const [walabzStatus, setWalabzStatus] = useState<{ connected: boolean; message: string; templatesCount?: number } | null>(null);
   const [ipInput, setIpInput] = useState('');
   const [isIpEnabled, setIsIpEnabled] = useState(false);
   const [autoCourier, setAutoCourier] = useState(true);
@@ -115,6 +128,21 @@ export default function IntegrationsSettings() {
   const [velocityState, setVelocityState] = useState('Uttar Pradesh');
   const [velocityPincode, setVelocityPincode] = useState('282001');
 
+  // Shadowfax fields
+  const [shadowfaxActive, setShadowfaxActive] = useState(true);
+  const [shadowfaxApiKey, setShadowfaxApiKey] = useState('sfx_tok_demo_99store_a1b2c3d4');
+  const [shadowfaxPriority, setShadowfaxPriority] = useState(5);
+  const [shadowfaxBaseUrl, setShadowfaxBaseUrl] = useState('https://dale.staging.shadowfax.in/api');
+  const [shadowfaxOrderType, setShadowfaxOrderType] = useState<'warehouse' | 'marketplace'>('warehouse');
+  const [shadowfaxWarehouseCode, setShadowfaxWarehouseCode] = useState('WH_SFX_01');
+  const [shadowfaxContactName, setShadowfaxContactName] = useState('Warehouse Manager');
+  const [shadowfaxPhone, setShadowfaxPhone] = useState('9870740681');
+  const [shadowfaxAddress, setShadowfaxAddress] = useState('Plot 101, Main Fulfillment Hub');
+  const [shadowfaxAddress2, setShadowfaxAddress2] = useState('Industrial Area');
+  const [shadowfaxCity, setShadowfaxCity] = useState('Delhi');
+  const [shadowfaxState, setShadowfaxState] = useState('Delhi');
+  const [shadowfaxPincode, setShadowfaxPincode] = useState('110001');
+
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
@@ -146,6 +174,15 @@ export default function IntegrationsSettings() {
         setWhatsappNotificationsEnabled(s.whatsappNotificationsEnabled !== false);
         setWhatsappDeviceId(s.whatsappDeviceId || '');
         setWhatsappAccessToken(s.whatsappAccessToken || '');
+
+        // Walabz fields
+        setWalabzBaseUrl(s.walabzBaseUrl || 'https://walabz.com');
+        setWalabzUsername(s.walabzUsername || '');
+        setWalabzPassword(s.walabzPassword || '');
+        setWalabzApiKey(s.walabzApiKey || '');
+        setWalabzDefaultCountryCode(s.walabzDefaultCountryCode || 'IN');
+        setWalabzDefaultDialCode(s.walabzDefaultDialCode || '91');
+        setWalabzTemplates(s.walabzTemplates || {});
         setIpInput(s.ipWhitelist.join(', '));
         setIsIpEnabled(s.isIpWhitelistEnabled);
         setAutoCourier(s.autoCourierEnabled);
@@ -167,6 +204,21 @@ export default function IntegrationsSettings() {
           setVelocityCity(s.velocityConfig.city || 'Agra');
           setVelocityState(s.velocityConfig.state || 'Uttar Pradesh');
           setVelocityPincode(s.velocityConfig.pincode || '282001');
+        }
+        setShadowfaxActive(s.shadowfaxActive !== undefined ? s.shadowfaxActive : true);
+        if (s.shadowfaxConfig) {
+          setShadowfaxApiKey(s.shadowfaxConfig.apiKey || '');
+          setShadowfaxPriority(s.shadowfaxConfig.priority || 5);
+          setShadowfaxBaseUrl(s.shadowfaxConfig.baseUrl || 'https://dale.staging.shadowfax.in/api');
+          setShadowfaxOrderType(s.shadowfaxConfig.orderType || 'warehouse');
+          setShadowfaxWarehouseCode(s.shadowfaxConfig.warehouseCode || 'WH_SFX_01');
+          setShadowfaxContactName(s.shadowfaxConfig.contactName || 'Warehouse Manager');
+          setShadowfaxPhone(s.shadowfaxConfig.phone || '9870740681');
+          setShadowfaxAddress(s.shadowfaxConfig.address || 'Plot 101, Main Fulfillment Hub');
+          setShadowfaxAddress2(s.shadowfaxConfig.address2 || '');
+          setShadowfaxCity(s.shadowfaxConfig.city || 'Delhi');
+          setShadowfaxState(s.shadowfaxConfig.state || 'Delhi');
+          setShadowfaxPincode(s.shadowfaxConfig.pincode || '110001');
         }
         setDtdcKey(s.dtdcConfig.apiKey || '');
         setDtdcCustomerCode(s.dtdcConfig.customerCode || '');
@@ -199,9 +251,6 @@ export default function IntegrationsSettings() {
         setXpressAwbRetrieveUrl(s.xpressbeesConfig.awbRetrieveUrl || '');
         setXpressCancelUrl(s.xpressbeesConfig.cancelUrl || '');
         setXpressNdrUrl(s.xpressbeesConfig.ndrUrl || '');
-        setXpressPincodeUrl(s.xpressbeesConfig.pincodeUrl || '');
-        setXpressTrackSummaryUrl(s.xpressbeesConfig.trackSummaryUrl || '');
-        setXpressTrackBulkUrl(s.xpressbeesConfig.trackBulkUrl || '');
         setDlvKey(s.deliveryConfig.apiKey || '');
         setDlvClientName(s.deliveryConfig.clientName || '');
         setDlvPickupLocation(s.deliveryConfig.pickupLocation || '');
@@ -211,10 +260,59 @@ export default function IntegrationsSettings() {
       if (settingsData.whatsappLogs) setWaLogs(settingsData.whatsappLogs);
       if (settingsData.courierLogs) setCourierLogs(settingsData.courierLogs);
 
+      // Fetch active templates from Walabz in background
+      try {
+        const waRes = await fetch('/api/integrations/whatsapp');
+        const waData = await waRes.json();
+        if (waData.success && Array.isArray(waData.templates)) {
+          setAvailableWalabzTemplates(waData.templates);
+          if (waData.connected) {
+            setWalabzStatus({
+              connected: true,
+              message: `Connected (${waData.templates.length} templates available)`,
+              templatesCount: waData.templates.length
+            });
+          }
+        }
+      } catch (e) {}
+
       setLoading(false);
     } catch (err) {
       console.error(err);
       setLoading(false);
+    }
+  };
+
+  const handleSyncWalabzTemplates = async () => {
+    setWalabzTesting(true);
+    setWalabzStatus(null);
+    try {
+      const res = await fetch('/api/integrations/whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'fetch_templates' })
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.templates)) {
+        setAvailableWalabzTemplates(data.templates);
+        setWalabzStatus({
+          connected: true,
+          message: `Connected! Successfully synced ${data.templates.length} templates from Walabz.`,
+          templatesCount: data.templates.length
+        });
+      } else {
+        setWalabzStatus({
+          connected: false,
+          message: data.error || data.detail || 'Failed to fetch templates from Walabz.'
+        });
+      }
+    } catch (err: any) {
+      setWalabzStatus({
+        connected: false,
+        message: err.message || 'Connection to Walabz failed.'
+      });
+    } finally {
+      setWalabzTesting(false);
     }
   };
 
@@ -249,6 +347,13 @@ export default function IntegrationsSettings() {
           whatsappNotificationsEnabled,
           whatsappDeviceId,
           whatsappAccessToken,
+          walabzBaseUrl,
+          walabzUsername,
+          walabzPassword,
+          walabzApiKey,
+          walabzDefaultCountryCode,
+          walabzDefaultDialCode,
+          walabzTemplates,
           ipWhitelist: ipList,
           isIpWhitelistEnabled: isIpEnabled,
           autoCourierEnabled: autoCourier,
@@ -313,6 +418,21 @@ export default function IntegrationsSettings() {
             city: velocityCity,
             state: velocityState,
             pincode: velocityPincode
+          },
+          shadowfaxActive,
+          shadowfaxConfig: {
+            apiKey: shadowfaxApiKey,
+            priority: Number(shadowfaxPriority),
+            baseUrl: shadowfaxBaseUrl,
+            orderType: shadowfaxOrderType,
+            warehouseCode: shadowfaxWarehouseCode,
+            contactName: shadowfaxContactName,
+            phone: shadowfaxPhone,
+            address: shadowfaxAddress,
+            address2: shadowfaxAddress2,
+            city: shadowfaxCity,
+            state: shadowfaxState,
+            pincode: shadowfaxPincode
           }
         })
       });
@@ -598,6 +718,21 @@ export default function IntegrationsSettings() {
               <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: velocityActive ? '#A855F7' : '#71717A' }} />
               <span>Velocity Aggregator</span>
               {velocityActive && <span style={{ fontSize: '10px', background: 'rgba(168, 85, 247, 0.2)', color: '#C084FC', padding: '1px 6px', borderRadius: '4px' }}>Active</span>}
+            </button>
+
+            <button
+              onClick={() => setActiveCourierSubTab('shadowfax')}
+              style={{
+                padding: '10px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, border: '1px solid', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '8px',
+                backgroundColor: activeCourierSubTab === 'shadowfax' ? 'rgba(255, 107, 0, 0.12)' : '#121212',
+                borderColor: activeCourierSubTab === 'shadowfax' ? '#FF6B00' : '#27272A',
+                color: activeCourierSubTab === 'shadowfax' ? '#FF8533' : '#A1A1AA'
+              }}
+            >
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: shadowfaxActive ? '#FF6B00' : '#71717A' }} />
+              <span>Shadowfax SFX</span>
+              {shadowfaxActive && <span style={{ fontSize: '10px', background: 'rgba(255, 107, 0, 0.2)', color: '#FF8533', padding: '1px 6px', borderRadius: '4px' }}>Active</span>}
             </button>
 
             <button
@@ -1064,6 +1199,92 @@ export default function IntegrationsSettings() {
               </div>
             )}
 
+            {/* SHADOWFAX TAB */}
+            {activeCourierSubTab === 'shadowfax' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #27272A' }}>
+                  <div>
+                    <h3 style={{ fontSize: '16px', color: '#FAFAFA', fontWeight: 600 }}>Shadowfax (SFX Unified API) Integration</h3>
+                    <p style={{ fontSize: '12.5px', color: '#A1A1AA', marginTop: '2px' }}>Configure Shadowfax API Token, Warehouse/Marketplace models, and webhook endpoints.</p>
+                  </div>
+
+                  <label htmlFor="sfx_active_toggle" style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', background: '#18181B', padding: '8px 14px', borderRadius: '8px', border: '1px solid #27272A' }}>
+                    <input type="checkbox" id="sfx_active_toggle" checked={shadowfaxActive} onChange={(e) => setShadowfaxActive(e.target.checked)} style={{ width: '16px', height: '16px', accentColor: '#FF6B00' }} />
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: shadowfaxActive ? '#FF8533' : '#71717A' }}>
+                      {shadowfaxActive ? 'Integration Active' : 'Integration Inactive'}
+                    </span>
+                  </label>
+                </div>
+
+                {shadowfaxActive && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>API Token (Authorization: Token &lt;token_id&gt;)</label>
+                      <input type="text" className="premium-input" placeholder="e.g. sfx_tok_demo_12345" value={shadowfaxApiKey} onChange={(e) => setShadowfaxApiKey(e.target.value)} style={{ fontFamily: 'monospace' }} />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>API Base URL</label>
+                      <input type="text" className="premium-input" placeholder="https://dale.shadowfax.in/api" value={shadowfaxBaseUrl} onChange={(e) => setShadowfaxBaseUrl(e.target.value)} style={{ fontFamily: 'monospace' }} />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Order Creation Model</label>
+                      <select className="premium-input" value={shadowfaxOrderType} onChange={(e) => setShadowfaxOrderType(e.target.value as any)}>
+                        <option value="warehouse">Warehouse Model (Forward & RTO)</option>
+                        <option value="marketplace">Marketplace Model (Seller Pickup & RTS)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Priority Order</label>
+                      <input type="number" className="premium-input" value={shadowfaxPriority} onChange={(e) => setShadowfaxPriority(Number(e.target.value))} />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Warehouse Unique Code</label>
+                      <input type="text" className="premium-input" placeholder="WH_SFX_01" value={shadowfaxWarehouseCode} onChange={(e) => setShadowfaxWarehouseCode(e.target.value)} />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Contact Manager</label>
+                      <input type="text" className="premium-input" placeholder="Manager Name" value={shadowfaxContactName} onChange={(e) => setShadowfaxContactName(e.target.value)} />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Warehouse Phone</label>
+                      <input type="text" className="premium-input" placeholder="Phone Number" value={shadowfaxPhone} onChange={(e) => setShadowfaxPhone(e.target.value)} />
+                    </div>
+
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Address Line 1</label>
+                      <input type="text" className="premium-input" placeholder="Street Address" value={shadowfaxAddress} onChange={(e) => setShadowfaxAddress(e.target.value)} />
+                    </div>
+
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Address Line 2</label>
+                      <input type="text" className="premium-input" placeholder="Area / Landmark" value={shadowfaxAddress2} onChange={(e) => setShadowfaxAddress2(e.target.value)} />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>City</label>
+                      <input type="text" className="premium-input" placeholder="City" value={shadowfaxCity} onChange={(e) => setShadowfaxCity(e.target.value)} />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>State</label>
+                      <input type="text" className="premium-input" placeholder="State" value={shadowfaxState} onChange={(e) => setShadowfaxState(e.target.value)} />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Pincode</label>
+                      <input type="text" className="premium-input" placeholder="Pincode" value={shadowfaxPincode} onChange={(e) => setShadowfaxPincode(e.target.value)} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* ROUTING TAB */}
             {activeCourierSubTab === 'routing' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -1106,6 +1327,14 @@ export default function IntegrationsSettings() {
                       <span style={{ fontSize: '11px', color: '#F59E0B', background: 'rgba(245, 158, 11, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>Heavy Freight (&gt;2kg)</span>
                     </div>
                     <p style={{ fontSize: '12px', color: '#A1A1AA' }}>Selected for bulk or heavy weight orders with CMU manifest generation.</p>
+                  </div>
+
+                  <div style={{ background: '#18181B', border: '1px solid #27272A', borderRadius: '8px', padding: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#FAFAFA' }}>Priority 4: Shadowfax SFX</span>
+                      <span style={{ fontSize: '11px', color: '#FF8533', background: 'rgba(255, 107, 0, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>Hyperlocal & E-Commerce</span>
+                    </div>
+                    <p style={{ fontSize: '12px', color: '#A1A1AA' }}>Selected for Shadowfax marketplace seller & client warehouse fulfillment routes.</p>
                   </div>
                 </div>
               </div>
@@ -1243,33 +1472,246 @@ export default function IntegrationsSettings() {
             </div>
           </div>
 
-          {/* Card 2: WhatsApp Templates Identity & Support */}
+          {/* Card 2: Walabz WhatsApp Business Platform Integration */}
           <div className="premium-card" style={{ padding: '28px', borderRadius: '12px', backgroundColor: '#121212', border: '1px solid #27272A', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
               <div>
                 <h3 style={{ fontSize: '18px', color: '#FAFAFA', fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <MessageSquare size={20} style={{ color: '#EC4899' }} />
-                  WhatsApp Notification Brand & Support Configurations
+                  <MessageSquare size={20} style={{ color: '#25D366' }} />
+                  Walabz WhatsApp Business API (Official Meta WABA)
                 </h3>
                 <p style={{ fontSize: '13px', color: '#A1A1AA' }}>
-                  Define support contacts, help desk names, and brand identifiers dynamically embedded into customer-facing WhatsApp alerts.
+                  Meta-approved transactional messaging platform via Walabz campaigns. Automatically dispatches order confirmation, dispatch tracking links, OFD, NDR alerts, and login OTPs.
                 </p>
               </div>
 
-              {/* Toggle switch for WhatsApp notifications */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#18181B', padding: '8px 16px', borderRadius: '8px', border: '1px solid #27272A' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', userSelect: 'none' }}>
-                  <input
-                    type="checkbox"
-                    checked={whatsappNotificationsEnabled}
-                    onChange={(e) => setWhatsappNotificationsEnabled(e.target.checked)}
-                    style={{ width: '16px', height: '16px', accentColor: '#EC4899' }}
-                  />
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: whatsappNotificationsEnabled ? '#F472B6' : '#71717A' }}>
-                    {whatsappNotificationsEnabled ? 'Notifications Enabled' : 'Notifications Disabled'}
+              {/* Status Badge & Toggle switch */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                {walabzStatus && (
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    padding: '4px 10px',
+                    borderRadius: '12px',
+                    backgroundColor: walabzStatus.connected ? 'rgba(37, 211, 102, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                    color: walabzStatus.connected ? '#25D366' : '#EF4444',
+                    border: `1px solid ${walabzStatus.connected ? 'rgba(37, 211, 102, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
+                  }}>
+                    {walabzStatus.connected ? `🟢 ${walabzStatus.message}` : `🔴 ${walabzStatus.message}`}
                   </span>
-                </label>
+                )}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#18181B', padding: '8px 16px', borderRadius: '8px', border: '1px solid #27272A' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', userSelect: 'none' }}>
+                    <input
+                      type="checkbox"
+                      checked={whatsappNotificationsEnabled}
+                      onChange={(e) => setWhatsappNotificationsEnabled(e.target.checked)}
+                      style={{ width: '16px', height: '16px', accentColor: '#25D366' }}
+                    />
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: whatsappNotificationsEnabled ? '#25D366' : '#71717A' }}>
+                      {whatsappNotificationsEnabled ? 'Active Dispatch' : 'Muted / Disabled'}
+                    </span>
+                  </label>
+                </div>
               </div>
+            </div>
+
+            {/* Walabz Credentials Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Walabz Base URL
+                </label>
+                <input
+                  type="text"
+                  className="premium-input"
+                  placeholder="https://walabz.com"
+                  value={walabzBaseUrl}
+                  onChange={(e) => setWalabzBaseUrl(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Walabz Long-Lived API Key (Recommended)
+                </label>
+                <input
+                  type="password"
+                  className="premium-input"
+                  placeholder="wlz_..."
+                  value={walabzApiKey}
+                  onChange={(e) => setWalabzApiKey(e.target.value)}
+                />
+                <span style={{ fontSize: '11px', color: '#71717A', marginTop: '4px', display: 'block' }}>
+                  Replaces JWT. Generated in Walabz Profile (valid 365 days).
+                </span>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Walabz Login Email / Username
+                </label>
+                <input
+                  type="text"
+                  className="premium-input"
+                  placeholder="user@example.com"
+                  value={walabzUsername}
+                  onChange={(e) => setWalabzUsername(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Walabz Account Password
+                </label>
+                <input
+                  type="password"
+                  className="premium-input"
+                  placeholder="••••••••"
+                  value={walabzPassword}
+                  onChange={(e) => setWalabzPassword(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Default Country Code
+                </label>
+                <input
+                  type="text"
+                  className="premium-input"
+                  placeholder="IN"
+                  value={walabzDefaultCountryCode}
+                  onChange={(e) => setWalabzDefaultCountryCode(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Default Dial Code
+                </label>
+                <input
+                  type="text"
+                  className="premium-input"
+                  placeholder="91"
+                  value={walabzDefaultDialCode}
+                  onChange={(e) => setWalabzDefaultDialCode(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={handleSyncWalabzTemplates}
+                disabled={walabzTesting}
+                className="premium-btn"
+                style={{
+                  padding: '9px 16px',
+                  backgroundColor: '#1E293B',
+                  borderColor: '#334155',
+                  color: '#38BDF8',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '12px',
+                  fontWeight: 600
+                }}
+              >
+                <RefreshCw size={14} className={walabzTesting ? 'animate-spin' : ''} />
+                {walabzTesting ? 'Syncing Templates from Walabz...' : 'Sync Meta Templates & Test Connection'}
+              </button>
+
+              <span style={{ fontSize: '12px', color: '#71717A' }}>
+                {availableWalabzTemplates.length > 0 ? `${availableWalabzTemplates.length} approved template(s) loaded from Walabz.` : 'Click to discover templates in your Walabz account.'}
+              </span>
+            </div>
+
+            {/* Template Mapping Section */}
+            <div style={{ marginTop: '12px', borderTop: '1px solid #1C1C21', paddingTop: '20px' }}>
+              <h4 style={{ fontSize: '14px', color: '#F4F4F5', fontWeight: 600, marginBottom: '6px' }}>
+                Meta-Approved Template Event Mappings
+              </h4>
+              <p style={{ fontSize: '12px', color: '#A1A1AA', marginBottom: '16px' }}>
+                Map OMS order lifecycle events to Walabz approved templates. Dynamic variables (Customer Name, Order ID, AWB, Tracking Link) will automatically interpolate into each template.
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+                {[
+                  { key: 'Created', label: 'Order Confirmation (Created)', desc: 'Sent when customer order is confirmed.' },
+                  { key: 'Dispatched', label: 'Order Dispatched', desc: 'Sent when AWB generated with tracking link & packing slip.' },
+                  { key: 'RDC', label: 'Reached Delivery Center', desc: 'Sent when parcel reaches nearest delivery hub.' },
+                  { key: 'OFD', label: 'Out For Delivery (OFD)', desc: 'Sent in the morning when out for delivery.' },
+                  { key: 'Delivered', label: 'Delivered Confirmation', desc: 'Sent upon successful delivery confirmation.' },
+                  { key: 'NDR', label: 'NDR (Non-Delivery Report)', desc: 'Sent when a delivery attempt fails.' },
+                  { key: 'Return', label: 'Return / RTO', desc: 'Sent when parcel is marked for return.' },
+                  { key: 'login_otp', label: 'Login OTP Verification', desc: 'COPY_CODE authentication template for logins.' }
+                ].map(item => (
+                  <div key={item.key} style={{ background: '#09090B', border: '1px solid #27272A', borderRadius: '8px', padding: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: 600, color: '#E4E4E7' }}>
+                        {item.label}
+                      </label>
+                      <span style={{ fontSize: '10px', color: '#A1A1AA', fontFamily: 'monospace' }}>{item.key}</span>
+                    </div>
+                    <p style={{ fontSize: '11px', color: '#71717A', marginBottom: '8px' }}>{item.desc}</p>
+                    
+                    {availableWalabzTemplates.length > 0 ? (
+                      <select
+                        className="premium-input"
+                        style={{ fontSize: '12px', padding: '6px 10px' }}
+                        value={walabzTemplates[item.key] || ''}
+                        onChange={(e) => setWalabzTemplates(prev => ({ ...prev, [item.key]: e.target.value }))}
+                      >
+                        <option value="">-- Select Approved Walabz Template --</option>
+                        {availableWalabzTemplates.map((tpl: any) => {
+                          const tplId = tpl._id || tpl.id;
+                          return (
+                            <option key={tplId} value={tplId}>
+                              {tpl.name} ({tpl.category} / {tpl.language})
+                            </option>
+                          );
+                        })}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        className="premium-input"
+                        placeholder="e.g. 66c1234567890abcdef12345"
+                        value={walabzTemplates[item.key] || ''}
+                        onChange={(e) => setWalabzTemplates(prev => ({ ...prev, [item.key]: e.target.value }))}
+                        style={{ fontSize: '12px' }}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginTop: '10px' }}>
+              <button
+                type="button"
+                onClick={() => handleSaveSettings()}
+                disabled={saveLoading}
+                className="premium-btn premium-btn-primary"
+                style={{ padding: '10px 20px', backgroundColor: '#25D366', borderColor: '#25D366', color: '#000000', fontWeight: 700 }}
+              >
+                {saveLoading ? 'Saving Configurations...' : 'Save Walabz Configurations & Template Mappings'}
+              </button>
+            </div>
+          </div>
+
+          {/* Card 3: Brand & Customer Support Identifiers */}
+          <div className="premium-card" style={{ padding: '28px', borderRadius: '12px', backgroundColor: '#121212', border: '1px solid #27272A', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div>
+              <h3 style={{ fontSize: '18px', color: '#FAFAFA', fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Shield size={20} style={{ color: '#EC4899' }} />
+                Brand & Customer Support Identifiers
+              </h3>
+              <p style={{ fontSize: '13px', color: '#A1A1AA' }}>
+                Define customer support contacts and brand names passed into dynamic Walabz template variables.
+              </p>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
@@ -1301,7 +1743,7 @@ export default function IntegrationsSettings() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
-                  Order Support Phone Number (Sender Match)
+                  Order Support Phone Number
                 </label>
                 <input
                   type="text"
@@ -1340,28 +1782,18 @@ export default function IntegrationsSettings() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
-                  WhatsApp API Device ID
+                  Test / Verification WhatsApp Number
                 </label>
                 <input
                   type="text"
                   className="premium-input"
-                  placeholder="e.g. 2755"
-                  value={whatsappDeviceId}
-                  onChange={(e) => setWhatsappDeviceId(e.target.value)}
+                  placeholder="e.g. 8439762192"
+                  value={otpWhatsappNumber}
+                  onChange={(e) => setOtpWhatsappNumber(e.target.value)}
                 />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
-                  WhatsApp API Access Token
-                </label>
-                <input
-                  type="text"
-                  className="premium-input"
-                  placeholder="e.g. 90a12c96e165f1..."
-                  value={whatsappAccessToken}
-                  onChange={(e) => setWhatsappAccessToken(e.target.value)}
-                />
+                <span style={{ fontSize: '11px', color: '#71717A', marginTop: '4px', display: 'block' }}>
+                  Receives test notifications even when global WhatsApp notifications are muted.
+                </span>
               </div>
             </div>
 
@@ -1373,7 +1805,7 @@ export default function IntegrationsSettings() {
                 className="premium-btn premium-btn-primary"
                 style={{ padding: '10px 20px', backgroundColor: '#EC4899', borderColor: '#EC4899' }}
               >
-                {saveLoading ? 'Validating RBAC & Saving...' : 'Save Brand & Support Configurations'}
+                {saveLoading ? 'Validating RBAC & Saving...' : 'Save Support & Identity Configurations'}
               </button>
             </div>
           </div>
@@ -1492,12 +1924,53 @@ export default function IntegrationsSettings() {
                   <div key={log.id} style={{
                     backgroundColor: '#09090B', border: '1px solid #27272A', borderRadius: '8px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px'
                   }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: '#10B981' }}>☎️ Recipient: {log.phone} ({log.type} Number)</span>
-                      <span style={{ fontSize: '11px', color: '#71717A' }}>{new Date(log.timestamp).toLocaleString()}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#10B981' }}>☎️ {log.phone}</span>
+                        <span style={{ fontSize: '11px', color: '#71717A', background: '#18181B', padding: '2px 6px', borderRadius: '4px', border: '1px solid #27272A' }}>{log.type} Number</span>
+                        {log.templateName && (
+                          <span style={{ fontSize: '11px', color: '#38BDF8', background: 'rgba(56, 189, 248, 0.1)', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+                            Tpl: {log.templateName}
+                          </span>
+                        )}
+                        {log.campaignId && (
+                          <span style={{ fontSize: '11px', color: '#A78BFA', background: 'rgba(167, 139, 250, 0.1)', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(167, 139, 250, 0.2)', fontFamily: 'monospace' }}>
+                            Camp: {log.campaignId}
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          padding: '2px 8px',
+                          borderRadius: '10px',
+                          backgroundColor: log.status === 'Sent' || log.status === 'Delivered'
+                            ? 'rgba(16, 185, 129, 0.15)'
+                            : log.status === 'Failed'
+                            ? 'rgba(239, 68, 68, 0.15)'
+                            : 'rgba(245, 158, 11, 0.15)',
+                          color: log.status === 'Sent' || log.status === 'Delivered'
+                            ? '#10B981'
+                            : log.status === 'Failed'
+                            ? '#EF4444'
+                            : '#F59E0B',
+                          border: `1px solid ${
+                            log.status === 'Sent' || log.status === 'Delivered'
+                              ? 'rgba(16, 185, 129, 0.3)'
+                              : log.status === 'Failed'
+                              ? 'rgba(239, 68, 68, 0.3)'
+                              : 'rgba(245, 158, 11, 0.3)'
+                          }`
+                        }}>
+                          {log.status}
+                        </span>
+                        <span style={{ fontSize: '11px', color: '#71717A' }}>{new Date(log.timestamp).toLocaleString()}</span>
+                      </div>
                     </div>
 
-                    <p style={{ color: '#FAFAFA', lineHeight: '1.5', fontFamily: 'monospace', fontSize: '12px', background: '#000000', padding: '10px', borderRadius: '6px', border: '1px solid #1C1C21' }}>
+                    <p style={{ color: '#FAFAFA', lineHeight: '1.5', fontFamily: 'monospace', fontSize: '12px', background: '#000000', padding: '10px', borderRadius: '6px', border: '1px solid #1C1C21', whiteSpace: 'pre-wrap' }}>
                       {log.message}
                     </p>
                   </div>

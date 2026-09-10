@@ -143,6 +143,8 @@ export default function Dashboard() {
     { name: 'DTDC', count: orders.filter(o => o.courier === 'DTDC').length, color: '#FFFFFF' },
     { name: 'XpressBees', count: orders.filter(o => o.courier === 'XpressBees').length, color: '#888888' },
     { name: 'Delhivery', count: orders.filter(o => o.courier === 'Delhivery').length, color: '#444444' },
+    { name: 'Shadowfax', count: orders.filter(o => o.courier === 'Shadowfax').length, color: '#FF6B00' },
+    { name: 'Velocity', count: orders.filter(o => o.courier === 'Velocity' || o.courier === 'Aggregator').length, color: '#A855F7' }
   ];
   const maxCourierCount = Math.max(...courierStats.map(c => c.count), 1);
 

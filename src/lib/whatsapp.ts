@@ -1,118 +1,15 @@
 import { db } from '@/lib/db';
 import { WhatsAppLog } from '@/lib/types';
-
-// Deropo WhatsApp API Credentials (configured via environment variables)
-const API_URL = process.env.WHATSAPP_API_URL || 'https://api.deropo.com/api/send';
-const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || '3b66835690546597e55f36f2605c0b8a';
-const DEVICE_ID = process.env.WHATSAPP_DEVICE_ID || '3483';
-
+import { WalabzClient } from '@/lib/walabz';
 import { generatePackingSlipImage } from '@/lib/screenshot';
-
-
-
-async function sendWhatsAppMessage(phone: string, messageText: string, imageUrl?: string | null): Promise<{ success: boolean; error?: string }> {
-  try {
-    // 1. Format phone number just like the Google Apps Script
-    let cleanPhone = phone.replace(/\D/g, '');
-    if (cleanPhone.length === 10) {
-      cleanPhone = '91' + cleanPhone;
-    }
-
-    // 2. Validate phone number length (11-15 digits)
-    if (!/^\d{11,15}$/.test(cleanPhone)) {
-      return { success: false, error: 'Invalid phone number' };
-    }
-
-    // Fetch dynamic system settings
-    const settings = await db.getSettings();
-    const isEnabled = settings.whatsappNotificationsEnabled !== false; // default to true if not set
-    const activeAccessToken = settings.whatsappAccessToken || ACCESS_TOKEN;
-    const activeDeviceId = settings.whatsappDeviceId || DEVICE_ID;
-    
-    // Recipient check (dynamically resolved from settings.otpWhatsappNumber, falling back to 8439762192)
-    const testRecipient = settings.otpWhatsappNumber || '8439762192';
-    let cleanTestRecipient = testRecipient.replace(/\D/g, '');
-    if (cleanTestRecipient.length === 10) {
-      cleanTestRecipient = '91' + cleanTestRecipient;
-    }
-    const isTestRecipient = (cleanPhone === cleanTestRecipient || cleanPhone === testRecipient);
-
-    // If notifications are globally disabled, block all messages EXCEPT the test recipient
-    if (!isEnabled && !isTestRecipient) {
-      console.warn(`[WhatsApp Block] WhatsApp notifications are disabled globally.`);
-      return { 
-        success: false, 
-        error: 'Blocked: WhatsApp notifications are disabled globally.' 
-      };
-    }
-
-    // 3. Make fetch request to WhatsApp API
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-
-    if (activeAccessToken) {
-      headers['X-Access-Token'] = activeAccessToken;
-    }
-
-    // Construct request URL by appending device_id if not already present in the URL
-    let requestUrl = API_URL;
-    if (activeDeviceId && !requestUrl.includes('device_id=') && !requestUrl.includes('device=')) {
-      const separator = requestUrl.includes('?') ? '&' : '?';
-      requestUrl = `${requestUrl}${separator}device_id=${activeDeviceId}`;
-    }
-
-    const payload: any = {
-      number: cleanPhone,
-      message: messageText
-    };
-
-    if (imageUrl) {
-      payload.type = 'image';
-      payload.variables = {
-        imageUrl: imageUrl
-      };
-      payload.url = imageUrl;
-      payload.file = imageUrl;
-      payload.media = imageUrl;
-      payload.caption = messageText;
-    } else {
-      payload.type = 'text';
-    }
-
-    const res = await fetch(requestUrl, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(3000)
-    });
-
-    const responseText = await res.text();
-    if (!res.ok) {
-      return { success: false, error: `HTTP ${res.status}: ${responseText || 'Unknown error'}` };
-    }
-
-    try {
-      const data = JSON.parse(responseText);
-      if (data.success === true || (data.status && data.status.toLowerCase() === 'success')) {
-        return { success: true };
-      } else {
-        return { success: false, error: data.message || 'Gateway issue' };
-      }
-    } catch (e) {
-      return { success: false, error: `Invalid JSON response: ${responseText}` };
-    }
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Network request failed' };
-  }
-}
-
 
 export interface TriggerWhatsAppParams {
   orderId: string;
   customerName: string;
   phonePrimary: string;
   phoneSecondary?: string;
+  phoneTertiary?: string;
+  phoneWhatsApp?: string;
   status: string;
   awb?: string;
   courier?: string;
@@ -125,12 +22,203 @@ export interface TriggerWhatsAppParams {
   isOnDemand?: boolean;
 }
 
+/**
+ * Initializes a Walabz client with dynamic settings from database or environment.
+ */
+export async function getWalabzClient(): Promise<WalabzClient> {
+  const settings = await db.getSettings();
+  return new WalabzClient({
+    baseUrl: settings.walabzBaseUrl,
+    username: settings.walabzUsername,
+    password: settings.walabzPassword,
+    apiKey: settings.walabzApiKey,
+    defaultCountryCode: settings.walabzDefaultCountryCode || 'IN',
+    defaultDialCode: settings.walabzDefaultDialCode || '91',
+  });
+}
+
+/**
+ * Builds comprehensive template variable dictionary supporting both
+ * positional variables ("1", "2", ...) and named variables ("customer_name", "order_id", ...).
+ */
+export function buildTemplateVariables(data: {
+  customerName: string;
+  orderId: string;
+  productName: string;
+  orderValue: number | string;
+  awb?: string;
+  courier?: string;
+  eta?: string;
+  trackingUrl?: string;
+  packingSlipUrl?: string;
+  supportName?: string;
+  supportNumber?: string;
+  courierSupportName?: string;
+  courierSupportNumber?: string;
+  brandName?: string;
+  status?: string;
+  templateId?: string;
+}): Record<string, string> {
+  const {
+    customerName,
+    orderId,
+    productName,
+    orderValue,
+    awb = 'N/A',
+    courier = 'N/A',
+    eta = '3-4 Days',
+    trackingUrl = '',
+    packingSlipUrl = '',
+    supportName = 'Customer Support',
+    supportNumber = '',
+    courierSupportName = 'Courier Helpdesk',
+    courierSupportNumber = '',
+    brandName = '99Store',
+    status = 'Created'
+  } = data;
+
+  const valueStr = String(orderValue || '0');
+
+  // Base variable dictionary supporting both Meta named variables and sequential positional variables
+  const mappings: Record<string, string> = {
+    // Named variables (for custom & named-variable Meta templates)
+    customer_name: customerName,
+    first_name: customerName.split(' ')[0] || customerName,
+    order_id: orderId,
+    product_name: productName,
+    amount: valueStr,
+    order_value: valueStr,
+    awb: awb,
+    courier: courier,
+    courier_partner: courier,
+    eta: eta,
+    tracking_url: trackingUrl || packingSlipUrl,
+    packing_slip_url: packingSlipUrl,
+    support_name: supportName,
+    support_number: supportNumber,
+    support_phone: supportNumber,
+    courier_support_name: courierSupportName,
+    courier_support_number: courierSupportNumber,
+    brand_name: brandName,
+
+    // Positional variables (Sequential 1..10)
+    // For 'Created' / order confirmation (matches approved template orderconfirmation):
+    // {{1}} = customer_name, {{2}} = product_name, {{3}} = order_id, {{4}} = amount, {{5}} = support_name, {{6}} = support_phone
+    '1': customerName,
+    '2': productName,
+    '3': orderId,
+    '4': valueStr,
+    '5': supportName,
+    '6': supportNumber,
+    '7': eta,
+    '8': trackingUrl || packingSlipUrl || 'https://99store.in',
+    '9': supportNumber,
+    '10': brandName,
+  };
+
+  // If status is shipping / logistics event, adapt positional variables 5 & 6 to AWB & Courier
+  if (['Dispatched', 'RDC', 'OFD', 'Delivered', 'Label Generated', 'NDR', 'Return'].includes(status)) {
+    mappings['5'] = awb && awb !== 'PENDING' ? awb : 'N/A';
+    mappings['6'] = courier && courier !== 'PENDING' ? courier : 'N/A';
+  }
+
+  return mappings;
+}
+
+/**
+ * Formats a human-readable fallback message preview for internal audit and log console.
+ */
+function buildMessagePreview(
+  status: string,
+  params: {
+    customerName: string;
+    orderId: string;
+    productName: string;
+    orderValue: number | string;
+    awb?: string;
+    courier?: string;
+    eta?: string;
+    packingSlipUrl?: string;
+    brandName: string;
+    supportName: string;
+    supportNumber: string;
+  }
+): string {
+  const { customerName, orderId, productName, orderValue, awb, courier, eta, packingSlipUrl, brandName, supportName, supportNumber } = params;
+
+  switch (status) {
+    case 'Created':
+      return `🙏 ऑर्डर कन्फर्मेशन संदेश\nनमस्कार ${customerName}, आपका ${brandName} ऑर्डर #${orderId} (${productName}) कन्फर्म हो गया है। कुल राशि: ₹${orderValue}.\nसहायता: ${supportName} (${supportNumber})`;
+    case 'Dispatched':
+      return `🚚 ऑर्डर डिस्पैच अपडेट\nनमस्कार ${customerName}, आपका ${brandName} ऑर्डर #${orderId} डिस्पैच हो गया है।\nAWB: ${awb || 'N/A'}, कूरियर: ${courier || 'N/A'}, अनुमानित डिलीवरी: ${eta || '3-4 Days'}.\nस्लिप: ${packingSlipUrl || ''}`;
+    case 'RDC':
+      return `📍 डिलीवरी सेंटर अपडेट\nनमस्कार ${customerName}, आपका ऑर्डर #${orderId} नज़दीकी डिलीवरी सेंटर पर पहुँच चुका है।\nAWB: ${awb || 'N/A'}`;
+    case 'OFD':
+      return `🚚 आउट फॉर डिलीवरी\nनमस्कार ${customerName}, आपका ऑर्डर #${orderId} आज डिलीवरी के लिए निकल चुका है।\nAWB: ${awb || 'N/A'}`;
+    case 'Delivered':
+      return `✅ डिलीवरी सफल\nनमस्कार ${customerName}, आपका ${brandName} ऑर्डर #${orderId} सफलतापूर्वक डिलीवर हो गया है।`;
+    case 'NDR':
+      return `⚠️ डिलीवरी अपडेट (NDR)\nनमस्कार ${customerName}, आपका ऑर्डर #${orderId} डिलीवर नहीं हो पाया। हम जल्द ही पुनः प्रयास करेंगे।`;
+    case 'Return':
+      return `🔄 रिटर्न अपडेट\nनमस्कार ${customerName}, आपका ऑर्डर #${orderId} RTO/रिटर्न प्रक्रिया में है।`;
+    default:
+      return `Hello ${customerName}, your ${brandName} order #${orderId} status update: ${status}.`;
+  }
+}
+
+/**
+ * Resolves the configured Walabz template ID for an OMS order status.
+ */
+function resolveTemplateId(status: string, templates?: Record<string, string>): string | undefined {
+  if (!templates) return undefined;
+  
+  // Direct match (e.g. 'Dispatched' or 'Created')
+  if (templates[status]) return templates[status];
+
+  // Normalized lowercase match
+  const lower = status.toLowerCase();
+  for (const [key, val] of Object.entries(templates)) {
+    if (key.toLowerCase() === lower) return val;
+  }
+
+  // Canonical event aliases
+  if (['created', 'order created', 'confirmed', 'order confirmation'].includes(lower)) {
+    return templates['Created'] || templates['order_created'] || templates['order_confirmation'];
+  }
+  if (['dispatched', 'dispatch', 'shipped'].includes(lower)) {
+    return templates['Dispatched'] || templates['order_dispatched'];
+  }
+  if (['ofd', 'out for delivery'].includes(lower)) {
+    return templates['OFD'] || templates['out_for_delivery'];
+  }
+  if (['delivered', 'delivery'].includes(lower)) {
+    return templates['Delivered'] || templates['order_delivered'];
+  }
+  if (['rdc', 'reached delivery center'].includes(lower)) {
+    return templates['RDC'] || templates['order_rdc'];
+  }
+  if (['ndr', 'undelivered'].includes(lower)) {
+    return templates['NDR'] || templates['order_ndr'];
+  }
+  if (['return', 'rto'].includes(lower)) {
+    return templates['Return'] || templates['order_return'];
+  }
+
+  return undefined;
+}
+
+/**
+ * Enterprise Transactional WhatsApp Dispatcher
+ * Sends Meta-approved WhatsApp Business notifications via Walabz campaigns.
+ */
 export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams): Promise<WhatsAppLog[]> {
   const {
     orderId,
     customerName,
     phonePrimary,
     phoneSecondary,
+    phoneTertiary,
+    phoneWhatsApp,
     status,
     awb,
     courier,
@@ -144,365 +232,309 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
   } = params;
 
   const logsSent: WhatsAppLog[] = [];
-
-  // Load settings for dynamic template values
   const settings = await db.getSettings();
+
+  const isEnabled = settings.whatsappNotificationsEnabled !== false;
   const brandName = settings.whatsappBrandName || '99Store';
   const supportName = settings.whatsappSupportName || '99Store Support';
   const supportNumber = settings.whatsappSupportNumber || settings.primaryContactNumbers?.[0] || '+91 8439581832';
   const courierSupportName = settings.whatsappCourierSupportName || 'Courier Helpdesk';
   const courierSupportNumber = settings.whatsappCourierSupportNumber || settings.secondaryContactNumbers?.[0] || '+91 9123456789';
 
-  // Gather all unique phone numbers associated with the parcel
+  // Recipient resolution: Always target the customer's actual phone numbers
   const order = await db.getOrderByOrderId(orderId);
   const allNumbers = new Set<string>();
-  
+
   if (targetNumbers && targetNumbers.length > 0) {
-    targetNumbers.forEach(num => allNumbers.add(num.trim()));
+    targetNumbers.forEach(n => allNumbers.add(n.trim()));
   } else {
-    if (phonePrimary) allNumbers.add(phonePrimary.trim());
-    if (phoneSecondary) allNumbers.add(phoneSecondary.trim());
-    if (order) {
-      if (order.phonePrimary) allNumbers.add(order.phonePrimary.trim());
-      if (order.phoneSecondary) allNumbers.add(order.phoneSecondary.trim());
-      if (order.phoneTertiary) allNumbers.add(order.phoneTertiary.trim());
-      if (order.phoneWhatsApp) allNumbers.add(order.phoneWhatsApp.trim());
+    // 1. Identify store admin and hub numbers to avoid spamming merchant phones
+    const storeNumbers = new Set(
+      [
+        ...(settings.primaryContactNumbers || []),
+        ...(settings.secondaryContactNumbers || []),
+        '9876543210',
+        '9123456789',
+        '+91 9876543210',
+        '+91 9123456789'
+      ].map(n => n.replace(/\D/g, ''))
+    );
+
+    // 2. Identify candidate customer numbers in priority order
+    const customerCandidates = [
+      phoneWhatsApp,
+      order?.phoneWhatsApp,
+      phoneTertiary,
+      order?.phoneTertiary,
+      phonePrimary,
+      order?.phonePrimary,
+      phoneSecondary,
+      order?.phoneSecondary
+    ].filter(n => n && typeof n === 'string' && n.trim().length >= 10) as string[];
+
+    // 3. Add numbers that are NOT the store's own admin/hub contacts
+    let customerFound = false;
+    for (const num of customerCandidates) {
+      const clean = num.replace(/\D/g, '');
+      const last10 = clean.slice(-10);
+      if (!storeNumbers.has(clean) && !storeNumbers.has(last10)) {
+        allNumbers.add(num.trim());
+        customerFound = true;
+      }
+    }
+
+    // 4. Fallback: if no dedicated non-store number found, use primary phone
+    if (!customerFound && phonePrimary) {
+      allNumbers.add(phonePrimary.trim());
     }
   }
-  const uniqueNumbers = Array.from(allNumbers).filter(num => num && num.trim() !== '');
 
-  // Get product name (either from params, or fetch from DB)
-  let pName = productName;
-  if (!pName) {
-    pName = order?.productDetails || 'Product';
+  const uniqueNumbers = Array.from(allNumbers).filter(n => n && n.trim().length >= 10);
+  if (uniqueNumbers.length === 0) {
+    console.warn(`[WhatsApp Dispatcher] No valid recipient phone numbers found for order ${orderId}.`);
+    return logsSent;
   }
 
-  // Generate packing slip screenshot in background
+  const pName = productName || order?.productDetails || '99Store Product';
+  const resolvedBaseUrl = baseUrl || 'https://99-store-oms.vercel.app';
+  const packingSlipUrl = `${resolvedBaseUrl}/packing-slip/${orderId}`;
+  const trackingUrl = awb && awb !== 'PENDING' ? `${resolvedBaseUrl}/track?awb=${encodeURIComponent(awb)}` : packingSlipUrl;
+
+  // Generate optional high-DPI packing slip image URL for media-header templates
   let imageUrl: string | null = null;
-  try {
-    imageUrl = await generatePackingSlipImage(orderId, baseUrl);
-  } catch (err) {
-    console.error('Failed to generate packing slip screenshot:', err);
-  }
-
-  // --- 1. Primary Number Notifications ---
-  let primaryMessage = '';
-  switch (status) {
-    case 'Created':
-      primaryMessage = `🙏 ऑर्डर कन्फर्मेशन संदेश
-नमस्कार ${customerName},
-आपका ऑर्डर सफलतापूर्वक कन्फर्म हो गया है। 🎉
-
-ऑर्डर विवरण:
-• उत्पाद: ${pName}
-• ऑर्डर आईडी: ${orderId}
-• कुल राशि: ₹${orderValue}
-
-आपका ऑर्डर जल्द ही पैक करके डिस्पैच किया जाएगा। जैसे ही आपका ऑर्डर हमारी ओर से भेजा जाएगा, हम आपको उसकी जानकारी और ट्रैकिंग विवरण भेज देंगे।
-
-
-ऑर्डर सहायता
-👤 ${supportName}
-📞 ${supportNumber}
-धन्यवाद!
-– Team ${brandName}`;
-      break;
-
-    case 'Dispatched':
-      primaryMessage = `🚚 ऑर्डर डिस्पैच अपडेट
-नमस्कार ${customerName},
-आपका ऑर्डर हमारी ओर से सफलतापूर्वक डिस्पैच कर दिया गया है। 🎉
-
-ऑर्डर विवरण:
-• उत्पाद: ${pName}
-• ऑर्डर आईडी: ${orderId}
-• ट्रैकिंग आईडी (AWB): ${awb || 'N/A'}
-• कूरियर पार्टनर: ${courier || 'N/A'}
-• अनुमानित डिलीवरी: ${eta || '3-4 Days'}
-
-आप अपने ऑर्डर को ट्रैकिंग आईडी की सहायता से कूरियर की वेबसाइट पर ट्रैक कर सकते हैं।
-
-
-🖼️ महत्वपूर्ण सूचना
-इस संदेश के साथ एक लेबल की तस्वीर भेजी गई है।
-कृपया डिलीवरी प्राप्त करने से पहले अपने पार्सल पर लगे लेबल का मिलान इस तस्वीर से अवश्य करें।
-यदि तस्वीर और आपके पार्सल का लेबल एक जैसा है, तभी पार्सल स्वीकार करें।
-यदि दोनों में कोई अंतर दिखाई दे, तो कृपया तुरंत हमारे सपोर्ट से संपर्क करें और पार्सल स्वीकार न करें।
-ऑर्डर सहायता
-👤 ${supportName}
-📞 ${supportNumber}
-कूरियर सहायता
-📦 ${courierSupportName}
-📞 ${courierSupportNumber}
-धन्यवाद!
-– Team ${brandName}`;
-      break;
-
-    case 'RDC':
-      primaryMessage = `📍 आपका ऑर्डर आपके नज़दीकी डिलीवरी सेंटर पर पहुँच गया है
-
-नमस्कार ${customerName},
-आपके ऑर्डर की नवीनतम जानकारी साझा की जा रही है।
-
-ऑर्डर विवरण:
-• उत्पाद: ${pName}
-• ऑर्डर आईडी: ${orderId}
-• ट्रैकिंग आईडी (AWB): ${awb || 'N/A'}
-• कूरियर पार्टनर: ${courier || 'N/A'}
-• भुगतान राशि${paymentType === 'COD' ? ' (COD)' : ''}: ${paymentType === 'COD' ? `₹${orderValue}` : 'Prepaid'}
-
-आपका ऑर्डर आपके नज़दीकी डिलीवरी सेंटर (RDC) पर पहुँच चुका है और डिलीवरी की प्रक्रिया में है।
-संभावना है कि आपका ऑर्डर आज या कल तक आपको प्राप्त हो जाएगा।
-${paymentType === 'COD' ? `कृपया डिलीवरी के समय ₹${orderValue} की राशि तैयार रखें।` : ''}
-
-
-🖼️ महत्वपूर्ण सूचना
-इस संदेश के साथ एक लेबल की तस्वीर भेजी गई है।
-कृपया डिलीवरी प्राप्त करने से पहले अपने पार्सल पर लगे लेबल का मिलान इस तस्वीर से अवश्य करें।
-यदि तस्वीर और आपके पार्सल का लेबल एक जैसा है, तभी पार्सल स्वीकार करें।
-यदि दोनों में कोई अंतर दिखाई दे, तो कृपया तुरंत हमारे सपोर्ट से संपर्क करें और पार्सल स्वीकार न करें।
-ऑर्डर सहायता
-👤 ${supportName}
-📞 ${supportNumber}
-कूरियर सहायता
-📦 ${courierSupportName}
-📞 ${courierSupportNumber}
-धन्यवाद!
-– Team ${brandName}`;
-      break;
-
-    case 'OFD':
-      primaryMessage = `🚚 आपका ऑर्डर डिलीवरी के लिए निकल चुका है
-
-नमस्कार ${customerName},
-खुशखबरी! 🎉
-आपका ऑर्डर आज डिलीवरी के लिए निकल चुका है।
-
-ऑर्डर विवरण:
-• उत्पाद: ${pName}
-• ऑर्डर आईडी: ${orderId}
-• ट्रैकिंग आईडी (AWB): ${awb || 'N/A'}
-• कूरियर पार्टनर: ${courier || 'N/A'}
-• भुगतान राशि${paymentType === 'COD' ? ' (COD)' : ''}: ${paymentType === 'COD' ? `₹${orderValue}` : 'Prepaid'}
-
-आपका ऑर्डर आज ही डिलीवर होने की पूरी संभावना है।
-${paymentType === 'COD'
-          ? `कृपया डिलीवरी के समय ₹${orderValue} की राशि तैयार रखें। साथ ही अपना मोबाइल फ़ोन उपलब्ध रखें ताकि डिलीवरी पार्टनर आवश्यकता पड़ने पर आपसे संपर्क कर सके।`
-          : 'साथ ही अपना मोबाइल फ़ोन उपलब्ध रखें ताकि डिलीवरी पार्टनर आवश्यकता पड़ने पर आपसे संपर्क कर सके।'}
-
-
-🖼️ महत्वपूर्ण सूचना
-इस संदेश के साथ एक लेबल की तस्वीर भेजी गई है।
-कृपया डिलीवरी प्राप्त करने से पहले अपने पार्सल पर लगे लेबल का मिलान इस तस्वीर से अवश्य करें।
-यदि तस्वीर और आपके पार्सल का लेबल एक जैसा है, तभी पार्सल स्वीकार करें।
-यदि दोनों में कोई अंतर दिखाई दे, तो कृपया तुरंत हमारे सपोर्ट से संपर्क करें और पार्सल स्वीकार न करें।
-ऑर्डर सहायता
-👤 ${supportName}
-📞 ${supportNumber}
-कूरियर सहायता
-📦 ${courierSupportName}
-📞 ${courierSupportNumber}
-धन्यवाद!
-– Team ${brandName}`;
-      break;
-
-    case 'Delivered':
-      primaryMessage = `✅ आपका ऑर्डर सफलतापूर्वक डिलीवर हो गया
-
-नमस्कार ${customerName},
-हमें खुशी है कि आपका ऑर्डर सफलतापूर्वक डिलीवर हो गया है। 😊
-
-ऑर्डर विवरण:
-• उत्पाद: ${pName}
-• ऑर्डर आईडी: ${orderId}
-
-हमें आशा है कि आपको आपका उत्पाद पसंद आएगा। यदि उत्पाद से संबंधित कोई प्रश्न, समस्या या सहायता चाहिए, तो बेझिझक हमसे संपर्क करें।
-
-
-🖼️ महत्वपूर्ण सूचना
-इस संदेश के साथ एक लेबल की तस्वीर भेजी गई है।
-कृपया डिलीवरी प्राप्त करने से पहले अपने पार्सल पर लगे लेबल का मिलान इस तस्वीर से अवश्य करें।
-यदि तस्वीर और आपके पार्सल का लेबल एक जैसा है, तभी पार्सल स्वीकार करें।
-यदि दोनों में कोई अंतर दिखाई दे, तो कृपया तुरंत हमारे सपोर्ट से संपर्क करें और पार्सल स्वीकार न करें।
-ऑर्डर सहायता
-👤 ${supportName}
-📞 ${supportNumber}
-यदि आपको हमारा उत्पाद और सेवा पसंद आई हो, तो कृपया अपना अनुभव अपने परिवार और मित्रों के साथ साझा करें। आपका विश्वास और सहयोग हमारे लिए बेहद महत्वपूर्ण है।
-
-धन्यवाद! ❤️
-– Team ${brandName}`;
-      break;
-
-    case 'Label Generated':
-      primaryMessage = `📄 आपके ऑर्डर का शिपिंग लेबल तैयार है
-नमस्कार ${customerName},
-आपके ${brandName} ऑर्डर #${orderId} का शिपिंग लेबल सफलतापूर्वक जेनरेट कर दिया गया है। 
-
-ऑर्डर विवरण:
-• उत्पाद: ${pName}
-• ट्रैकिंग आईडी (AWB): ${awb || 'N/A'}
-• कूरियर पार्टनर: ${courier || 'N/A'}
-
-जैसे ही आपका पार्सल कूरियर पार्टनर द्वारा पिक किया जाएगा, हम आपको शिपमेंट ट्रैकिंग जानकारी साझा करेंगे।
-
-ऑर्डर सहायता
-👤 ${supportName}
-📞 ${supportNumber}
-धन्यवाद!
-– Team ${brandName}`;
-      break;
-
-    case 'NDR':
-      primaryMessage = `⚠️ Delivery Failed! Hi ${customerName}, our courier partner was unable to deliver your ${brandName} order #${orderId}. Status: ${status}. Reason: Delivery attempt failed. Don't worry, we are scheduling a re-attempt shortly. Contact us if you wish to update details.`;
-      break;
-
-    case 'Return':
-      primaryMessage = `🔄 Return Update! Hi ${customerName}, your ${brandName} order #${orderId} status has been updated to RTO (${status}). It is being shipped back to our fulfillment center. Please reach out to customer support to arrange a refund or reshipment.`;
-      break;
-
-    default:
-      primaryMessage = `Hello ${customerName}, your ${brandName} order #${orderId} status has been updated to: ${status}.`;
-      break;
-  }
-
-  // Generate packing slip URL and append if status is after/during label generation
-  const packingSlipUrl = `${baseUrl || 'https://99-store-oms.vercel.app'}/packing-slip/${orderId}`;
-  const isAfterLabelGen = status !== 'Created' && status !== 'Packing' && status !== 'Courier Selected';
-  if (isAfterLabelGen) {
-    const isHindi = ['Label Generated', 'Dispatched', 'RDC', 'OFD', 'Delivered'].includes(status);
-    if (isHindi) {
-      primaryMessage += `\n\n📄 अपनी पैकिंग स्लिप (Packing Slip) देखने के लिए यहाँ क्लिक करें:\n${packingSlipUrl}`;
-    } else {
-      primaryMessage += `\n\n📄 Click here to view your packing slip:\n${packingSlipUrl}`;
+  const shouldAttachMedia = ['Dispatched', 'RDC', 'OFD', 'Delivered', 'Label Generated'].includes(status);
+  if (shouldAttachMedia) {
+    try {
+      imageUrl = await generatePackingSlipImage(orderId, resolvedBaseUrl);
+    } catch (err) {
+      console.warn(`[WhatsApp Dispatcher] Failed to generate packing slip screenshot for ${orderId}:`, err);
     }
   }
 
-  const isTransactional = !isOnDemand;
-  const scheduledTime = isTransactional
-    ? new Date(Date.now() + 60000).toISOString()
-    : undefined;
+  // Resolve template ID mapped in settings
+  const templateId = resolveTemplateId(status, settings.walabzTemplates);
 
-  // Send the detailed message to all unique numbers attached to the order
+  // Build variable dictionary
+  const variableMappings = buildTemplateVariables({
+    customerName,
+    orderId,
+    productName: pName,
+    orderValue,
+    awb,
+    courier,
+    eta,
+    trackingUrl,
+    packingSlipUrl,
+    supportName,
+    supportNumber,
+    courierSupportName,
+    courierSupportNumber,
+    brandName,
+    status,
+    templateId
+  });
+
+  // Human-readable fallback message preview for database logs
+  const messagePreview = buildMessagePreview(status, {
+    customerName,
+    orderId,
+    productName: pName,
+    orderValue,
+    awb,
+    courier,
+    eta,
+    packingSlipUrl,
+    brandName,
+    supportName,
+    supportNumber,
+  });
+
+  const testRecipient = (settings.otpWhatsappNumber || '8439762192').replace(/\D/g, '');
+  const walabzClient = new WalabzClient({
+    baseUrl: settings.walabzBaseUrl,
+    username: settings.walabzUsername,
+    password: settings.walabzPassword,
+    apiKey: settings.walabzApiKey,
+    defaultCountryCode: settings.walabzDefaultCountryCode || 'IN',
+    defaultDialCode: settings.walabzDefaultDialCode || '91',
+  });
+
   for (const phone of uniqueNumbers) {
-    const logId = `wa-dispatch-${phone}-${Date.now()}`;
+    const cleanPhone = walabzClient.normalizePhoneNumber(phone);
+    const isTestRecipient = cleanPhone.endsWith(testRecipient) || testRecipient.endsWith(cleanPhone);
+
+    // Global toggle check
+    if (!isEnabled && !isTestRecipient) {
+      console.log(`[WhatsApp Dispatcher] Notifications globally disabled. Blocked recipient: ${cleanPhone}`);
+      const log: WhatsAppLog = {
+        id: `wa-${orderId}-${cleanPhone}-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        phone: cleanPhone,
+        type: phone === phonePrimary ? 'Primary' : 'Secondary',
+        message: `${messagePreview}\n\n[Blocked: WhatsApp notifications globally disabled]`,
+        status: 'Failed',
+        orderId: order?.orderId || orderId,
+        templateName: status,
+        errorDetail: 'Blocked: WhatsApp notifications are disabled in settings.'
+      };
+      await db.addWhatsAppLog(log);
+      logsSent.push(log);
+      continue;
+    }
+
+    // Rate-limiting check: Prevent duplicate alerts for same order & status within 60 seconds
+    if (!isOnDemand) {
+      const existingLogs = await db.getWhatsAppLogs();
+      const recentDuplicate = existingLogs.find(
+        l =>
+          l.orderId === (order?.orderId || orderId) &&
+          l.phone === cleanPhone &&
+          l.templateName === status &&
+          Date.now() - new Date(l.timestamp).getTime() < 60000
+      );
+      if (recentDuplicate) {
+        console.log(`[WhatsApp Dispatcher] Rate-limit skip: Duplicate message recently sent to ${cleanPhone} for order ${orderId}`);
+        continue;
+      }
+    }
+
+    const logId = `wa-${Date.now()}-${cleanPhone.slice(-4)}`;
     const log: WhatsAppLog = {
       id: logId,
       timestamp: new Date().toISOString(),
-      phone: phone,
+      phone: cleanPhone,
       type: phone === phonePrimary ? 'Primary' : 'Secondary',
-      message: primaryMessage,
-      status: isTransactional ? 'Pending' : 'Failed', // Pending for transactional, placeholder for manual
+      message: messagePreview,
+      status: 'Pending',
       orderId: order?.orderId || orderId,
       templateName: status,
-      imageUrl: imageUrl,
-      scheduledTime: scheduledTime
+      templateId: templateId,
+      imageUrl: imageUrl
     };
 
-    if (isTransactional) {
-      await db.saveWhatsAppLog(log);
+    // If template ID is not configured, record log with warning
+    if (!templateId) {
+      log.status = 'Failed';
+      log.errorDetail = `No Walabz template ID mapped for status '${status}'. Please configure in Settings -> Walabz Templates.`;
+      log.message = `${messagePreview}\n\n⚠️ Template Unmapped: Configure Walabz Template ID for '${status}' in Settings.`;
+      await db.addWhatsAppLog(log);
       logsSent.push(log);
-      console.log(`[WhatsApp Queue] Transactional message queued for ${phone} (order ${orderId}). Will send at ${scheduledTime}`);
-    } else {
-      // Manual/On-demand message gets sent immediately
-      console.log(`[WhatsApp] Dispatching manual notification to: ${phone}`);
-      const result = await sendWhatsAppMessage(phone, primaryMessage, imageUrl);
-      log.status = result.success ? 'Sent' : 'Failed';
-      if (!result.success) {
-        log.message = `${primaryMessage}\n\n❌ Error: ${result.error}`;
-      }
-      await db.saveWhatsAppLog(log);
-      logsSent.push(log);
+      console.warn(`[WhatsApp Dispatcher] No Walabz template configured for status '${status}'. Logged with ID: ${logId}`);
+      continue;
     }
+
+    // Dispatch via Walabz Campaign API
+    try {
+      const campaignName = `Ord-${orderId}-${status}-${Date.now()}`.slice(0, 50);
+      const result = await walabzClient.sendCampaign({
+        campaignName,
+        templateId,
+        recipients: [cleanPhone],
+        variableMappings,
+        mediaUrl: imageUrl || undefined,
+        mediaType: imageUrl ? 'image' : undefined,
+        action: 'send'
+      });
+
+      if (result.success) {
+        log.status = 'Sent';
+        log.campaignId = result.campaignId;
+        log.message = `${messagePreview}\n\n🚀 Walabz Campaign ID: ${result.campaignId}`;
+        console.log(`[WhatsApp Dispatcher] Successfully queued Walabz campaign ${result.campaignId} for order ${orderId} (${cleanPhone})`);
+      } else {
+        log.status = 'Failed';
+        log.errorDetail = result.error;
+        log.message = `${messagePreview}\n\n❌ Walabz Error: ${result.error}`;
+        console.error(`[WhatsApp Dispatcher] Walabz dispatch failed for ${cleanPhone}:`, result.error);
+      }
+    } catch (err: any) {
+      log.status = 'Failed';
+      log.errorDetail = err.message || 'Dispatch exception';
+      log.message = `${messagePreview}\n\n❌ Exception: ${err.message}`;
+      console.error(`[WhatsApp Dispatcher] Unexpected exception during send to ${cleanPhone}:`, err);
+    }
+
+    await db.addWhatsAppLog(log);
+    logsSent.push(log);
   }
 
   return logsSent;
 }
 
 /**
- * Sends a secure Login Verification OTP code to a user via WhatsApp and logs the status.
+ * Sends a secure Login Verification OTP code via Walabz WhatsApp Business API.
  */
-export async function sendLoginOTP(phone: string, otp: string): Promise<{ success: boolean; error?: string }> {
-  const messageText = `🔐 Your 99Store login verification code is: ${otp}. It is valid for 5 minutes. Do not share this code with anyone.`;
-  const result = await sendWhatsAppMessage(phone, messageText);
+export async function sendLoginOTP(
+  phone: string,
+  otp: string
+): Promise<{ success: boolean; error?: string; campaignId?: string }> {
+  const settings = await db.getSettings();
+  const walabzClient = new WalabzClient({
+    baseUrl: settings.walabzBaseUrl,
+    username: settings.walabzUsername,
+    password: settings.walabzPassword,
+    apiKey: settings.walabzApiKey,
+    defaultCountryCode: settings.walabzDefaultCountryCode || 'IN',
+    defaultDialCode: settings.walabzDefaultDialCode || '91',
+  });
 
-  const otpLog: WhatsAppLog = {
+  const cleanPhone = walabzClient.normalizePhoneNumber(phone);
+  const otpTemplateId = settings.walabzTemplates?.['login_otp'] || settings.walabzTemplates?.['otp'];
+
+  const messageText = `🔐 Your 99Store login verification code is: ${otp}. It is valid for 5 minutes. Do not share this code with anyone.`;
+
+  const log: WhatsAppLog = {
     id: `wa-otp-${Date.now()}`,
     timestamp: new Date().toISOString(),
-    phone,
+    phone: cleanPhone,
     type: 'Primary',
-    message: result.success ? messageText : `${messageText}\n\n❌ Error: ${result.error}`,
-    status: result.success ? 'Sent' : 'Failed'
+    message: messageText,
+    templateName: 'login_otp',
+    templateId: otpTemplateId,
+    status: 'Pending'
   };
 
-  await db.addWhatsAppLog(otpLog);
-  return result;
-}
+  // If no OTP template mapped, log failure
+  if (!otpTemplateId) {
+    const errorMsg = 'No Walabz template ID mapped for login_otp in Settings.';
+    log.status = 'Failed';
+    log.errorDetail = errorMsg;
+    log.message = `${messageText}\n\n❌ ${errorMsg}`;
+    await db.addWhatsAppLog(log);
+    return { success: false, error: errorMsg };
+  }
 
-let isQueueRunning = false;
-let isQueueProcessing = false;
+  try {
+    const result = await walabzClient.sendCampaign({
+      campaignName: `OTP-${Date.now()}`,
+      templateId: otpTemplateId,
+      recipients: [cleanPhone],
+      variableMappings: {
+        '1': otp,
+        otp: otp,
+        code: otp
+      },
+      action: 'send'
+    });
 
-export function startQueueProcessor() {
-  if (isQueueRunning) return;
-  isQueueRunning = true;
-  console.log('[WhatsApp Queue] Starting background queue processor...');
-  
-  setInterval(async () => {
-    if (isQueueProcessing) {
-      return;
+    if (result.success) {
+      log.status = 'Sent';
+      log.campaignId = result.campaignId;
+      log.message = `${messageText}\n\n🚀 Walabz Campaign: ${result.campaignId}`;
+      await db.addWhatsAppLog(log);
+      return { success: true, campaignId: result.campaignId };
+    } else {
+      log.status = 'Failed';
+      log.errorDetail = result.error;
+      log.message = `${messageText}\n\n❌ Walabz Error: ${result.error}`;
+      await db.addWhatsAppLog(log);
+      return { success: false, error: result.error };
     }
-    isQueueProcessing = true;
-    try {
-      const logs = await db.getWhatsAppLogs();
-      const now = Date.now();
-      
-      // Get all pending logs whose scheduledTime is due
-      const pendingLogs = logs.filter(l => 
-        l.status === 'Pending' && 
-        l.scheduledTime && 
-        new Date(l.scheduledTime).getTime() <= now
-      );
-
-      for (const log of pendingLogs) {
-        // Enforce rate limiting: 1-minute interval between consecutive messages for the same orderId
-        if (log.orderId) {
-          const lastSentOrPending = logs.find(l => 
-            l.orderId === log.orderId && 
-            l.id !== log.id && 
-            l.status === 'Sent' &&
-            l.timestamp &&
-            now - new Date(l.timestamp).getTime() < 60000
-          );
-
-          if (lastSentOrPending) {
-            // Postpone this pending message by pushing its scheduledTime out by 1 minute from the last sent
-            const newScheduled = new Date(new Date(lastSentOrPending.timestamp).getTime() + 60000).toISOString();
-            log.scheduledTime = newScheduled;
-            await db.saveWhatsAppLog(log);
-            console.log(`[WhatsApp Queue] Postponing pending log ${log.id} for order ${log.orderId} due to rate limiting.`);
-            continue;
-          }
-        }
-
-        // Send the message
-        console.log(`[WhatsApp Queue] Sending pending log ${log.id} for order ${log.orderId}...`);
-        const result = await sendWhatsAppMessage(log.phone, log.message, log.imageUrl);
-        
-        log.status = result.success ? 'Sent' : 'Failed';
-        if (!result.success) {
-          log.message = `${log.message}\n\n❌ Error: ${result.error}`;
-        }
-        log.timestamp = new Date().toISOString(); // Update timestamp to actual send time
-        await db.saveWhatsAppLog(log);
-      }
-    } catch (err) {
-      console.error('[WhatsApp Queue] Error processing queue:', err);
-    } finally {
-      isQueueProcessing = false;
-    }
-  }, 10000); // Check every 10 seconds
-}
-
-// Auto-start the background queue processor server-side
-if (typeof window === 'undefined') {
-  startQueueProcessor();
+  } catch (err: any) {
+    log.status = 'Failed';
+    log.errorDetail = err.message || 'OTP dispatch failed';
+    log.message = `${messageText}\n\n❌ Exception: ${err.message}`;
+    await db.addWhatsAppLog(log);
+    return { success: false, error: err.message || 'OTP dispatch network error' };
+  }
 }

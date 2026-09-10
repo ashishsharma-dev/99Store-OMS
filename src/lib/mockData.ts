@@ -65,8 +65,17 @@ export const mockSettings: SystemSettings = {
   whatsappSupportNumber: '+91 9876543210',
   whatsappCourierSupportName: 'Courier Helpdesk',
   whatsappCourierSupportNumber: '+91 9123456789',
-  whatsappDeviceId: '3483',
-  whatsappAccessToken: '3b66835690546597e55f36f2605c0b8a',
+  walabzBaseUrl: 'https://walabz.com',
+  walabzDefaultCountryCode: 'IN',
+  walabzDefaultDialCode: '91',
+  walabzTemplates: {
+    'Created': '',
+    'Dispatched': '',
+    'OFD': '',
+    'Delivered': '',
+    'NDR': '',
+    'login_otp': ''
+  },
   ipWhitelist: ['127.0.0.1', '::1', '192.168.1.10', '192.168.1.11'],
   isIpWhitelistEnabled: false, // Turned off by default to make local testing seamless, but can toggle in settings
   autoCourierEnabled: true,
@@ -75,6 +84,7 @@ export const mockSettings: SystemSettings = {
   deliveryActive: true,
   aggregatorActive: true,
   velocityActive: true,
+  shadowfaxActive: true,
   dtdcConfig: {
     apiKey: 'e614c8b751f65543f53eced95f4174',
     priority: 1,
@@ -155,6 +165,20 @@ export const mockSettings: SystemSettings = {
     city: 'Agra',
     state: 'Uttar Pradesh',
     pincode: '282001'
+  },
+  shadowfaxConfig: {
+    apiKey: 'sfx_tok_demo_99store_a1b2c3d4',
+    priority: 5,
+    baseUrl: 'https://dale.staging.shadowfax.in/api',
+    orderType: 'warehouse',
+    warehouseCode: 'WH_SFX_01',
+    contactName: 'Warehouse Manager',
+    phone: '9870740681',
+    address: 'Plot 101, Main Fulfillment Hub',
+    address2: 'Industrial Area',
+    city: 'Delhi',
+    state: 'Delhi',
+    pincode: '110001'
   }
 };
 

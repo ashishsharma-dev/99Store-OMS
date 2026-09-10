@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { Order, OrderStatus } from '@/lib/types';
 import { triggerWhatsAppNotification } from '@/lib/whatsapp';
+import { checkCourierServiceability } from '@/lib/utils';
 
 export async function GET(request: Request) {
   try {
@@ -162,16 +163,25 @@ export async function POST(request: Request) {
     const nextId = `ord-${maxNum + 1}`;
 
     const settings = await db.getSettings();
-    let assignedCourier: 'DTDC' | 'XpressBees' | 'Delhivery' | 'Aggregator' | 'Velocity' | undefined = undefined;
+    let assignedCourier: 'DTDC' | 'XpressBees' | 'Delhivery' | 'Aggregator' | 'Velocity' | 'Shadowfax' | undefined = undefined;
 
-    // Apply auto courier routing engine if enabled
+    // Apply intelligent auto courier routing engine if enabled
     if (settings.autoCourierEnabled) {
-      if (finalWeight < 1) {
-        assignedCourier = 'DTDC';
-      } else if (finalWeight >= 1 && finalWeight < 2) {
-        assignedCourier = 'XpressBees';
-      } else {
-        assignedCourier = 'Delhivery';
+      const courierCandidates: { courier: 'DTDC' | 'XpressBees' | 'Delhivery' | 'Velocity' | 'Shadowfax'; priority: number; active: boolean }[] = [
+        { courier: 'DTDC', priority: settings.dtdcConfig?.priority ?? 1, active: settings.dtdcActive },
+        { courier: 'XpressBees', priority: settings.xpressbeesConfig?.priority ?? 2, active: settings.xpressbeesActive },
+        { courier: 'Delhivery', priority: settings.deliveryConfig?.priority ?? 3, active: settings.deliveryActive },
+        { courier: 'Velocity', priority: settings.velocityConfig?.priority ?? 4, active: settings.velocityActive },
+        { courier: 'Shadowfax', priority: settings.shadowfaxConfig?.priority ?? 5, active: settings.shadowfaxActive }
+      ];
+
+      const activeCandidates = courierCandidates
+        .filter(c => c.active)
+        .sort((a, b) => a.priority - b.priority);
+
+      if (activeCandidates.length > 0) {
+        const serviceableCourier = activeCandidates.find(c => checkCourierServiceability(pincode, c.courier));
+        assignedCourier = (serviceableCourier || activeCandidates[0]).courier;
       }
     }
 
@@ -241,6 +251,9 @@ export async function POST(request: Request) {
       customerName,
       phonePrimary,
       phoneSecondary,
+      phoneTertiary,
+      phoneWhatsApp,
+      productName: productDetails,
       status: 'Created', // Use 'Created' status for order confirmation notification
       awb: newOrder.awb || 'PENDING',
       courier: newOrder.courier || 'PENDING',

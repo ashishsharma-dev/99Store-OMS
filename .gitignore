@@ -44,3 +44,6 @@ next-env.d.ts
 scratch/
 scratch_docx_content.txt
 
+# generated assets & backups
+data/backups/
+public/packing-slips/

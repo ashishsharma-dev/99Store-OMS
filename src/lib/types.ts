@@ -73,7 +73,7 @@ export interface Order {
   
   status: OrderStatus;
   awb?: string;
-  courier?: 'DTDC' | 'XpressBees' | 'Delhivery' | 'Aggregator' | 'Velocity';
+  courier?: 'DTDC' | 'XpressBees' | 'Delhivery' | 'Aggregator' | 'Velocity' | 'Shadowfax';
   eta?: string;
   createdAt: string;
   updatedAt: string;
@@ -146,9 +146,13 @@ export interface WhatsAppLog {
   phone: string;
   type: 'Primary' | 'Secondary';
   message: string;
-  status: 'Sent' | 'Failed' | 'Pending';
+  status: 'Sent' | 'Failed' | 'Pending' | 'Delivered' | 'Read' | 'Queued';
   orderId?: string;
   templateName?: string;
+  templateId?: string;
+  campaignId?: string;
+  metaMessageId?: string;
+  errorDetail?: string;
   scheduledTime?: string;
   imageUrl?: string | null;
 }
@@ -163,8 +167,17 @@ export interface SystemSettings {
   whatsappCourierSupportName?: string;
   whatsappCourierSupportNumber?: string;
   whatsappNotificationsEnabled?: boolean;
+  // Legacy Deropo fields kept optional for backward compatibility
   whatsappDeviceId?: string;
   whatsappAccessToken?: string;
+  // Walabz WhatsApp Business API Configuration
+  walabzBaseUrl?: string;
+  walabzUsername?: string;
+  walabzPassword?: string;
+  walabzApiKey?: string;
+  walabzDefaultCountryCode?: string;
+  walabzDefaultDialCode?: string;
+  walabzTemplates?: Record<string, string>; // Maps event name (e.g. 'Created', 'Dispatched', 'OFD', 'Delivered', 'NDR', 'login_otp') to Walabz template_id
   ipWhitelist: string[];
   isIpWhitelistEnabled: boolean;
   autoCourierEnabled: boolean;
@@ -173,6 +186,7 @@ export interface SystemSettings {
   deliveryActive: boolean;
   aggregatorActive: boolean;
   velocityActive: boolean;
+  shadowfaxActive: boolean;
   dtdcConfig: {
     apiKey: string;
     priority: number;
@@ -250,6 +264,20 @@ export interface SystemSettings {
     contactName?: string;
     phone?: string;
     address?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+  };
+  shadowfaxConfig: {
+    apiKey: string;
+    priority: number;
+    baseUrl?: string;
+    orderType?: 'warehouse' | 'marketplace';
+    warehouseCode?: string;
+    contactName?: string;
+    phone?: string;
+    address?: string;
+    address2?: string;
     city?: string;
     state?: string;
     pincode?: string;

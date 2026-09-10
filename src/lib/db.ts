@@ -386,6 +386,8 @@ export const db = {
     const idx = memoryOrders.findIndex(o => o.id === order.id);
     if (idx >= 0) memoryOrders[idx] = order;
     else memoryOrders.push(order);
+    if (order.id) idOrderMap.set(order.id, order);
+    if (order.orderId) orderIdOrderMap.set(order.orderId.toLowerCase(), order);
     saveMemoryToLocalFile();
 
     const database = await safeGetDb();
@@ -395,6 +397,9 @@ export const db = {
     return order;
   },
   deleteOrder: async (id: string): Promise<boolean> => {
+    const existing = idOrderMap.get(id);
+    if (existing?.orderId) orderIdOrderMap.delete(existing.orderId.toLowerCase());
+    idOrderMap.delete(id);
     memoryOrders = memoryOrders.filter(o => o.id !== id);
     saveMemoryToLocalFile();
 
@@ -522,7 +527,12 @@ export const db = {
           const { _id, key, ...rest } = result as any;
           const settings = {
             ...mockSettings,
-            ...rest
+            ...rest,
+            shadowfaxActive: rest.shadowfaxActive !== undefined ? rest.shadowfaxActive : (mockSettings.shadowfaxActive ?? true),
+            shadowfaxConfig: {
+              ...mockSettings.shadowfaxConfig,
+              ...(rest.shadowfaxConfig || {})
+            }
           } as SystemSettings;
 
           if (
@@ -549,12 +559,10 @@ export const db = {
       } catch (e) {}
     }
 
-    if (
-      memorySettings.whatsappDeviceId !== '3483' ||
-      memorySettings.whatsappAccessToken !== '3b66835690546597e55f36f2605c0b8a'
-    ) {
-      memorySettings.whatsappDeviceId = '3483';
-      memorySettings.whatsappAccessToken = '3b66835690546597e55f36f2605c0b8a';
+    if (!memorySettings.walabzBaseUrl) {
+      memorySettings.walabzBaseUrl = process.env.WALABZ_BASE_URL || 'https://walabz.com';
+      memorySettings.walabzDefaultCountryCode = 'IN';
+      memorySettings.walabzDefaultDialCode = '91';
       saveMemoryToLocalFile();
     }
 

@@ -52,24 +52,25 @@ def main():
         sys.exit(1)
 
     remote_commands = [
-        ("Stashing local changes & Pulling latest code from GitHub", f"cd {APP_DIR} && git checkout -- data/db.json 2>/dev/null || true && git pull origin master"),
-        ("Updating VPS .env.local with MongoDB configuration", f"cd {APP_DIR} && (grep -q 'MONGODB_URI' .env.local || echo -e '\nMONGODB_URI=\"mongodb+srv://official_db_user:CRLbrDDHkCxHM63i@99storecluster0.o4cakf9.mongodb.net/99store-oms?appName=99StoreCluster0\"\nUSE_MONGODB=true\n' >> .env.local)"),
+        ("Resetting dirty tracked files & Pulling latest code from GitHub", f"cd {APP_DIR} && git checkout -- . 2>/dev/null || true && git pull origin master"),
+        ("Configuring VPS environment variables (.env.local)", f"cd {APP_DIR} && (grep -q 'WALABZ_BASE_URL' .env.local || echo -e '\n# Walabz WhatsApp Business API\nWALABZ_BASE_URL=https://walabz.com\nWALABZ_USERNAME=viatvi\nWALABZ_PASSWORD=viatvi@07\nWALABZ_API_KEY=\n' >> .env.local) && (grep -q 'MONGODB_URI' .env.local || echo -e '\nMONGODB_URI=\"mongodb+srv://official_db_user:CRLbrDDHkCxHM63i@99storecluster0.o4cakf9.mongodb.net/99store-oms?appName=99StoreCluster0\"\nUSE_MONGODB=true\n' >> .env.local)"),
         ("Installing Node packages", f"cd {APP_DIR} && npm install --production=false"),
-        ("Building Next.js application", f"cd {APP_DIR} && npm run build"),
-        ("Reloading PM2 service", f"cd {APP_DIR} && pm2 restart ecosystem.config.js --update-env && pm2 save")
+        ("Building Next.js production bundle", f"cd {APP_DIR} && npm run build"),
+        ("Reloading PM2 service", f"cd {APP_DIR} && pm2 restart ecosystem.config.js --update-env && pm2 save"),
+        ("Verifying Application Health Check", "sleep 3 && curl -s -k https://oms.ayurvedacare.store/api/health")
     ]
 
     for label, cmd in remote_commands:
         print(f"\n[VPS] {label}...")
-        stdin, stdout, stderr = client.exec_command(cmd, timeout=180)
+        stdin, stdout, stderr = client.exec_command(cmd, timeout=300)
         out = stdout.read().decode('utf-8', errors='replace').strip()
         err = stderr.read().decode('utf-8', errors='replace').strip()
         if out:
             out_safe = out.encode('ascii', errors='backslashreplace').decode('ascii')
-            print(out_safe[-800:] if len(out_safe) > 800 else out_safe)
+            print(out_safe[-1000:] if len(out_safe) > 1000 else out_safe)
         if err:
             err_safe = err.encode('ascii', errors='backslashreplace').decode('ascii')
-            print(f"[VPS Notice/Stderr] {err_safe[-500:] if len(err_safe) > 500 else err_safe}")
+            print(f"[VPS Notice/Stderr] {err_safe[-600:] if len(err_safe) > 600 else err_safe}")
 
     print("\n=========================================")
     print(" [SUCCESS] VPS Deployment Completed Successfully!")

@@ -5,6 +5,7 @@ import { getXpressBeesToken, resolveXpressBeesConfig } from '@/lib/xpressbees';
 import { syncOrderStatus } from '@/lib/courierSync';
 import { trackVelocityShipment, cancelVelocityShipment } from '@/lib/velocity';
 import { bookCourierShipment, isDtdcStaging } from '@/lib/courierHelper';
+import { trackShadowfaxOrder } from '@/lib/shadowfax';
 import { fetchWithRetry } from '@/lib/fetchWithRetry';
 
 export async function GET(request: Request) {
@@ -23,6 +24,7 @@ export async function GET(request: Request) {
     const isVelocity = queryCourier === 'Velocity' || queryCourier === 'Aggregator' || waybill.startsWith('VEL') || (await db.getOrders()).some(o => o.awb === waybill && (o.courier === 'Velocity' || o.courier === 'Aggregator'));
     const isXpressBees = queryCourier === 'XpressBees' || waybill.startsWith('XB') || waybill.startsWith('5963');
     const isDtdc = queryCourier === 'DTDC' || waybill.startsWith('DTDC');
+    const isShadowfax = queryCourier === 'Shadowfax' || waybill.startsWith('SFX') || (await db.getOrders()).some(o => o.awb === waybill && o.courier === 'Shadowfax');
 
     if (isVelocity) {
       if (!settings.velocityActive && !settings.aggregatorActive) {
@@ -516,6 +518,66 @@ export async function GET(request: Request) {
       }
     }
 
+    if (isShadowfax) {
+      if (!settings.shadowfaxActive) {
+        return NextResponse.json({ error: 'Shadowfax integration is disabled in settings.' }, { status: 400 });
+      }
+
+      if (action === 'track') {
+        try {
+          const res = await trackShadowfaxOrder(waybill, settings.shadowfaxConfig);
+          const trackData = res.data || {};
+
+          await db.addCourierLog({
+            id: `cl-sfx-track-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            courier: 'Shadowfax',
+            action: 'Track Shipment',
+            requestPayload: `GET /v4/clients/orders/${waybill}/track/`,
+            responsePayload: JSON.stringify(res, null, 2),
+            status: res.success ? 'Success' : 'Error'
+          });
+
+          const currentStatus = trackData.status || trackData.current_status || 'In Transit';
+          const currentLocation = trackData.current_location || trackData.location || 'Hub';
+          const comments = trackData.comments || '';
+          const rawScans = Array.isArray(trackData.tracking_history) 
+            ? trackData.tracking_history 
+            : (Array.isArray(trackData.scans) ? trackData.scans : []);
+
+          const unifiedData = {
+            ShipmentData: [
+              {
+                Shipment: {
+                  AWB: waybill,
+                  Status: {
+                    Status: currentStatus,
+                    StatusLocation: currentLocation
+                  },
+                  Scans: rawScans.map((s: any) => ({
+                    ScanDetail: {
+                      ScannedLocation: s.location || currentLocation,
+                      ScanDateTime: s.time || s.timestamp || new Date().toISOString(),
+                      Scan: s.status || s.event || 'Scan Recorded',
+                      Instructions: s.description || s.comments || ''
+                    }
+                  }))
+                }
+              }
+            ]
+          };
+
+          if (currentStatus) {
+            await syncOrderStatus(waybill, currentStatus, currentLocation, comments);
+          }
+
+          return NextResponse.json(unifiedData);
+        } catch (err: any) {
+          return NextResponse.json({ error: `Shadowfax tracking failed: ${err.message}` }, { status: 500 });
+        }
+      }
+    }
+
     // Default Delhivery integration GET logic
     const apiKey = settings.deliveryConfig.apiKey;
     if (!settings.deliveryActive || !apiKey) {
@@ -735,6 +797,7 @@ export async function POST(request: Request) {
       const isVelocity = courier === 'Velocity' || courier === 'Aggregator' || waybill.startsWith('VEL');
       const isXpressBees = courier === 'XpressBees' || waybill.startsWith('XB');
       const isDtdc = courier === 'DTDC' || waybill.startsWith('DTDC');
+      const isShadowfax = courier === 'Shadowfax' || waybill.startsWith('SFX');
 
       if (isVelocity) {
         try {
@@ -920,6 +983,31 @@ export async function POST(request: Request) {
           });
           return NextResponse.json({ error: `DTDC cancellation API failed: ${err.message}` }, { status: 500 });
         }
+      } else if (isShadowfax) {
+        const order = (await db.getOrders()).find(o => o.awb === waybill);
+        if (order) {
+          order.cancelled = true;
+          order.status = 'Return';
+          order.history.push({
+            status: 'Return',
+            timestamp: new Date().toISOString(),
+            updatedBy: 'Shadowfax API',
+            remarks: 'Shipment cancellation recorded.'
+          });
+          await db.saveOrder(order);
+        }
+
+        await db.addCourierLog({
+          id: `cl-sfx-cancel-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          courier: 'Shadowfax',
+          action: 'Cancel Shipment',
+          requestPayload: JSON.stringify({ waybill }, null, 2),
+          responsePayload: JSON.stringify({ success: true, message: 'Shadowfax order cancelled' }, null, 2),
+          status: 'Success'
+        });
+
+        return NextResponse.json({ success: true, message: 'Shadowfax consignment cancelled.' });
       }
     }
 

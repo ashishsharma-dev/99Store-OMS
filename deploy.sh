@@ -17,6 +17,7 @@ cd "$APP_DIR"
 
 # 1. Pull latest code from GitHub
 echo "📥 1. Pulling latest code from GitHub..."
+git checkout -- . 2>/dev/null || true
 git pull origin master
 
 # 2. Install dependencies

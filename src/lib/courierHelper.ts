@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { CourierApiLog, SystemSettings, Order } from '@/lib/types';
 import { getXpressBeesToken, resolveXpressBeesConfig } from '@/lib/xpressbees';
 import { bookVelocityOrder } from '@/lib/velocity';
+import { bookShadowfaxOrder } from '@/lib/shadowfax';
 
 export function isDtdcStaging(apiKey?: string, username?: string): boolean {
   const key = (apiKey || '').toLowerCase();
@@ -214,6 +215,10 @@ export async function bookCourierShipment(
         isCourierActive = settings.velocityActive;
         apiKey = 'velocity_api_token';
         break;
+      case 'Shadowfax':
+        isCourierActive = settings.shadowfaxActive;
+        apiKey = settings.shadowfaxConfig?.apiKey || 'MOCK_KEY';
+        break;
     }
 
     if (!isCourierActive) {
@@ -228,6 +233,32 @@ export async function bookCourierShipment(
       };
       await db.addCourierLog(failedLog);
       return { success: false, error: `${courier} Integration is disabled.` };
+    }
+
+    // LIVE SHADOWFAX BOOKING
+    if (courier === 'Shadowfax') {
+      const sfxResult = await bookShadowfaxOrder(order, settings, weight);
+      await db.addCourierLog({
+        id: `cl-sfx-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        courier: 'Shadowfax',
+        action: 'Create Shipment',
+        requestPayload: JSON.stringify(sfxResult.requestPayload || { orderId: order.orderId, weight }, null, 2),
+        responsePayload: JSON.stringify(sfxResult.responsePayload || { error: sfxResult.error }, null, 2),
+        status: sfxResult.success ? 'Success' : 'Error'
+      });
+
+      if (!sfxResult.success) {
+        return { success: false, error: sfxResult.error || 'Shadowfax booking failed' };
+      }
+
+      return {
+        success: true,
+        awb: sfxResult.awb,
+        eta: sfxResult.eta,
+        courier: 'Shadowfax',
+        charge: sfxResult.charge
+      };
     }
 
     // LIVE XPRESSBEES BOOKING

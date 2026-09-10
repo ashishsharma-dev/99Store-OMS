@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getXpressBeesToken } from '@/lib/xpressbees';
+import { checkShadowfaxServiceability } from '@/lib/shadowfax';
 
 // Static check function as fallback
 function checkCourierServiceabilityFallback(pincode: string, courier: string): boolean {
@@ -18,6 +19,9 @@ function checkCourierServiceabilityFallback(pincode: string, courier: string): b
   }
   if (normalizedCourier.includes('delhivery')) {
     return prefix !== '5';
+  }
+  if (normalizedCourier.includes('shadowfax') || normalizedCourier.includes('sfx')) {
+    return prefix !== '8';
   }
   if (normalizedCourier.includes('velocity') || normalizedCourier.includes('aggregator')) {
     return prefix !== '3';
@@ -39,7 +43,16 @@ export async function GET(request: Request) {
     const settings = await db.getSettings();
     const normalizedCourier = courier.toLowerCase();
 
-    // 1. Check Delhivery live API if active
+    // 1. Check Shadowfax live API if active
+    if (normalizedCourier.includes('shadowfax') || normalizedCourier.includes('sfx')) {
+      if (settings.shadowfaxActive) {
+        const res = await checkShadowfaxServiceability(pincode, settings.shadowfaxConfig);
+        return NextResponse.json({ serviceable: res.serviceable, services: res.services, method: 'Shadowfax API' });
+      }
+      return NextResponse.json({ serviceable: checkCourierServiceabilityFallback(pincode, courier), method: 'Static Fallback' });
+    }
+
+    // 2. Check Delhivery live API if active
     if (normalizedCourier.includes('delhivery')) {
       if (settings.deliveryActive && settings.deliveryConfig.apiKey) {
         const apiKey = settings.deliveryConfig.apiKey;
@@ -134,6 +147,16 @@ export async function POST(request: Request) {
         const normalizedCourier = courier.toLowerCase();
 
         try {
+          if (normalizedCourier.includes('shadowfax') || normalizedCourier.includes('sfx')) {
+            if (settings.shadowfaxActive) {
+              const res = await checkShadowfaxServiceability(pincode, settings.shadowfaxConfig);
+              results[key] = res.serviceable;
+              return;
+            }
+            results[key] = checkCourierServiceabilityFallback(pincode, courier);
+            return;
+          }
+
           if (normalizedCourier.includes('delhivery')) {
             if (settings.deliveryActive && settings.deliveryConfig.apiKey) {
               const apiKey = settings.deliveryConfig.apiKey;

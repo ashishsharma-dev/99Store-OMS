@@ -39,7 +39,7 @@ export default function Packing() {
   const [showPrintLabel, setShowPrintLabel] = useState(false);
 
   // Selected courier overrides for each order during packing
-  const [courierOverrides, setCourierOverrides] = useState<Record<string, 'DTDC' | 'XpressBees' | 'Delhivery' | 'Aggregator' | 'Velocity'>>({});
+  const [courierOverrides, setCourierOverrides] = useState<Record<string, 'DTDC' | 'XpressBees' | 'Delhivery' | 'Aggregator' | 'Velocity' | 'Shadowfax'>>({});
   
   // Primary phone selection override if customer has multiple phone numbers
   const [phoneSelections, setPhoneSelections] = useState<Record<string, string>>({});
@@ -101,7 +101,7 @@ export default function Packing() {
   useEffect(() => {
     if (showAwbErrorModal && awbErrorDetails) {
       const checkAllCouriers = async () => {
-        const couriers = ['Delhivery', 'XpressBees', 'DTDC'];
+        const couriers = ['Delhivery', 'XpressBees', 'DTDC', 'Shadowfax'];
         const pincode = awbErrorDetails.pincode;
         
         const initialStates: Record<string, 'loading' | 'serviceable' | 'unserviceable'> = {};
@@ -831,7 +831,8 @@ export default function Packing() {
             <option value="DTDC">DTDC Express</option>
             <option value="XpressBees">XpressBees Logistics</option>
             <option value="Delhivery">Delhivery Express</option>
-            <option value="Aggregator">Aggregator API</option>
+            <option value="Velocity">Velocity Logistics</option>
+            <option value="Shadowfax">Shadowfax (SFX)</option>
           </select>
           <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
         </div>
@@ -1014,6 +1015,7 @@ export default function Packing() {
                               <option value="XpressBees Surface">XpressBees Surface</option>
                               <option value="Delhivery">Delhivery (Priority 3)</option>
                               <option value="Aggregator">Aggregator API</option>
+                              <option value="Shadowfax">Shadowfax (SFX)</option>
                             </select>
                             {!isServiceable && (
                               <span style={{ color: '#EF4444', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
@@ -1430,7 +1432,7 @@ export default function Packing() {
                 <span style={{ color: '#FAFAFA', fontSize: '12px', fontWeight: 600 }}>Alternative Serviceability & Reassignment:</span>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {['Delhivery', 'XpressBees', 'DTDC'].map((cName) => {
+                  {['Delhivery', 'XpressBees', 'DTDC', 'Shadowfax'].map((cName) => {
                     const status = modalServiceability[cName];
                     const isCurrent = cName === awbErrorDetails.courier;
                     
@@ -1520,6 +1522,8 @@ export default function Packing() {
                   <option value="DTDC">DTDC</option>
                   <option value="XpressBees">XpressBees</option>
                   <option value="Delhivery">Delhivery</option>
+                  <option value="Velocity">Velocity</option>
+                  <option value="Shadowfax">Shadowfax</option>
                 </select>
               </div>
 
@@ -1571,6 +1575,8 @@ export default function Packing() {
                   <option value="DTDC">DTDC Express</option>
                   <option value="XpressBees">XpressBees Logistics</option>
                   <option value="Delhivery">Delhivery Express</option>
+                  <option value="Velocity">Velocity Logistics</option>
+                  <option value="Shadowfax">Shadowfax (SFX Unified)</option>
                 </select>
               </div>
 
@@ -1622,7 +1628,8 @@ export default function Packing() {
                   <option value="DTDC">DTDC Express (Priority 1)</option>
                   <option value="XpressBees">XpressBees Logistics</option>
                   <option value="Delhivery">Delhivery Express</option>
-                  <option value="Aggregator">Aggregator API</option>
+                  <option value="Velocity">Velocity Logistics</option>
+                  <option value="Shadowfax">Shadowfax SFX</option>
                 </select>
               </div>
 
@@ -1706,7 +1713,8 @@ export default function Packing() {
                   <option value="DTDC">DTDC Express (Priority 1)</option>
                   <option value="XpressBees">XpressBees Logistics</option>
                   <option value="Delhivery">Delhivery Express</option>
-                  <option value="Aggregator">Aggregator API</option>
+                  <option value="Velocity">Velocity Logistics</option>
+                  <option value="Shadowfax">Shadowfax SFX</option>
                 </select>
               </div>
 

@@ -855,7 +855,7 @@ export default function Orders() {
             className="premium-input"
             style={{
               width: 'auto',
-              minWidth: '130px',
+              minWidth: '140px',
               padding: '6px 28px 6px 12px',
               height: '34px',
               fontSize: '13px',
@@ -872,7 +872,8 @@ export default function Orders() {
             <option value="DTDC">DTDC Express</option>
             <option value="XpressBees">XpressBees</option>
             <option value="Delhivery">Delhivery</option>
-            <option value="Aggregator">Aggregator</option>
+            <option value="Velocity">Velocity</option>
+            <option value="Shadowfax">Shadowfax</option>
           </select>
           <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
         </div>
