@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     const isVelocity = queryCourier === 'Velocity' || queryCourier === 'Aggregator' || waybill.startsWith('VEL') || (await db.getOrders()).some(o => o.awb === waybill && (o.courier === 'Velocity' || o.courier === 'Aggregator'));
     const isXpressBees = queryCourier === 'XpressBees' || waybill.startsWith('XB') || waybill.startsWith('5963');
     const isDtdc = queryCourier === 'DTDC' || waybill.startsWith('DTDC');
-    const isShadowfax = queryCourier === 'Shadowfax' || waybill.startsWith('SFX') || (await db.getOrders()).some(o => o.awb === waybill && o.courier === 'Shadowfax');
+    const isShadowfax = queryCourier === 'Shadowfax' || waybill.startsWith('SFX') || waybill.startsWith('SF') || (await db.getOrders()).some(o => o.awb === waybill && o.courier === 'Shadowfax');
 
     if (isVelocity) {
       if (!settings.velocityActive && !settings.aggregatorActive) {
@@ -541,9 +541,11 @@ export async function GET(request: Request) {
           const currentStatus = trackData.status || trackData.current_status || 'In Transit';
           const currentLocation = trackData.current_location || trackData.location || 'Hub';
           const comments = trackData.comments || '';
-          const rawScans = Array.isArray(trackData.tracking_history) 
-            ? trackData.tracking_history 
-            : (Array.isArray(trackData.scans) ? trackData.scans : []);
+          const rawScans = Array.isArray(trackData.tracking_details)
+            ? trackData.tracking_details
+            : (Array.isArray(trackData.tracking_history) 
+              ? trackData.tracking_history 
+              : (Array.isArray(trackData.scans) ? trackData.scans : []));
 
           const unifiedData = {
             ShipmentData: [
@@ -557,9 +559,9 @@ export async function GET(request: Request) {
                   Scans: rawScans.map((s: any) => ({
                     ScanDetail: {
                       ScannedLocation: s.location || currentLocation,
-                      ScanDateTime: s.time || s.timestamp || new Date().toISOString(),
-                      Scan: s.status || s.event || 'Scan Recorded',
-                      Instructions: s.description || s.comments || ''
+                      ScanDateTime: s.created || s.time || s.timestamp || new Date().toISOString(),
+                      Scan: s.status || s.status_id || s.event || 'Scan Recorded',
+                      Instructions: s.remarks || s.description || s.comments || ''
                     }
                   }))
                 }
@@ -797,7 +799,7 @@ export async function POST(request: Request) {
       const isVelocity = courier === 'Velocity' || courier === 'Aggregator' || waybill.startsWith('VEL');
       const isXpressBees = courier === 'XpressBees' || waybill.startsWith('XB');
       const isDtdc = courier === 'DTDC' || waybill.startsWith('DTDC');
-      const isShadowfax = courier === 'Shadowfax' || waybill.startsWith('SFX');
+      const isShadowfax = courier === 'Shadowfax' || waybill.startsWith('SFX') || waybill.startsWith('SF');
 
       if (isVelocity) {
         try {

@@ -35,18 +35,38 @@ export const Code128Barcode = ({ value, height = 45 }: { value: string; height?:
   const str = (value || 'PENDING').trim();
   if (!str) return null;
 
-  // Code 128B Encoding
-  const startCode = 104; // Start B
-  const codes: number[] = [startCode];
+  // Determine optimal encoding (Code 128 Auto / Dual-Mode C & B)
+  const isAllDigits = /^\d+$/.test(str);
+  const codes: number[] = [];
 
-  for (let i = 0; i < str.length; i++) {
-    const code = str.charCodeAt(i);
-    const val = (code >= 32 && code <= 127) ? (code - 32) : 0;
-    codes.push(val);
+  if (isAllDigits && str.length >= 4) {
+    if (str.length % 2 === 0) {
+      // Even number of digits -> High density Start Code C (105)
+      codes.push(105);
+      for (let i = 0; i < str.length; i += 2) {
+        codes.push(parseInt(str.substr(i, 2), 10));
+      }
+    } else {
+      // Odd number of digits -> Start Code B (104) for first digit, then Switch to Code C (99)
+      codes.push(104);
+      codes.push(str.charCodeAt(0) - 32);
+      codes.push(99);
+      for (let i = 1; i < str.length; i += 2) {
+        codes.push(parseInt(str.substr(i, 2), 10));
+      }
+    }
+  } else {
+    // Alphanumeric string -> Standard Code 128B
+    codes.push(104); // Start B
+    for (let i = 0; i < str.length; i++) {
+      const code = str.charCodeAt(i);
+      const val = (code >= 32 && code <= 126) ? (code - 32) : 0;
+      codes.push(val);
+    }
   }
 
-  // Checksum calculation: (104 + sum(pos * val)) % 103
-  let checksum = startCode;
+  // Modulo-103 Checksum calculation
+  let checksum = codes[0];
   for (let i = 1; i < codes.length; i++) {
     checksum += i * codes[i];
   }
@@ -56,7 +76,7 @@ export const Code128Barcode = ({ value, height = 45 }: { value: string; height?:
   // Stop character (106)
   codes.push(106);
 
-  // Build pattern sequence
+  // Build bar pattern sequence
   const barWidths: { isBar: boolean; width: number }[] = [];
   codes.forEach(codeIdx => {
     const pattern = CODE128_PATTERNS[codeIdx];
@@ -67,28 +87,29 @@ export const Code128Barcode = ({ value, height = 45 }: { value: string; height?:
     }
   });
 
-  const totalModules = barWidths.reduce((sum, item) => sum + item.width, 0);
-  const moduleWidth = 1.6;
-  const totalSvgWidth = totalModules * moduleWidth;
+  // Quiet zones: Mandatory 10 modules on both left and right for scanner laser detection
+  const quietZoneModules = 10;
+  const barcodeModules = barWidths.reduce((sum, item) => sum + item.width, 0);
+  const totalSvgWidth = quietZoneModules + barcodeModules + quietZoneModules;
 
-  let currentX = 0;
+  let currentX = quietZoneModules;
   const rects: React.ReactNode[] = [];
 
   barWidths.forEach((item, idx) => {
-    const w = item.width * moduleWidth;
     if (item.isBar) {
       rects.push(
         <rect
           key={idx}
           x={currentX}
           y={0}
-          width={w}
+          width={item.width}
           height={height}
           fill="#000000"
+          shapeRendering="crispEdges"
         />
       );
     }
-    currentX += w;
+    currentX += item.width;
   });
 
   return (
@@ -96,9 +117,16 @@ export const Code128Barcode = ({ value, height = 45 }: { value: string; height?:
       width="100%"
       height={height}
       viewBox={`0 0 ${totalSvgWidth} ${height}`}
-      preserveAspectRatio="none"
-      style={{ display: 'block' }}
+      preserveAspectRatio="xMidYMid meet"
+      style={{
+        display: 'block',
+        backgroundColor: '#FFFFFF',
+        maxWidth: '100%',
+        margin: '0 auto'
+      }}
     >
+      {/* Pure white quiet zone background to avoid contrast bleed */}
+      <rect x={0} y={0} width={totalSvgWidth} height={height} fill="#FFFFFF" />
       {rects}
     </svg>
   );
@@ -385,18 +413,18 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
       {/* 3. Tracking ID Box */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1.2fr 1fr',
+        gridTemplateColumns: '1.6fr 1fr',
         borderBottom: '2px solid #000000'
       }}>
         {/* Barcode side */}
         <div style={{
           borderRight: '2px solid #000000',
-          padding: '6px',
+          padding: '4px 6px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '4px'
+          gap: '3px'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
             <span style={{ backgroundColor: '#FFFFFF', border: '1px solid #000000', color: '#000000', padding: '1px 6px', borderRadius: '2px', fontSize: '7.5px', fontWeight: 'bold' }}>
@@ -408,8 +436,8 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
           </div>
 
           {/* Barcode component */}
-          <div style={{ width: '100%', margin: '2px 0' }}>
-            <Code128Barcode value={trackingAwb} height={38} />
+          <div style={{ width: '100%', margin: '2px 0', display: 'flex', justifyContent: 'center' }}>
+            <Code128Barcode value={trackingAwb} height={46} />
           </div>
 
           <span style={{ fontSize: '9px', fontWeight: 'bold', letterSpacing: '2px', fontFamily: 'monospace' }}>
@@ -465,8 +493,8 @@ export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippin
               📋 ORDER ID
             </span>
           </div>
-          <div style={{ width: '100%', margin: '2px 0' }}>
-            <Code128Barcode value={order.orderId} height={18} />
+          <div style={{ width: '100%', margin: '2px 0', display: 'flex', justifyContent: 'center' }}>
+            <Code128Barcode value={order.orderId} height={22} />
           </div>
         </div>
 

@@ -60,7 +60,7 @@ export default function Tracking() {
   const [liveTrackingError, setLiveTrackingError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (selectedOrder && (selectedOrder.courier === 'Delhivery' || selectedOrder.courier === 'XpressBees' || selectedOrder.courier === 'DTDC') && selectedOrder.awb) {
+    if (selectedOrder && selectedOrder.courier && selectedOrder.awb) {
       fetchLiveTracking(selectedOrder.awb, selectedOrder.courier);
     } else {
       setLiveTrackingData(null);
@@ -583,8 +583,8 @@ export default function Tracking() {
                 </div>
               </div>
 
-              {/* Live Delhivery / XpressBees scan history */}
-              {(selectedOrder.courier === 'Delhivery' || selectedOrder.courier === 'XpressBees') && selectedOrder.awb && (
+              {/* Live Courier scan history */}
+              {Boolean(selectedOrder.courier && selectedOrder.awb) && (
                 <div style={{ marginTop: '20px', borderTop: '1px solid var(--border)', paddingTop: '20px' }}>
                   <h4 style={{ fontSize: '12.5px', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <MapPin size={13} style={{ color: '#10B981' }} />

@@ -22,7 +22,9 @@ import {
   Clock,
   ChevronDown,
   ArrowUpDown,
-  Edit
+  Edit,
+  RefreshCw,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Order, OrderStatus } from '@/lib/types';
 import { HealvitaShippingLabel } from '@/components/HealvitaShippingLabel';
@@ -50,6 +52,10 @@ export default function Orders() {
   // Printing label popup state
   const [printingOrder, setPrintingOrder] = useState<Order | null>(null);
   const [showPrintLabel, setShowPrintLabel] = useState(false);
+
+  // Google Sheet Sync state
+  const [sheetSyncing, setSheetSyncing] = useState(false);
+  const [sheetSyncMsg, setSheetSyncMsg] = useState<{ text: string; isError?: boolean } | null>(null);
 
   // Form Fields
   const [customerName, setCustomerName] = useState('');
@@ -732,6 +738,31 @@ export default function Orders() {
     window.open(url);
   };
 
+  const handleSyncGoogleSheet = async () => {
+    setSheetSyncing(true);
+    setSheetSyncMsg(null);
+    try {
+      const res = await fetch('/api/integrations/google-sheets/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullSync: true })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSheetSyncMsg({ text: `✓ Successfully synced all ${data.syncedCount} orders to Google Sheet!` });
+        setTimeout(() => setSheetSyncMsg(null), 5000);
+      } else {
+        setSheetSyncMsg({ text: `Sync failed: ${data.error || 'Server error'}`, isError: true });
+        setTimeout(() => setSheetSyncMsg(null), 6000);
+      }
+    } catch (err: any) {
+      setSheetSyncMsg({ text: `Network error: ${err?.message || 'Failed to reach sync endpoint.'}`, isError: true });
+      setTimeout(() => setSheetSyncMsg(null), 6000);
+    } finally {
+      setSheetSyncing(false);
+    }
+  };
+
   const handleSortChange = (combinedValue: string) => {
     const [field, order] = combinedValue.split('-');
     setSortField(field);
@@ -766,8 +797,26 @@ export default function Orders() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
           <DateRangeFilter value={dateRange} onChange={(range) => { setDateRange(range); setPage(1); }} />
+          <button
+            onClick={handleSyncGoogleSheet}
+            disabled={sheetSyncing}
+            className="premium-btn"
+            style={{
+              backgroundColor: '#064E3B',
+              color: '#A7F3D0',
+              border: '1px solid #059669',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: sheetSyncing ? 'not-allowed' : 'pointer'
+            }}
+            title="Synchronize all active orders with your Google Sheet"
+          >
+            <RefreshCw size={14} className={sheetSyncing ? 'animate-spin' : ''} />
+            <span>{sheetSyncing ? 'Syncing Sheet...' : 'Sync Sheet'}</span>
+          </button>
           <button onClick={handleExportCsv} className="premium-btn premium-btn-secondary">
             <Download size={14} />
             <span>Download CSV (Filtered)</span>
@@ -778,6 +827,27 @@ export default function Orders() {
           </button>
         </div>
       </div>
+
+      {sheetSyncMsg && (
+        <div
+          className="animate-fade-in"
+          style={{
+            padding: '12px 18px',
+            borderRadius: '8px',
+            fontSize: '13.5px',
+            fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            backgroundColor: sheetSyncMsg.isError ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+            border: `1px solid ${sheetSyncMsg.isError ? '#EF4444' : '#10B981'}`,
+            color: sheetSyncMsg.isError ? '#F87171' : '#34D399'
+          }}
+        >
+          {sheetSyncMsg.isError ? <AlertTriangle size={16} /> : <Check size={16} />}
+          <span>{sheetSyncMsg.text}</span>
+        </div>
+      )}
 
       {/* Search & Filter Toolbar Card */}
       <div

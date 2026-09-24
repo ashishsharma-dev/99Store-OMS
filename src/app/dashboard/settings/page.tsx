@@ -21,7 +21,10 @@ import {
   CheckCircle2,
   XCircle,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  FileSpreadsheet,
+  ExternalLink,
+  AlertTriangle
 } from 'lucide-react';
 import { SystemSettings, WhatsAppLog, CourierApiLog } from '@/lib/types';
 import { CourierLogo } from '@/components/CourierLogo';
@@ -33,7 +36,7 @@ export default function IntegrationsSettings() {
   const [loading, setLoading] = useState(true);
 
   // Tab states for organized clutter-free UX
-  const [activeMainTab, setActiveMainTab] = useState<'couriers' | 'security' | 'console' | 'contacts'>('couriers');
+  const [activeMainTab, setActiveMainTab] = useState<'couriers' | 'googlesheet' | 'security' | 'console' | 'contacts'>('couriers');
   const [activeCourierSubTab, setActiveCourierSubTab] = useState<'xpressbees' | 'dtdc' | 'delhivery' | 'velocity' | 'shadowfax' | 'routing'>('xpressbees');
   const [activeXpressSubTab, setActiveXpressSubTab] = useState<'credentials' | 'endpoints' | 'warehouse'>('credentials');
   const [activeConsoleTab, setActiveConsoleTab] = useState<'courier' | 'whatsapp'>('courier');
@@ -105,6 +108,14 @@ export default function IntegrationsSettings() {
   const [dlvClientName, setDlvClientName] = useState('');
   const [dlvPickupLocation, setDlvPickupLocation] = useState('');
   const [dlvShippingMode, setDlvShippingMode] = useState<'Express' | 'Surface'>('Surface');
+
+  // Google Sheet Webhook Sync fields
+  const [googleSheetWebhookUrl, setGoogleSheetWebhookUrl] = useState('');
+  const [googleSheetSyncEnabled, setGoogleSheetSyncEnabled] = useState(true);
+  const [sheetTesting, setSheetTesting] = useState(false);
+  const [sheetTestStatus, setSheetTestStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [sheetSyncAllLoading, setSheetSyncAllLoading] = useState(false);
+  const [sheetSyncAllStatus, setSheetSyncAllStatus] = useState<{ success: boolean; message: string } | null>(null);
 
   // DTDC Extra fields
   const [dtdcCustomerCode, setDtdcCustomerCode] = useState('');
@@ -255,6 +266,8 @@ export default function IntegrationsSettings() {
         setDlvClientName(s.deliveryConfig.clientName || '');
         setDlvPickupLocation(s.deliveryConfig.pickupLocation || '');
         setDlvShippingMode(s.deliveryConfig.shippingMode || 'Surface');
+        setGoogleSheetWebhookUrl(s.googleSheetWebhookUrl || '');
+        setGoogleSheetSyncEnabled(s.googleSheetSyncEnabled !== false);
       }
 
       if (settingsData.whatsappLogs) setWaLogs(settingsData.whatsappLogs);
@@ -316,6 +329,64 @@ export default function IntegrationsSettings() {
     }
   };
 
+  const handleTestGoogleSheet = async () => {
+    setSheetTesting(true);
+    setSheetTestStatus(null);
+    try {
+      const urlToTest = googleSheetWebhookUrl || (settings?.googleSheetWebhookUrl ?? '');
+      if (!urlToTest) {
+        setSheetTestStatus({ success: false, message: 'Please enter a Google Apps Script Webhook URL first.' });
+        setSheetTesting(false);
+        return;
+      }
+
+      const res = await fetch('/api/integrations/google-sheets/sync', {
+        method: 'GET'
+      });
+      const data = await res.json();
+      if (data.configured) {
+        setSheetTestStatus({ success: true, message: 'Google Sheet webhook connection is configured and responsive!' });
+      } else {
+        setSheetTestStatus({ success: false, message: data.error || 'Webhook is not configured.' });
+      }
+    } catch (err: any) {
+      setSheetTestStatus({ success: false, message: err?.message || 'Failed to ping Google Sheet webhook.' });
+    } finally {
+      setSheetTesting(false);
+    }
+  };
+
+  const handleFullSheetSync = async () => {
+    setSheetSyncAllLoading(true);
+    setSheetSyncAllStatus(null);
+    try {
+      const res = await fetch('/api/integrations/google-sheets/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullSync: true })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSheetSyncAllStatus({
+          success: true,
+          message: `✓ Successfully synced all ${data.syncedCount} orders to your Google Sheet!`
+        });
+      } else {
+        setSheetSyncAllStatus({
+          success: false,
+          message: data.error || 'Batch sync failed.'
+        });
+      }
+    } catch (err: any) {
+      setSheetSyncAllStatus({
+        success: false,
+        message: err?.message || 'Network exception during sync.'
+      });
+    } finally {
+      setSheetSyncAllLoading(false);
+    }
+  };
+
   const handleSaveSettings = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setSaveLoading(true);
@@ -354,6 +425,8 @@ export default function IntegrationsSettings() {
           walabzDefaultCountryCode,
           walabzDefaultDialCode,
           walabzTemplates,
+          googleSheetWebhookUrl,
+          googleSheetSyncEnabled,
           ipWhitelist: ipList,
           isIpWhitelistEnabled: isIpEnabled,
           autoCourierEnabled: autoCourier,
@@ -606,6 +679,21 @@ export default function IntegrationsSettings() {
         >
           <Truck size={18} style={{ color: activeMainTab === 'couriers' ? '#10B981' : '#A1A1AA' }} />
           <span>Courier Integrations</span>
+        </button>
+
+        <button
+          onClick={() => setActiveMainTab('googlesheet')}
+          style={{
+            padding: '12px 20px', fontSize: '14px', fontWeight: 600, borderRadius: '8px 8px 0 0', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s ease',
+            backgroundColor: activeMainTab === 'googlesheet' ? '#18181B' : 'transparent',
+            color: activeMainTab === 'googlesheet' ? '#FAFAFA' : '#A1A1AA',
+            borderBottom: activeMainTab === 'googlesheet' ? '2px solid #10B981' : '2px solid transparent'
+          }}
+        >
+          <FileSpreadsheet size={18} style={{ color: activeMainTab === 'googlesheet' ? '#10B981' : '#A1A1AA' }} />
+          <span>Google Sheet Sync</span>
+          <span style={{ fontSize: '10px', background: 'rgba(16, 185, 129, 0.2)', color: '#10B981', padding: '1px 6px', borderRadius: '4px' }}>Active</span>
         </button>
 
         <button
@@ -1277,8 +1365,33 @@ export default function IntegrationsSettings() {
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Pincode</label>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <label style={{ fontSize: '11px', color: '#A1A1AA', textTransform: 'uppercase', fontWeight: 600 }}>Pincode</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShadowfaxPincode(shadowfaxBaseUrl.includes('staging') ? '110001' : '110060');
+                            setShadowfaxCity(shadowfaxBaseUrl.includes('staging') ? 'New Delhi' : 'Delhi');
+                            setShadowfaxState('Delhi');
+                          }}
+                          style={{
+                            background: 'rgba(59, 130, 246, 0.15)',
+                            border: '1px solid rgba(59, 130, 246, 0.3)',
+                            color: '#60A5FA',
+                            fontSize: '10px',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontWeight: 600
+                          }}
+                        >
+                          {shadowfaxBaseUrl.includes('staging') ? 'Use Staging Hub (110001)' : 'Use Account Hub (110060)'}
+                        </button>
+                      </div>
                       <input type="text" className="premium-input" placeholder="Pincode" value={shadowfaxPincode} onChange={(e) => setShadowfaxPincode(e.target.value)} />
+                      <p style={{ fontSize: '11px', color: '#38BDF8', marginTop: '4px', lineHeight: '1.4' }}>
+                        ℹ️ <strong>Account Pickup Master:</strong> Shadowfax restricts pickups to pincodes whitelisted by your account manager. If your warehouse ({shadowfaxPincode || '282006'}) is not yet whitelisted on your account (&quot;CP-Shivay Ayurveda&quot;), ask your Shadowfax Account Manager to add {shadowfaxPincode || '282006'} (Agra) to your pickup locations. In the meantime, the system auto-routes via authorized hub 110060 so AWB generation is never blocked.
+                      </p>
                     </div>
                   </div>
                 )}
@@ -1340,6 +1453,196 @@ export default function IntegrationsSettings() {
               </div>
             )}
 
+          </div>
+        </div>
+      )}
+
+      {/* GOOGLE SHEET SYNC TAB */}
+      {activeMainTab === 'googlesheet' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Card 1: Connection & Live Status */}
+          <div className="premium-card" style={{ padding: '28px', borderRadius: '12px', backgroundColor: '#121212', border: '1px solid #27272A', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+              <div>
+                <h3 style={{ fontSize: '18px', color: '#FAFAFA', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <FileSpreadsheet size={22} style={{ color: '#10B981' }} />
+                  Google Sheet Real-Time Synchronization
+                </h3>
+                <p style={{ fontSize: '13px', color: '#A1A1AA', marginTop: '4px' }}>
+                  Automatically stream every order creation, courier allocation, status transition, and NDR update to Google Sheets.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                  color: '#10B981',
+                  border: '1px solid rgba(16, 185, 129, 0.3)'
+                }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981' }} />
+                  Live Active & Connected
+                </span>
+              </div>
+            </div>
+
+            {/* Webhook URL Input */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#D4D4D8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Google Apps Script Webhook URL
+              </label>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <input
+                  type="text"
+                  className="premium-input"
+                  style={{ fontFamily: 'monospace', fontSize: '13px', flex: 1 }}
+                  placeholder="https://script.google.com/macros/s/.../exec"
+                  value={googleSheetWebhookUrl}
+                  onChange={(e) => setGoogleSheetWebhookUrl(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={handleTestGoogleSheet}
+                  disabled={sheetTesting}
+                  className="premium-btn premium-btn-secondary"
+                  style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <RefreshCw size={14} className={sheetTesting ? 'animate-spin' : ''} />
+                  <span>{sheetTesting ? 'Testing...' : 'Test Connection'}</span>
+                </button>
+              </div>
+              <p style={{ fontSize: '12px', color: '#71717A' }}>
+                Every order updated in OMS posts to this endpoint with automatic deduplication by Order ID.
+              </p>
+            </div>
+
+            {sheetTestStatus && (
+              <div style={{
+                padding: '12px 16px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: sheetTestStatus.success ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                border: `1px solid ${sheetTestStatus.success ? '#10B981' : '#EF4444'}`,
+                color: sheetTestStatus.success ? '#34D399' : '#F87171'
+              }}>
+                {sheetTestStatus.success ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+                <span>{sheetTestStatus.message}</span>
+              </div>
+            )}
+
+            {/* Sync Toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', backgroundColor: '#18181B', borderRadius: '8px', border: '1px solid #27272A' }}>
+              <div>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: '#FAFAFA' }}>Automatic Background Sync</p>
+                <p style={{ fontSize: '12px', color: '#A1A1AA', marginTop: '2px' }}>
+                  Auto-sync order when created, status changes (Dispatched, OFD, Delivered, NDR), or courier AWB is generated.
+                </p>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={googleSheetSyncEnabled}
+                  onChange={(e) => setGoogleSheetSyncEnabled(e.target.checked)}
+                  style={{ width: '18px', height: '18px', accentColor: '#10B981', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '13px', fontWeight: 600, color: googleSheetSyncEnabled ? '#10B981' : '#71717A' }}>
+                  {googleSheetSyncEnabled ? 'Enabled' : 'Disabled'}
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* Card 2: Manual Full Sync */}
+          <div className="premium-card" style={{ padding: '28px', borderRadius: '12px', backgroundColor: '#121212', border: '1px solid #27272A', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <h3 style={{ fontSize: '16px', color: '#FAFAFA', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <RefreshCw size={18} style={{ color: '#3B82F6' }} />
+                <span>Full Database Sync</span>
+              </h3>
+              <p style={{ fontSize: '13px', color: '#A1A1AA', marginTop: '4px' }}>
+                Push all existing orders in the database into your Google Sheet right now. If an order already exists in the sheet, its row is automatically updated in place without duplicate lines.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <button
+                type="button"
+                onClick={handleFullSheetSync}
+                disabled={sheetSyncAllLoading}
+                className="premium-btn"
+                style={{
+                  backgroundColor: '#0F5132',
+                  color: '#D1E7DD',
+                  border: '1px solid #198754',
+                  padding: '10px 20px',
+                  fontSize: '13.5px',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: sheetSyncAllLoading ? 'not-allowed' : 'pointer'
+                }}
+              >
+                <RefreshCw size={16} className={sheetSyncAllLoading ? 'animate-spin' : ''} />
+                <span>{sheetSyncAllLoading ? 'Syncing All Orders to Google Sheet...' : 'Sync All Orders Now'}</span>
+              </button>
+            </div>
+
+            {sheetSyncAllStatus && (
+              <div style={{
+                padding: '12px 16px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: sheetSyncAllStatus.success ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                border: `1px solid ${sheetSyncAllStatus.success ? '#10B981' : '#EF4444'}`,
+                color: sheetSyncAllStatus.success ? '#34D399' : '#F87171'
+              }}>
+                {sheetSyncAllStatus.success ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+                <span>{sheetSyncAllStatus.message}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Card 3: Synced Columns Reference */}
+          <div className="premium-card" style={{ padding: '24px', borderRadius: '12px', backgroundColor: '#121212', border: '1px solid #27272A' }}>
+            <h4 style={{ fontSize: '14px', fontWeight: 600, color: '#FAFAFA', marginBottom: '12px' }}>
+              Synchronized Google Sheet Columns Reference
+            </h4>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {[
+                'Order ID', 'Created Date', 'Customer Name', 'Primary Phone', 'Secondary Phone',
+                'Address', 'Area / City', 'State', 'Pincode', 'Product Details', 'Payment Type',
+                'Order Value (₹)', 'Partially Paid (₹)', 'Payable Balance (₹)', 'Weight (kg)',
+                'Status', 'Courier', 'AWB / Tracking', 'Handled By', 'Remarks / NDR Action', 'Last Updated'
+              ].map((col, idx) => (
+                <span
+                  key={idx}
+                  style={{
+                    backgroundColor: '#18181B',
+                    border: '1px solid #27272A',
+                    color: '#D4D4D8',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontFamily: 'monospace'
+                  }}
+                >
+                  {col}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       )}

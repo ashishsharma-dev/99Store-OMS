@@ -81,6 +81,8 @@ export async function POST(request: Request) {
       walabzDefaultCountryCode: typeof body.walabzDefaultCountryCode === 'string' ? body.walabzDefaultCountryCode.trim() : (settings.walabzDefaultCountryCode || 'IN'),
       walabzDefaultDialCode: typeof body.walabzDefaultDialCode === 'string' ? body.walabzDefaultDialCode.trim() : (settings.walabzDefaultDialCode || '91'),
       walabzTemplates: body.walabzTemplates && typeof body.walabzTemplates === 'object' ? { ...settings.walabzTemplates, ...body.walabzTemplates } : settings.walabzTemplates,
+      googleSheetWebhookUrl: typeof body.googleSheetWebhookUrl === 'string' ? body.googleSheetWebhookUrl.trim() : (settings.googleSheetWebhookUrl || process.env.GOOGLE_SHEET_WEBHOOK_URL),
+      googleSheetSyncEnabled: typeof body.googleSheetSyncEnabled === 'boolean' ? body.googleSheetSyncEnabled : (settings.googleSheetSyncEnabled ?? true),
       ipWhitelist: Array.isArray(body.ipWhitelist) ? body.ipWhitelist.map((ip: string) => ip.trim()) : settings.ipWhitelist,
       isIpWhitelistEnabled: typeof body.isIpWhitelistEnabled === 'boolean' ? body.isIpWhitelistEnabled : settings.isIpWhitelistEnabled,
       autoCourierEnabled: typeof body.autoCourierEnabled === 'boolean' ? body.autoCourierEnabled : settings.autoCourierEnabled,

@@ -22,7 +22,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'No shipment found for the provided ID.' }, { status: 404 });
     }
 
-    // Return only public-facing tracking details (hide internal notes, order values, etc.)
+    // Return only public-facing tracking details (hide internal notes, system warnings, failed retry logs)
+    const sanitizedHistory = (order.history || [])
+      .filter(h => !h.remarks?.includes('Warning:') && !h.remarks?.includes('failed:'))
+      .map(h => ({
+        status: h.status,
+        timestamp: h.timestamp,
+        remarks: h.remarks
+      }));
+
     return NextResponse.json({
       success: true,
       order: {
@@ -34,7 +42,7 @@ export async function GET(request: Request) {
         eta: order.eta,
         createdAt: order.createdAt,
         updatedAt: order.updatedAt,
-        history: order.history
+        history: sanitizedHistory
       }
     });
   } catch (error: any) {

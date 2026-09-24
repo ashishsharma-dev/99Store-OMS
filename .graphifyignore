@@ -1,0 +1,14 @@
+﻿data/backups/
+data/backups/**
+public/packing-slips/
+public/packing-slips/**
+public/*.pdf
+public/*.jpg
+public/*.png
+public/*.webp
+node_modules/
+.next/
+out/
+build/
+coverage/
+.vercel/

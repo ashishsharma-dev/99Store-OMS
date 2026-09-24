@@ -113,7 +113,8 @@ export function printThermalLabel(containerId: string): void {
 
     /* Barcodes */
     .healvita-label svg {
-      max-height: 32px !important;
+      max-height: 52px !important;
+      shape-rendering: crispEdges !important;
     }
 
     /* QR code */

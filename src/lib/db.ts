@@ -218,6 +218,31 @@ function enrichUser(u: any): User {
   } as User;
 }
 
+// Google Sheets real-time synchronization debounce map
+const sheetSyncDebounceTimers = new Map<string, NodeJS.Timeout>();
+
+function triggerDebouncedSheetSync(order: Order) {
+  if (order.isDeleted) return;
+  const key = order.id || order.orderId;
+  if (!key) return;
+
+  const existingTimer = sheetSyncDebounceTimers.get(key);
+  if (existingTimer) {
+    clearTimeout(existingTimer);
+  }
+
+  const timer = setTimeout(() => {
+    sheetSyncDebounceTimers.delete(key);
+    import('./googleSheet').then(({ syncOrderToGoogleSheet }) => {
+      syncOrderToGoogleSheet(order).catch(err => {
+        console.warn(`[Google Sheet Sync] Background sync error for ${order.orderId}:`, err);
+      });
+    }).catch(() => {});
+  }, 1000);
+
+  sheetSyncDebounceTimers.set(key, timer);
+}
+
 export const db = {
   reset: async (): Promise<any> => {
     memoryUsers = [...mockUsers];
@@ -394,6 +419,10 @@ export const db = {
     if (database) {
       database.collection('orders').replaceOne({ id: order.id }, order as any, { upsert: true }).catch(console.warn);
     }
+
+    // Trigger non-blocking real-time Google Sheet synchronization
+    triggerDebouncedSheetSync(order);
+
     return order;
   },
   deleteOrder: async (id: string): Promise<boolean> => {
