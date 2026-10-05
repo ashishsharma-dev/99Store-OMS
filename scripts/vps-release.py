@@ -95,7 +95,7 @@ git reset --hard "$TARGET_COMMIT"
 cp "$RUNTIME_DATA" data/db.json
 rm -f "$RUNTIME_DATA"
 npm ci --include=dev
-npm run verify:env
+if npm run | grep -q 'verify:env'; then npm run verify:env; fi
 npm run test
 npm run lint -- --quiet
 npm run build
@@ -113,7 +113,7 @@ def rollback(client: paramiko.SSHClient, previous_commit: str) -> None:
         app_command(
             "RUNTIME_DATA=$(mktemp); cp data/db.json \"$RUNTIME_DATA\"; git checkout -- data/db.json; "
             f"git reset --hard {shlex.quote(previous_commit)}; cp \"$RUNTIME_DATA\" data/db.json; rm -f \"$RUNTIME_DATA\"; "
-            "npm ci --include=dev; npm run verify:env; npm run test; "
+            "npm ci --include=dev; if npm run | grep -q 'verify:env'; then npm run verify:env; fi; npm run test; "
             "npm run lint -- --quiet; npm run build; "
             "pm2 startOrReload ecosystem.config.js --update-env; pm2 save; " + health_command()
         ),
@@ -163,7 +163,7 @@ def deploy(client: paramiko.SSHClient, target_commit: str) -> None:
                 "git fetch origin master; "
                 f"cp data/db.json {shlex.quote(release_dir)}/db.json; git checkout -- data/db.json; "
                 f"git merge --ff-only {shlex.quote(target_commit)}; "
-                f"test \"$(git rev-parse HEAD)\" = {shlex.quote(target_commit)}; "
+                f"test \"$(git rev-parse HEAD)\" = \"$(git rev-parse {shlex.quote(target_commit)}^{{commit}})\"; "
                 f"cp {shlex.quote(release_dir)}/db.json data/db.json; "
                 "if ! grep -q '^AUTH_SESSION_SECRET=' .env.local; then "
                 "printf '\nAUTH_SESSION_SECRET=%s\n' \"$(openssl rand -hex 32)\" >> .env.local; fi"
