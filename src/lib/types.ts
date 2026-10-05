@@ -17,6 +17,7 @@ export interface User {
   password?: string;
   tempOtp?: string;
   tempOtpExpiry?: string;
+  tempOtpIssuedAt?: string;
 }
 
 export type OrderStatus =

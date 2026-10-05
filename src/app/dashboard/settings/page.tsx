@@ -1514,7 +1514,7 @@ export default function IntegrationsSettings() {
 
             <div>
               <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
-                Recipient WhatsApp Phone Number
+                Admin Login OTP WhatsApp Number
               </label>
               <input
                 type="text"
@@ -1525,7 +1525,7 @@ export default function IntegrationsSettings() {
                 onChange={(e) => setOtpWhatsappNumber(e.target.value)}
               />
               <span style={{ fontSize: '12px', color: '#71717A', display: 'block', marginTop: '6px', lineHeight: '1.4' }}>
-                When configured, all multi-user verification OTPs route to this specific master phone number. Leave blank to send directly to individual user profiles.
+                All user login OTPs are delivered to this administrator-controlled WhatsApp number.
               </span>
             </div>
           </div>
@@ -1939,7 +1939,7 @@ export default function IntegrationsSettings() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
-                  Test / Verification WhatsApp Number
+                  Admin Login OTP WhatsApp Number
                 </label>
                 <input
                   type="text"
@@ -1949,7 +1949,7 @@ export default function IntegrationsSettings() {
                   onChange={(e) => setOtpWhatsappNumber(e.target.value)}
                 />
                 <span style={{ fontSize: '11px', color: '#71717A', marginTop: '4px', display: 'block' }}>
-                  Receives test notifications even when global WhatsApp notifications are muted.
+                  Receives every login OTP and integration test notification. This is the same admin number configured under Security.
                 </span>
               </div>
             </div>

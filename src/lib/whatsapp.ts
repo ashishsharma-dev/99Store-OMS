@@ -3,6 +3,12 @@ import { WhatsAppLog } from '@/lib/types';
 import { WalabzClient } from '@/lib/walabz';
 import { generatePackingSlipImage } from '@/lib/screenshot';
 import { normalizeCustomerWhatsAppNumber } from '@/lib/customerPhone';
+import {
+  buildLoginOtpVariableMappings,
+  summarizeOtpCampaignProgress,
+  waitForOtpCampaignStatus,
+  type OtpDeliveryStatus,
+} from '@/lib/otpDispatch';
 
 export interface TriggerWhatsAppParams {
   orderId: string;
@@ -421,7 +427,7 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
 export async function sendLoginOTP(
   phone: string,
   otp: string
-): Promise<{ success: boolean; error?: string; campaignId?: string }> {
+): Promise<{ success: boolean; error?: string; campaignId?: string; deliveryStatus?: OtpDeliveryStatus }> {
   const settings = await db.getSettings();
   const walabzClient = new WalabzClient({
     baseUrl: settings.walabzBaseUrl,
@@ -454,20 +460,32 @@ export async function sendLoginOTP(
       campaignName: `OTP-${Date.now()}`,
       templateId: otpTemplateId,
       recipients: [cleanPhone],
-      variableMappings: {
-        '1': `Admin (Your 99Store Login OTP is: ${otp})`,
-        otp: otp,
-        code: otp
-      },
+      variableMappings: buildLoginOtpVariableMappings(otp),
       action: 'send'
     });
 
     if (result.success) {
-      log.status = 'Sent';
+      if (!result.campaignId) {
+        log.status = 'Failed';
+        log.errorDetail = 'Walabz accepted the request without returning a campaign ID.';
+        await db.addWhatsAppLog(log);
+        return { success: false, error: log.errorDetail };
+      }
+
+      const deliveryStatus = await waitForOtpCampaignStatus(
+        () => walabzClient.getCampaignProgress(result.campaignId!),
+      );
+      log.status = deliveryStatus === 'failed' ? 'Failed' : deliveryStatus === 'sent' ? 'Sent' : 'Queued';
       log.campaignId = result.campaignId;
+      if (deliveryStatus === 'failed') {
+        log.errorDetail = 'Walabz failed while preparing the OTP campaign.';
+      }
       log.message = `${messageText}\n\n🚀 Walabz Campaign: ${result.campaignId}`;
       await db.addWhatsAppLog(log);
-      return { success: true, campaignId: result.campaignId };
+      if (deliveryStatus === 'failed') {
+        return { success: false, campaignId: result.campaignId, deliveryStatus, error: log.errorDetail };
+      }
+      return { success: true, campaignId: result.campaignId, deliveryStatus };
     } else {
       log.status = 'Failed';
       log.errorDetail = result.error;
@@ -482,4 +500,9 @@ export async function sendLoginOTP(
     await db.addWhatsAppLog(log);
     return { success: false, error: err.message || 'OTP dispatch network error' };
   }
+}
+
+export async function getLoginOtpCampaignStatus(campaignId: string): Promise<OtpDeliveryStatus> {
+  const walabzClient = await getWalabzClient();
+  return summarizeOtpCampaignProgress(await walabzClient.getCampaignProgress(campaignId));
 }

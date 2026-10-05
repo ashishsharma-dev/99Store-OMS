@@ -15,6 +15,8 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [dispatchToken, setDispatchToken] = useState('');
   
   const [ipBlocked, setIpBlocked] = useState(false);
   const [clientIp, setClientIp] = useState('');
@@ -33,8 +35,60 @@ export default function Login() {
     return () => { active = false; };
   }, [router]);
 
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = window.setInterval(() => {
+      setResendCooldown(current => Math.max(0, current - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [resendCooldown]);
+
+  useEffect(() => {
+    if (step !== 'otp' || !dispatchToken) return;
+    let active = true;
+    let pollCount = 0;
+    let timer: number | undefined;
+
+    const pollDeliveryStatus = async () => {
+      pollCount += 1;
+      try {
+        const response = await fetch('/api/auth/otp-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dispatchToken }),
+        });
+        const data = await response.json();
+        if (!active) return;
+
+        if (response.ok && data.deliveryStatus === 'sent') {
+          setMessage(data.message || 'OTP sent to the configured admin WhatsApp number.');
+          setError('');
+          setDispatchToken('');
+          return;
+        }
+        if (response.ok && data.deliveryStatus === 'failed') {
+          setMessage('');
+          setError(data.error || 'WhatsApp could not send the OTP. Please request a new OTP.');
+          setDispatchToken('');
+          return;
+        }
+      } catch {
+        // A temporary status-check failure should not invalidate the generated OTP.
+      }
+
+      if (active && pollCount < 30) {
+        timer = window.setTimeout(pollDeliveryStatus, 2000);
+      }
+    };
+
+    timer = window.setTimeout(pollDeliveryStatus, 1500);
+    return () => {
+      active = false;
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [dispatchToken, step]);
+
+  const requestOtp = async () => {
     if (!username.trim() || !password.trim()) {
       setError('Please enter both username and password.');
       return;
@@ -59,15 +113,30 @@ export default function Login() {
 
       if (!res.ok) {
         setError(data.error || 'Failed to send OTP.');
+        const retryAfter = Number(data.retryAfterSeconds || res.headers.get('Retry-After') || 0);
+        if (retryAfter > 0) setResendCooldown(retryAfter);
         return;
       }
 
       setStep('otp');
-      setMessage(data.message || 'OTP code sent! Check your registered WhatsApp.');
+      setOtp('');
+      setDispatchToken(data.dispatchToken || '');
+      setResendCooldown(Number(data.retryAfterSeconds || 30));
+      setMessage(data.message || 'OTP queued for the configured admin WhatsApp number.');
     } catch (err: any) {
       setLoading(false);
       setError('Network connection failed. Please check your Next.js server.');
     }
+  };
+
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await requestOtp();
+  };
+
+  const handleResendOtp = async () => {
+    if (loading || resendCooldown > 0) return;
+    await requestOtp();
   };
 
   const handleVerifyLogin = async (e: React.FormEvent) => {
@@ -333,25 +402,44 @@ export default function Login() {
                 marginBottom: '24px'
               }}>
                 <span style={{ color: '#737373' }}>For {username}</span>
-                <button
-                  type="button"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#FAFAFA',
-                    cursor: 'pointer',
-                    textDecoration: 'underline',
-                    fontFamily: 'inherit'
-                  }}
-                  onClick={() => {
-                    setStep('username');
-                    setOtp('');
-                    setError('');
-                    setMessage('');
-                  }}
-                >
-                  Change User
-                </button>
+                <div style={{ display: 'flex', gap: '14px' }}>
+                  <button
+                    type="button"
+                    disabled={loading || resendCooldown > 0}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: resendCooldown > 0 ? '#55555A' : '#10B981',
+                      cursor: loading || resendCooldown > 0 ? 'not-allowed' : 'pointer',
+                      textDecoration: resendCooldown > 0 ? 'none' : 'underline',
+                      fontFamily: 'inherit'
+                    }}
+                    onClick={handleResendOtp}
+                  >
+                    {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : 'Resend OTP'}
+                  </button>
+                  <button
+                    type="button"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#FAFAFA',
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                      fontFamily: 'inherit'
+                    }}
+                    onClick={() => {
+                      setStep('username');
+                      setOtp('');
+                      setError('');
+                      setMessage('');
+                      setDispatchToken('');
+                      setResendCooldown(0);
+                    }}
+                  >
+                    Change User
+                  </button>
+                </div>
               </div>
 
               <button

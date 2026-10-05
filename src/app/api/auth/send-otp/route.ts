@@ -3,6 +3,11 @@ import { db } from '@/lib/db';
 import { generateOtp, hashPassword, isOtpBypassEnabled, verifyPassword } from '@/lib/auth';
 import { sendLoginOTP } from '@/lib/whatsapp';
 import { consumeRateLimit, getClientIp } from '@/lib/rateLimit';
+import {
+  createOtpDispatchToken,
+  getOtpResendCooldownSeconds,
+  OTP_RESEND_COOLDOWN_SECONDS,
+} from '@/lib/otpDispatch';
 
 export async function POST(request: Request) {
   try {
@@ -31,30 +36,42 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Your user account is suspended.' }, { status: 403 });
     }
 
-    // Retrieve system settings to check for a global OTP WhatsApp number
+    // Login OTPs always go to the administrator-controlled number from Settings.
     const settings = await db.getSettings();
-    const targetPhone = (settings.otpWhatsappNumber && settings.otpWhatsappNumber.trim() !== '') 
-      ? settings.otpWhatsappNumber.trim() 
-      : user.phone;
+    const targetPhone = settings.otpWhatsappNumber?.trim();
 
     // Verify phone number exists for sending OTP
     if (!targetPhone || targetPhone.trim() === '') {
-      return NextResponse.json({ error: 'No phone number registered for OTP verification. Please contact Super Admin.' }, { status: 400 });
+      return NextResponse.json({
+        error: 'The admin login OTP WhatsApp number is not configured. Please set it on the Settings page.',
+      }, { status: 400 });
+    }
+
+    const cooldownSeconds = getOtpResendCooldownSeconds(user.tempOtpIssuedAt);
+    if (cooldownSeconds > 0) {
+      return NextResponse.json(
+        {
+          error: `Please wait ${cooldownSeconds} seconds before requesting another OTP.`,
+          retryAfterSeconds: cooldownSeconds,
+        },
+        { status: 429, headers: { 'Retry-After': String(cooldownSeconds) } },
+      );
     }
 
     // Generate a 6-digit OTP
     const otp = generateOtp();
-    
-    // Set tempOtp and tempOtpExpiry (valid for 5 minutes)
-    user.tempOtp = hashPassword(otp);
-    user.tempOtpExpiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-    
-    await db.saveUser(user);
 
     if (isOtpBypassEnabled()) {
+      const issuedAt = new Date();
+      user.tempOtp = hashPassword(otp);
+      user.tempOtpExpiry = new Date(issuedAt.getTime() + 5 * 60 * 1000).toISOString();
+      user.tempOtpIssuedAt = issuedAt.toISOString();
+      await db.saveUser(user);
       return NextResponse.json({
         success: true,
-        message: 'Development OTP bypass is active. Use 999999.'
+        message: 'Development OTP bypass is active. Use 999999.',
+        deliveryStatus: 'sent',
+        retryAfterSeconds: OTP_RESEND_COOLDOWN_SECONDS,
       });
     }
 
@@ -68,9 +85,23 @@ export async function POST(request: Request) {
       }, { status: 502 });
     }
 
+    const issuedAt = new Date();
+    user.tempOtp = hashPassword(otp);
+    user.tempOtpExpiry = new Date(issuedAt.getTime() + 5 * 60 * 1000).toISOString();
+    user.tempOtpIssuedAt = issuedAt.toISOString();
+    await db.saveUser(user);
+
+    const dispatchToken = createOtpDispatchToken(waRes.campaignId!, user.username);
+    const isConfirmedSent = waRes.deliveryStatus === 'sent';
+
     return NextResponse.json({
       success: true,
-      message: `OTP code sent to WhatsApp number ending in ...${targetPhone.slice(-4)}`
+      message: isConfirmedSent
+        ? `OTP sent to the admin WhatsApp number ending in ...${targetPhone.slice(-4)}`
+        : `OTP queued for the admin WhatsApp number ending in ...${targetPhone.slice(-4)}`,
+      deliveryStatus: waRes.deliveryStatus || 'queued',
+      dispatchToken,
+      retryAfterSeconds: OTP_RESEND_COOLDOWN_SECONDS,
     });
 
   } catch (error: any) {

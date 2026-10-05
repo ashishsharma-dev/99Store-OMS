@@ -70,6 +70,7 @@ export async function POST(request: Request) {
     // Clear temporary OTP fields after successful verification
     user.tempOtp = undefined;
     user.tempOtpExpiry = undefined;
+    user.tempOtpIssuedAt = undefined;
 
     // Update user's last login IP and save
     user.lastLoginIp = clientIp;
