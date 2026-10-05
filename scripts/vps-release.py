@@ -14,6 +14,12 @@ import paramiko
 from deploy import APP_DIR, VPS_HOST, VPS_PASS, VPS_USER
 
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
+
 PUBLIC_HEALTH_URL = "https://oms.ayurvedacare.store/api/health"
 ROLLBACK_ROOT = "/home/ayurvedacare/99store-rollbacks"
 
