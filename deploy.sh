@@ -1,72 +1,67 @@
-#!/bin/bash
-# 99Store OMS VPS Deployment Script
-# Target Directory: /home/ayurvedacare/99store-oms
+#!/usr/bin/env bash
+set -Eeuo pipefail
 
-set -e
-
-APP_DIR="/home/ayurvedacare/99store-oms"
+APP_DIR="${APP_DIR:-/home/ayurvedacare/99store-oms}"
+DEPLOY_BRANCH="${DEPLOY_BRANCH:-master}"
+HEALTH_URL="${HEALTH_URL:-https://oms.ayurvedacare.store/api/health}"
 
 echo "========================================="
-echo " 🚀 Deploying 99Store OMS to VPS "
+echo " Deploying 99Store OMS to VPS"
 echo " Target: $APP_DIR"
 echo " Date: $(date)"
 echo "========================================="
 
-# Navigate to app directory
 cd "$APP_DIR"
 
-# 1. Pull latest code from GitHub
-echo "📥 1. Pulling latest code from GitHub..."
-git checkout -- . 2>/dev/null || true
-git pull origin master
+for command_name in git npm pm2 curl mongodump; do
+    command -v "$command_name" >/dev/null
+done
+test -f .env.local
+test -f ecosystem.config.js
 
-# 2. Install dependencies
-echo "📦 2. Installing Node modules..."
-npm install --production=false
+if ! git diff --quiet || ! git diff --cached --quiet; then
+    echo "Deployment stopped: the VPS worktree has uncommitted tracked changes."
+    exit 1
+fi
 
-# 3. Build Next.js production bundle
-echo "🏗️  3. Building Next.js production app..."
+echo "1. Creating the pre-deployment MongoDB backup..."
+bash scripts/backup-mongodb.sh
+
+echo "2. Pulling the requested release with fast-forward protection..."
+git fetch origin "$DEPLOY_BRANCH"
+git merge --ff-only "origin/$DEPLOY_BRANCH"
+
+echo "3. Installing the locked dependency tree..."
+npm ci --include=dev
+
+echo "4. Running production environment and release checks..."
+npm run verify:env
+npm run test
+npm run lint -- --quiet
+
+echo "5. Building the Next.js production app..."
 npm run build
 
-# 4. Clean up / prune db.json if bloated (> 1MB)
-if [ -f "data/db.json" ]; then
-    echo "🧹 4. Checking database file health..."
-    node -e '
-    const fs = require("fs");
-    const p = "data/db.json";
-    if (fs.existsSync(p)) {
-      const stats = fs.statSync(p);
-      if (stats.size > 1024 * 1024) {
-        console.log(`Pruning large db.json (${(stats.size/1024/1024).toFixed(2)} MB)...`);
-        const data = JSON.parse(fs.readFileSync(p, "utf-8"));
-        if (data.settings && data.settings.xpressbeesAwbPool && data.settings.xpressbeesAwbPool.length > 500) {
-          data.settings.xpressbeesAwbPool = data.settings.xpressbeesAwbPool.slice(0, 500);
-        }
-        if (data.whatsappLogs && data.whatsappLogs.length > 100) {
-          data.whatsappLogs = data.whatsappLogs.slice(0, 100);
-        }
-        if (data.courierLogs && data.courierLogs.length > 100) {
-          data.courierLogs = data.courierLogs.slice(0, 100);
-        }
-        fs.writeFileSync(p, JSON.stringify(data));
-        console.log("Database file optimized successfully.");
-      }
-    }
-    '
-fi
-
-# 5. Restart PM2 Process cleanly
-echo "🔄 5. Reloading PM2 process manager..."
-if pm2 list | grep -q "99store-oms"; then
-    pm2 restart ecosystem.config.js --update-env
-else
-    pm2 start ecosystem.config.js
-fi
-
-# Save PM2 state
+echo "6. Reloading the PM2 process..."
+pm2 startOrReload ecosystem.config.js --update-env
 pm2 save
 
+echo "7. Waiting for the public health check..."
+HEALTH=''
+for _ in $(seq 1 30); do
+    HEALTH="$(curl -fsS --max-time 10 "$HEALTH_URL" 2>/dev/null || true)"
+    if [[ "$HEALTH" == *'"status":"healthy"'* ]]; then
+        break
+    fi
+    sleep 2
+done
+
+if [[ "$HEALTH" != *'"status":"healthy"'* ]]; then
+    echo "Deployment failed: the public health check did not become healthy."
+    pm2 logs 99store-oms --lines 50 --nostream || true
+    exit 1
+fi
+
 echo "========================================="
-echo " ✅ Deployment completed successfully! "
-echo " App status: online "
+echo " Deployment completed and health-checked successfully."
 echo "========================================="

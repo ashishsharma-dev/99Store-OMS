@@ -1,11 +1,17 @@
 import { db } from './db';
-import { bookCourierShipment } from './courierHelper';
+import { bookOrderCourierShipment } from './courierReliability';
 import { triggerWhatsAppNotification } from './whatsapp';
-import { BulkJob } from './types';
+import { BulkJob, ShipmentContactType } from './types';
+import { resolveShipmentContact } from './shipmentContact';
 
 let isCourierQueueProcessing = false;
 
-export async function enqueueBulkJob(orderIds: string[], courierPartner: string, username: string, phoneBinding: string = 'Primary'): Promise<BulkJob> {
+export async function enqueueBulkJob(
+  orderIds: string[],
+  courierPartner: string,
+  username: string,
+  phoneBinding: Exclude<ShipmentContactType, 'Custom'> = 'Primary',
+): Promise<BulkJob> {
   const jobId = `job-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   const newJob: BulkJob = {
     id: jobId,
@@ -16,14 +22,13 @@ export async function enqueueBulkJob(orderIds: string[], courierPartner: string,
     failedCount: 0,
     activeOrder: '',
     results: [],
+    orderIds,
+    courier: courierPartner,
+    createdBy: username,
+    phoneBinding,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
-
-  (newJob as any).orderIds = orderIds;
-  (newJob as any).courier = courierPartner;
-  (newJob as any).createdBy = username;
-  (newJob as any).phoneBinding = phoneBinding;
 
   await db.saveBulkJob(newJob);
 
@@ -58,9 +63,9 @@ async function processCourierJobs() {
 
     const settings = await db.getSettings();
     const allOrders = await db.getOrders();
-    const orderIds: string[] = (pendingJob as any).orderIds || [];
-    const targetCourier: string = (pendingJob as any).courier || 'DTDC';
-    const createdBy: string = (pendingJob as any).createdBy || 'system';
+    const orderIds = pendingJob.orderIds || [];
+    const targetCourier = pendingJob.courier || 'DTDC';
+    const createdBy = pendingJob.createdBy || 'system';
 
     let index = 0;
     const CONCURRENCY = 2; // Controlled parallel workers for API booking
@@ -108,21 +113,17 @@ async function processCourierJobs() {
           continue;
         }
 
-        const phoneBinding: string = (pendingJob as any).phoneBinding || 'Primary';
-        let selectedPhone = order.phonePrimary;
-        if (phoneBinding === 'Secondary' && order.phoneSecondary) {
-          selectedPhone = order.phoneSecondary;
-        } else if (phoneBinding === 'Tertiary' && order.phoneTertiary) {
-          selectedPhone = order.phoneTertiary;
-        }
-
         try {
-          const result = await bookCourierShipment(
+          const selectedContact = resolveShipmentContact(order, pendingJob.phoneBinding || 'Primary');
+          const result = await bookOrderCourierShipment(
             order,
             settings,
-            order.weight,
-            targetCourier,
-            selectedPhone
+            {
+              weight: order.weight,
+              courier: targetCourier,
+              phone: selectedContact.phone,
+              shipmentContactType: selectedContact.type,
+            },
           );
 
           if (result.success) {
@@ -130,18 +131,16 @@ async function processCourierJobs() {
             order.awb = result.awb;
             order.eta = result.eta;
             order.courier = result.courier as any;
-            if (result.velocity_label_url) {
-              order.velocity_label_url = result.velocity_label_url;
-            }
-            if (result.velocity_shipment_id) {
-              order.velocity_shipment_id = result.velocity_shipment_id;
-            }
-            
+            order.shipmentContactPhone = selectedContact.phone;
+            order.shipmentContactType = selectedContact.type;
+            order.courierBookingStatus = 'Booked';
+            order.courierBookingError = undefined;
+            order.courierBookingCompletedAt = new Date().toISOString();
             order.history.push({
               status: 'Label Generated',
               timestamp: new Date().toISOString(),
               updatedBy: createdBy,
-              remarks: `Bulk queue generated AWB ${result.awb} via ${targetCourier}.`
+              remarks: `Bulk queue generated AWB ${result.awb} via ${targetCourier} using the selected ${selectedContact.type} shipment contact.`
             });
             order.updatedAt = new Date().toISOString();
             await db.saveOrder(order);

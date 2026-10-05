@@ -7,12 +7,15 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "npx tsx --test tests/courierFetch.test.ts"
+    "test": "tsx --test tests/*.test.ts",
+    "verify": "npm run test && npm run lint -- --quiet && npm run build",
+    "verify:env": "node scripts/verify-production-env.js",
+    "audit:prod": "npm audit --omit=dev --audit-level=high"
   },
   "dependencies": {
     "lucide-react": "^1.17.0",
     "mongodb": "^7.3.0",
-    "next": "16.2.6",
+    "next": "16.3.8",
     "puppeteer-core": "^25.4.0",
     "react": "19.2.4",
     "react-dom": "19.2.4"
@@ -23,8 +26,9 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.6",
+    "eslint-config-next": "16.3.8",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

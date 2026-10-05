@@ -21,7 +21,6 @@ export const getUserDisplayName = (username: string): string => {
  * - DTDC: Unserviceable for Zone 7 (pincode starts with 7)
  * - XpressBees: Unserviceable for Zone 6 (pincode starts with 6)
  * - Delhivery: Unserviceable for Zone 5 (pincode starts with 5)
- * - Velocity / Aggregator: Unserviceable for Zone 3 (pincode starts with 3)
  */
 export const checkCourierServiceability = (pincode: string, courier: string): boolean => {
   if (!pincode || pincode.length !== 6 || !/^\d+$/.test(pincode)) {
@@ -39,10 +38,6 @@ export const checkCourierServiceability = (pincode: string, courier: string): bo
   if (normalizedCourier.includes('delhivery')) {
     return prefix !== '5';
   }
-  if (normalizedCourier.includes('velocity') || normalizedCourier.includes('aggregator')) {
-    return prefix !== '3';
-  }
-
   return true;
 };
 

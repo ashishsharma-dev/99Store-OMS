@@ -97,7 +97,7 @@ export async function GET(request: Request) {
 
     const escapeCsv = (str: string | undefined | null) => {
       if (!str) return '""';
-      let clean = str.replace(/"/g, '""');
+      const clean = str.replace(/"/g, '""');
       if (clean.includes(',') || clean.includes('\n') || clean.includes('"')) {
         return `"${clean}"`;
       }

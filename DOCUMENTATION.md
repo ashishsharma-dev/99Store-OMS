@@ -125,7 +125,7 @@ Maps to the typescript interface [Order](file:///c:/Users/OMK%20Developer/Downlo
 | `isVip` | `boolean` | Flags a gold star next to the customer's name |
 | `status` | `OrderStatus` | Current routing stage (see order flow list below) |
 | `awb` | `string` (optional) | Courier Air Waybill tracker number |
-| `courier` | `'DTDC' \| 'XpressBees' \| 'Delhivery' \| 'Aggregator'` | Chosen shipping carrier |
+| `courier` | `'DTDC' \| 'XpressBees' \| 'Delhivery' \| 'Shadowfax'` | Chosen shipping carrier |
 | `eta` | `string` (optional) | Estimated arrival date |
 | `createdBy` | `string` | Creator account username |
 | `history` | `OrderHistory[]` | Transaction logs tracking state changes, editors, and remarks |
@@ -216,7 +216,7 @@ During the packing phase, if `autoCourierEnabled` is active in settings, the sys
 1.  **Weight-based Routing**:
     *   Orders under **1.0 kg** default to **DTDC** (configured as highest priority for lightweight surface courier parcels).
     *   Orders between **1.0 kg and 2.0 kg** default to **XpressBees**.
-    *   Orders exceeding **2.0 kg** default to **Delhivery** (or the Aggregator API).
+    *   Orders exceeding **2.0 kg** default to **Delhivery**.
 2.  **Config Priority Override**: If specific carriers are disabled insettings, the auto-router shifts down the active list using the configured priorities.
 
 ### 5.3 Pincode Area Auto-Fetcher

@@ -319,7 +319,6 @@ export default function Tracking() {
                 <option value="DTDC">DTDC Express</option>
                 <option value="XpressBees">XpressBees</option>
                 <option value="Delhivery">Delhivery</option>
-                <option value="Velocity">Velocity</option>
                 <option value="Shadowfax">Shadowfax</option>
               </select>
             </div>

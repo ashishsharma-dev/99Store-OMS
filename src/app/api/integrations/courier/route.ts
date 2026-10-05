@@ -3,13 +3,15 @@ import { db } from '@/lib/db';
 import { CourierApiLog } from '@/lib/types';
 import { getXpressBeesToken, resolveXpressBeesConfig } from '@/lib/xpressbees';
 import { syncOrderStatus } from '@/lib/courierSync';
-import { trackVelocityShipment, cancelVelocityShipment } from '@/lib/velocity';
-import { bookCourierShipment, isDtdcStaging } from '@/lib/courierHelper';
+import { isDtdcStaging } from '@/lib/courierHelper';
+import { bookOrderCourierShipment, isCourierSimulationEnabled, validateManifestWaybills } from '@/lib/courierReliability';
 import { trackShadowfaxOrder } from '@/lib/shadowfax';
 import { fetchWithRetry } from '@/lib/fetchWithRetry';
+import { getActiveSession } from '@/lib/authorization';
 
 export async function GET(request: Request) {
   try {
+    if (!await getActiveSession(request)) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
     const waybill = searchParams.get('waybill');
@@ -21,69 +23,9 @@ export async function GET(request: Request) {
 
     const settings = await db.getSettings();
 
-    const isVelocity = queryCourier === 'Velocity' || queryCourier === 'Aggregator' || waybill.startsWith('VEL') || (await db.getOrders()).some(o => o.awb === waybill && (o.courier === 'Velocity' || o.courier === 'Aggregator'));
     const isXpressBees = queryCourier === 'XpressBees' || waybill.startsWith('XB') || waybill.startsWith('5963');
     const isDtdc = queryCourier === 'DTDC' || waybill.startsWith('DTDC');
     const isShadowfax = queryCourier === 'Shadowfax' || waybill.startsWith('SFX') || waybill.startsWith('SF') || (await db.getOrders()).some(o => o.awb === waybill && o.courier === 'Shadowfax');
-
-    if (isVelocity) {
-      if (!settings.velocityActive && !settings.aggregatorActive) {
-        return NextResponse.json({ error: 'Velocity integration is disabled in settings.' }, { status: 400 });
-      }
-
-      if (action === 'track') {
-        try {
-          const unifiedData = await trackVelocityShipment(waybill, settings);
-          await db.addCourierLog({
-            id: `cl-vel-track-${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            courier: 'Velocity',
-            action: 'Track Shipment',
-            requestPayload: `POST /custom/api/v1/order-tracking awbs: [${waybill}]`,
-            responsePayload: JSON.stringify(unifiedData, null, 2),
-            status: 'Success'
-          });
-
-          const courierStatus = unifiedData?.ShipmentData?.[0]?.Shipment?.Status?.Status;
-          const scanLocation = unifiedData?.ShipmentData?.[0]?.Shipment?.Status?.StatusLocation;
-          const latestScan = unifiedData?.ShipmentData?.[0]?.Shipment?.Scans?.[0]?.ScanDetail;
-          const customRemarks = latestScan ? `${latestScan.Scan}. Remarks: ${latestScan.Instructions}` : undefined;
-          if (courierStatus) {
-            await syncOrderStatus(waybill, courierStatus, scanLocation, customRemarks);
-          }
-          return NextResponse.json(unifiedData);
-        } catch (err: any) {
-          return NextResponse.json({ error: `Velocity tracking failed: ${err.message}` }, { status: 500 });
-        }
-      }
-
-      if (action === 'label') {
-        const order = (await db.getOrders()).find(o => o.awb === waybill);
-        if (!order || !order.velocity_label_url) {
-          return NextResponse.json({ error: 'Velocity label URL not found for order.' }, { status: 404 });
-        }
-
-        try {
-          const labelRes = await fetch(order.velocity_label_url);
-          if (!labelRes.ok) {
-            return NextResponse.json({ error: `Failed to fetch Velocity label PDF: HTTP ${labelRes.status}` }, { status: 400 });
-          }
-
-          const blob = await labelRes.blob();
-          order.label_generated = true;
-          await db.saveOrder(order);
-
-          return new Response(blob, {
-            headers: {
-              'Content-Type': 'application/pdf',
-              'Content-Disposition': `inline; filename="label-${waybill}.pdf"`
-            }
-          });
-        } catch (err: any) {
-          return NextResponse.json({ error: `Failed to proxy Velocity label: ${err.message}` }, { status: 500 });
-        }
-      }
-    }
 
     if (isXpressBees) {
       if (!settings.xpressbeesActive) {
@@ -785,6 +727,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    if (!await getActiveSession(request)) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     const body = await request.json();
     const action = body.action || 'book'; // 'book' | 'cancel' | 'manifest' | 'reverse'
     const settings = await db.getSettings();
@@ -796,55 +739,13 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Missing AWB waybill parameter for cancellation.' }, { status: 400 });
       }
 
-      const isVelocity = courier === 'Velocity' || courier === 'Aggregator' || waybill.startsWith('VEL');
       const isXpressBees = courier === 'XpressBees' || waybill.startsWith('XB');
       const isDtdc = courier === 'DTDC' || waybill.startsWith('DTDC');
       const isShadowfax = courier === 'Shadowfax' || waybill.startsWith('SFX') || waybill.startsWith('SF');
 
-      if (isVelocity) {
-        try {
-          const cancelData = await cancelVelocityShipment(waybill, settings);
-          const order = (await db.getOrders()).find(o => o.awb === waybill);
-          if (order) {
-            order.cancelled = true;
-            order.status = 'Return';
-            order.history.push({
-              status: 'Return',
-              timestamp: new Date().toISOString(),
-              updatedBy: 'Velocity API',
-              remarks: 'Consignment successfully cancelled via Velocity API.'
-            });
-            await db.saveOrder(order);
-          }
-
-          await db.addCourierLog({
-            id: `cl-vel-cancel-${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            courier: 'Velocity',
-            action: 'Cancel Shipment',
-            requestPayload: JSON.stringify({ awbs: [waybill] }, null, 2),
-            responsePayload: JSON.stringify(cancelData, null, 2),
-            status: 'Success'
-          });
-
-          return NextResponse.json(cancelData);
-        } catch (err: any) {
-          await db.addCourierLog({
-            id: `cl-vel-cancel-fail-${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            courier: 'Velocity',
-            action: 'Cancel Shipment Failed',
-            requestPayload: JSON.stringify({ awbs: [waybill] }, null, 2),
-            responsePayload: JSON.stringify({ error: err.message || err }, null, 2),
-            status: 'Error'
-          });
-          return NextResponse.json({ error: `Velocity cancellation failed: ${err.message}` }, { status: 500 });
-        }
-      }
-
       if (isXpressBees) {
         const xbConfig = resolveXpressBeesConfig(settings.xpressbeesConfig);
-        let token = await getXpressBeesToken(xbConfig);
+        const token = await getXpressBeesToken(xbConfig);
         const isMockToken = token === 'MOCK_TOKEN_12345';
         const baseUrl = xbConfig.baseUrl || 'https://shipment.xpressbees.com/api';
 
@@ -1016,9 +917,11 @@ export async function POST(request: Request) {
     // 2. GENERATE MANIFEST
     if (action === 'manifest') {
       const { waybills } = body;
-      if (!waybills || !Array.isArray(waybills)) {
-        return NextResponse.json({ error: 'Missing awbs array for manifest generation.' }, { status: 400 });
+      const manifestValidation = validateManifestWaybills(waybills, await db.getOrders());
+      if (!manifestValidation.valid) {
+        return NextResponse.json({ error: manifestValidation.error }, { status: 400 });
       }
+      const validatedWaybills = manifestValidation.waybills;
 
       const xbConfig = resolveXpressBeesConfig(settings.xpressbeesConfig);
       const token = await getXpressBeesToken(xbConfig);
@@ -1026,12 +929,18 @@ export async function POST(request: Request) {
       const baseUrl = xbConfig.baseUrl || 'https://shipment.xpressbees.com/api';
 
       if (isMockToken) {
+        if (!isCourierSimulationEnabled()) {
+          return NextResponse.json(
+            { error: 'XpressBees credentials are missing or configured as placeholders. Manifest simulation is disabled.' },
+            { status: 400 },
+          );
+        }
         await db.addCourierLog({
           id: `cl-xb-manifest-gen-${Date.now()}`,
           timestamp: new Date().toISOString(),
           courier: 'XpressBees',
           action: 'Generate Manifest (Simulated)',
-          requestPayload: JSON.stringify(body, null, 2),
+          requestPayload: JSON.stringify({ awbs: validatedWaybills }, null, 2),
           responsePayload: JSON.stringify({ status: true, message: 'Manifest created successfully (Simulated).' }, null, 2),
           status: 'Success'
         });
@@ -1049,7 +958,7 @@ export async function POST(request: Request) {
           'XBKey': xbConfig.xbKey || '',
           'xb-key': xbConfig.xbKey || ''
         },
-        body: JSON.stringify({ awbs: waybills, TokenNumber: token, Token: token })
+        body: JSON.stringify({ awbs: validatedWaybills, TokenNumber: token, Token: token })
       });
       const manifestData = await manifestRes.json();
 
@@ -1058,12 +967,20 @@ export async function POST(request: Request) {
         timestamp: new Date().toISOString(),
         courier: 'XpressBees',
         action: 'Generate Manifest',
-        requestPayload: JSON.stringify({ awbs: waybills }, null, 2),
+        requestPayload: JSON.stringify({ awbs: validatedWaybills }, null, 2),
         responsePayload: JSON.stringify(manifestData, null, 2),
         status: manifestRes.ok && manifestData.status === true ? 'Success' : 'Error'
       });
 
-      return NextResponse.json(manifestData);
+      const manifestSucceeded = manifestRes.ok && manifestData.status === true;
+      if (!manifestSucceeded) {
+        return NextResponse.json(
+          { error: manifestData.message || manifestData.error || 'XpressBees manifest generation failed.', details: manifestData },
+          { status: 502 },
+        );
+      }
+
+      return NextResponse.json({ ...manifestData, submittedWaybills: validatedWaybills });
     }
 
     // 3. REVERSE SHIPMENT
@@ -1131,13 +1048,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Order with ID ${orderId} not found in database.` }, { status: 400 });
     }
 
-    const result = await bookCourierShipment(
+    const result = await bookOrderCourierShipment(
       order,
       settings,
-      body.weight,
-      rawCourier,
-      body.phoneOverride,
-      body.mode || body.accountOverride
+      {
+        weight: body.weight,
+        courier: rawCourier,
+        phone: body.phoneOverride || order.phonePrimary,
+        mode: body.mode || body.accountOverride,
+      },
     );
 
     if (result.success) {
@@ -1150,13 +1069,10 @@ export async function POST(request: Request) {
       if (result.courier) {
         order.courier = result.courier as any;
       }
-      if (result.velocity_label_url) {
-        order.velocity_label_url = result.velocity_label_url;
-      }
-      if (result.velocity_shipment_id) {
-        order.velocity_shipment_id = result.velocity_shipment_id;
-      }
       order.updatedAt = new Date().toISOString();
+      order.courierBookingStatus = 'Booked';
+      order.courierBookingError = undefined;
+      order.courierBookingCompletedAt = new Date().toISOString();
       await db.saveOrder(order);
 
       return NextResponse.json({
@@ -1168,7 +1084,8 @@ export async function POST(request: Request) {
         note: result.note
       });
     } else {
-      return NextResponse.json({ error: result.error || 'Courier booking failed.' }, { status: 400 });
+      const status = result.reconciliationRequired || result.error?.includes('already in progress') ? 409 : 400;
+      return NextResponse.json({ error: result.error || 'Courier booking failed.', reconciliationRequired: result.reconciliationRequired }, { status });
     }
 
   } catch (error: any) {

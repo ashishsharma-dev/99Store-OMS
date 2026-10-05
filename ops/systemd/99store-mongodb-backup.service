@@ -1,0 +1,14 @@
+[Unit]
+Description=99Store OMS MongoDB backup
+After=mongod.service
+Requires=mongod.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory=/home/ayurvedacare/99store-oms
+ExecStart=/usr/bin/bash /usr/local/sbin/99store-mongodb-backup
+PrivateTmp=true
+NoNewPrivileges=true
+

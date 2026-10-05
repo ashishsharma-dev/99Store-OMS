@@ -1,8 +1,18 @@
 import { db } from '@/lib/db';
 import { CourierApiLog, SystemSettings, Order } from '@/lib/types';
 import { getXpressBeesToken, resolveXpressBeesConfig } from '@/lib/xpressbees';
-import { bookVelocityOrder } from '@/lib/velocity';
 import { bookShadowfaxOrder } from '@/lib/shadowfax';
+import { isCourierSimulationEnabled } from '@/lib/courierSimulation';
+
+export interface CourierBookingResult {
+  success: boolean;
+  awb?: string;
+  eta?: string;
+  courier?: string;
+  charge?: number;
+  error?: string;
+  note?: string;
+}
 
 export function isDtdcStaging(apiKey?: string, username?: string): boolean {
   const key = (apiKey || '').toLowerCase();
@@ -150,16 +160,8 @@ export async function replenishAwbPool(settings: SystemSettings, token: string) 
       return;
     }
     
-    const freshSettings = await db.getSettings();
-    if (!freshSettings.xpressbeesAwbPool) {
-      freshSettings.xpressbeesAwbPool = [];
-    }
-    
-    const newAwbs = awbRetrieveData.AWBNoSeries.filter((a: string) => !freshSettings.xpressbeesAwbPool!.includes(a));
-    freshSettings.xpressbeesAwbPool.push(...newAwbs);
-    
-    await db.saveSettings(freshSettings);
-    console.log(`[XpressBees] Replenished AWB pool with ${newAwbs.length} numbers. Current pool size: ${freshSettings.xpressbeesAwbPool?.length}`);
+    const addedCount = await db.addXpressBeesAwbs(awbRetrieveData.AWBNoSeries);
+    console.log(`[XpressBees] Replenished AWB pool with ${addedCount} new numbers.`);
   } catch (err) {
     console.error("[XpressBees] Error replenishing AWB pool in background:", err);
   }
@@ -172,17 +174,7 @@ export async function bookCourierShipment(
   courierOverride?: string,
   phoneOverride?: string,
   modeOverride?: string
-): Promise<{
-  success: boolean;
-  awb?: string;
-  eta?: string;
-  courier?: string;
-  charge?: number;
-  error?: string;
-  note?: string;
-  velocity_label_url?: string;
-  velocity_shipment_id?: string;
-}> {
+): Promise<CourierBookingResult> {
   try {
     const rawCourier = courierOverride || order.courier || 'DTDC';
     const weight = weightOverride !== undefined ? weightOverride : (order.weight || 0.5);
@@ -193,7 +185,7 @@ export async function bookCourierShipment(
     const requestedMode = modeOverride || (rawCourier.toLowerCase().includes('surface') ? 'Surface' : (rawCourier.toLowerCase().includes('air') ? 'Air' : undefined));
 
     let isCourierActive = false;
-    let apiKey = 'MOCK_KEY';
+    let apiKey = '';
 
     switch (courier) {
       case 'DTDC':
@@ -207,17 +199,9 @@ export async function bookCourierShipment(
         isCourierActive = settings.deliveryActive;
         apiKey = settings.deliveryConfig.apiKey;
         break;
-      case 'Aggregator':
-        isCourierActive = settings.aggregatorActive || settings.velocityActive;
-        apiKey = 'agg_link_99s_9a2b8e';
-        break;
-      case 'Velocity':
-        isCourierActive = settings.velocityActive;
-        apiKey = 'velocity_api_token';
-        break;
       case 'Shadowfax':
         isCourierActive = settings.shadowfaxActive;
-        apiKey = settings.shadowfaxConfig?.apiKey || 'MOCK_KEY';
+        apiKey = settings.shadowfaxConfig?.apiKey || '';
         break;
     }
 
@@ -237,7 +221,7 @@ export async function bookCourierShipment(
 
     // LIVE SHADOWFAX BOOKING
     if (courier === 'Shadowfax') {
-      const sfxResult = await bookShadowfaxOrder(order, settings, weight);
+      const sfxResult = await bookShadowfaxOrder(order, settings, weight, phoneOverride);
       await db.addCourierLog({
         id: `cl-sfx-${Date.now()}`,
         timestamp: new Date().toISOString(),
@@ -284,6 +268,9 @@ export async function bookCourierShipment(
       const isMockToken = token === 'MOCK_TOKEN_12345';
 
       if (isMockToken) {
+        if (!isCourierSimulationEnabled()) {
+          return { success: false, error: 'XpressBees credentials are missing or configured as placeholders. Courier simulation is disabled.' };
+        }
         const randomAwbSuffix = Math.floor(100000000 + Math.random() * 900000000).toString();
         const awb = `XB${randomAwbSuffix}`;
         const charge = 55 + weight * 25 + (paymentType === 'COD' ? 35 : 0);
@@ -318,13 +305,11 @@ export async function bookCourierShipment(
       const authType = xbConfig.authType || 'new';
 
       if (authType === 'new') {
-        let cachedPool = settings.xpressbeesAwbPool || [];
-        if (cachedPool.length > 0) {
-          finalAwb = cachedPool.shift()!;
-          settings.xpressbeesAwbPool = cachedPool;
-          await db.saveSettings(settings);
+        const pooledAwb = await db.takeXpressBeesAwb();
+        if (pooledAwb) {
+          finalAwb = pooledAwb;
 
-          if (cachedPool.length < 20) {
+          if ((settings.xpressbeesAwbPool?.length || 0) < 20) {
             replenishAwbPool(settings, token).catch(err => {
               console.error("[XpressBees] Background replenish error:", err);
             });
@@ -428,8 +413,7 @@ export async function bookCourierShipment(
             finalAwb = awbRetrieveData.AWBNoSeries[0];
 
             if (awbRetrieveData.AWBNoSeries.length > 1) {
-              settings.xpressbeesAwbPool = awbRetrieveData.AWBNoSeries.slice(1);
-              await db.saveSettings(settings);
+              await db.addXpressBeesAwbs(awbRetrieveData.AWBNoSeries.slice(1));
             }
           } catch (err: any) {
             await db.addCourierLog({
@@ -695,13 +679,17 @@ export async function bookCourierShipment(
           status: isSuccess ? 'Success' : 'Error'
         });
 
-        let isMockFallback = false;
         if (!isSuccess) {
-          console.warn(`XpressBees API failed, falling back to mock:`, bookingResponseData);
-          isMockFallback = true;
-          finalAwb = finalAwb || `XB${Math.floor(10000000000 + Math.random() * 90000000000)}`;
+          return {
+            success: false,
+            error: `XpressBees booking failed: ${bookingResponseData.message || bookingResponseData.ReturnMessage || bookingResponseData.error || responseText}`,
+          };
         } else if (authType !== 'new') {
           finalAwb = bookingResponseData.data?.awb_number || '';
+        }
+
+        if (!finalAwb) {
+          return { success: false, error: 'XpressBees booking succeeded but no AWB was returned.' };
         }
 
         const etaDays = 3;
@@ -715,8 +703,7 @@ export async function bookCourierShipment(
           awb: finalAwb, 
           eta: etaString, 
           courier: 'XpressBees', 
-          charge,
-          note: isMockFallback ? `Mock Fallback activated due to XpressBees API error: ${bookingResponseData.message || bookingResponseData.ReturnMessage || responseText}` : undefined
+          charge
         };
 
       } catch (err: any) {
@@ -733,49 +720,14 @@ export async function bookCourierShipment(
       }
     }
 
-    // LIVE VELOCITY BOOKING
-    if (courier === 'Velocity' || courier === 'Aggregator') {
-      try {
-        const bookData = await bookVelocityOrder(order, settings, weight, paymentType);
-        
-        await db.addCourierLog({
-          id: `cl-vel-book-${Date.now()}`,
-          timestamp: new Date().toISOString(),
-          courier: 'Velocity',
-          action: 'Create Shipment',
-          requestPayload: JSON.stringify({ orderId: order.orderId, weight, paymentType }, null, 2),
-          responsePayload: JSON.stringify(bookData, null, 2),
-          status: 'Success'
-        });
-
-        return {
-          success: true,
-          awb: bookData.awb,
-          eta: bookData.eta,
-          courier,
-          charge: bookData.charge,
-          velocity_label_url: bookData.label_url,
-          velocity_shipment_id: bookData.shipment_id
-        };
-      } catch (err: any) {
-        await db.addCourierLog({
-          id: `cl-vel-book-fail-${Date.now()}`,
-          timestamp: new Date().toISOString(),
-          courier: 'Velocity',
-          action: 'Create Shipment Failed',
-          requestPayload: JSON.stringify({ orderId: order.orderId, weight, paymentType }, null, 2),
-          responsePayload: JSON.stringify({ error: err.message || err }, null, 2),
-          status: 'Error'
-        });
-        return { success: false, error: `Velocity booking failed: ${err.message}` };
-      }
-    }
-
     // LIVE DTDC BOOKING
     if (courier === 'DTDC') {
       const isMockToken = apiKey.startsWith('MOCK') || apiKey.includes('tok_99store') || apiKey.includes('dummy');
       
       if (isMockToken) {
+        if (!isCourierSimulationEnabled()) {
+          return { success: false, error: 'DTDC credentials are missing or configured as placeholders. Courier simulation is disabled.' };
+        }
         const randomAwbSuffix = Math.floor(100000000 + Math.random() * 900000000).toString();
         const awb = `DTDC${randomAwbSuffix}`;
         const charge = 60 + weight * 30 + (paymentType === 'COD' ? 40 : 0);
@@ -931,6 +883,9 @@ export async function bookCourierShipment(
       const delhiveryBaseUrl = isProduction ? 'https://track.delhivery.com' : 'https://staging-express.delhivery.com';
 
       if (isMockToken) {
+        if (!isCourierSimulationEnabled()) {
+          return { success: false, error: 'Delhivery credentials are missing or configured as placeholders. Courier simulation is disabled.' };
+        }
         const randomAwbSuffix = Math.floor(100000000 + Math.random() * 900000000).toString();
         const awb = `99SDEL${randomAwbSuffix}`;
         const etaDays = 3;
@@ -1147,48 +1102,7 @@ export async function bookCourierShipment(
       return { success: true, awb: finalAwb, eta: etaString, courier: 'Delhivery', charge };
     }
 
-    // DEFAULT SIMULATED AWB GENERATION
-    const randomAwbSuffix = Math.floor(100000000 + Math.random() * 900000000).toString();
-    let awb = '';
-    let charge = 0;
-
-    switch (courier) {
-      case 'DTDC':
-        awb = `DTDC${randomAwbSuffix}`;
-        charge = 60 + weight * 30 + (paymentType === 'COD' ? 40 : 0);
-        break;
-      case 'Aggregator':
-        awb = `AG${randomAwbSuffix}`;
-        charge = 50 + weight * 20 + (paymentType === 'COD' ? 30 : 0);
-        break;
-    }
-
-    const etaDays = Math.floor(Math.random() * 3) + 2;
-    const etaDate = new Date();
-    etaDate.setDate(etaDate.getDate() + etaDays);
-    const etaString = etaDate.toISOString().split('T')[0];
-
-    const responsePayload = {
-      status: 'SUCCESS',
-      awb,
-      eta: etaString,
-      charge: parseFloat(charge.toFixed(2)),
-      shipper: '99Store Fulfillment Center - Delhi NCR',
-      apiKeyUsed: `${apiKey.slice(0, 6)}...${apiKey.slice(-4)}`
-    };
-
-    const successLog: CourierApiLog = {
-      id: `cl-success-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      courier,
-      action: 'Generate AWB',
-      requestPayload: JSON.stringify({ orderId: order.orderId, weight, paymentType }, null, 2),
-      responsePayload: JSON.stringify(responsePayload, null, 2),
-      status: 'Success'
-    };
-    await db.addCourierLog(successLog);
-
-    return { success: true, awb, eta: etaString, courier, charge };
+    return { success: false, error: `Unsupported courier selection: ${courier}.` };
   } catch (error: any) {
     return { success: false, error: error.message || 'Courier API execution failed.' };
   }

@@ -3,9 +3,14 @@ import { db } from '@/lib/db';
 import { Order, OrderStatus } from '@/lib/types';
 import { triggerWhatsAppNotification } from '@/lib/whatsapp';
 import { checkCourierServiceability } from '@/lib/utils';
+import { hasAllowedRole } from '@/lib/session';
+import { getActiveSession } from '@/lib/authorization';
+import { normalizeCustomerWhatsAppNumber } from '@/lib/customerPhone';
 
 export async function GET(request: Request) {
   try {
+    const session = await getActiveSession(request);
+    if (!session) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     const { searchParams } = new URL(request.url);
     
     // Parse query options
@@ -118,6 +123,10 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const session = await getActiveSession(request);
+    if (!session || !hasAllowedRole(session, ['Super Admin', 'Order Team'])) {
+      return NextResponse.json({ error: 'Order Team access required.' }, { status: 403 });
+    }
     const body = await request.json();
     const {
       customerName,
@@ -134,13 +143,17 @@ export async function POST(request: Request) {
       orderValue,
       weight,
       internalRemarks,
-      isVip,
-      createdBy
+      isVip
     } = body;
 
     // Validation (Module 2: weight is fixed to 0.2)
-    if (!customerName || !phonePrimary || !address || !pincode || !productDetails || !paymentType || !orderValue || !createdBy) {
+    if (!customerName || !phonePrimary || !phoneWhatsApp || !address || !pincode || !productDetails || !paymentType || !orderValue) {
       return NextResponse.json({ error: 'Missing required order fields.' }, { status: 400 });
+    }
+
+    const normalizedWhatsApp = normalizeCustomerWhatsAppNumber(phoneWhatsApp);
+    if (!normalizedWhatsApp) {
+      return NextResponse.json({ error: 'Enter a valid 10-digit customer WhatsApp number.' }, { status: 400 });
     }
 
     // Module 2: Fixed Order Weight Calibration (hardcoded default to 0.2)
@@ -163,16 +176,15 @@ export async function POST(request: Request) {
     const nextId = `ord-${maxNum + 1}`;
 
     const settings = await db.getSettings();
-    let assignedCourier: 'DTDC' | 'XpressBees' | 'Delhivery' | 'Aggregator' | 'Velocity' | 'Shadowfax' | undefined = undefined;
+    let assignedCourier: 'DTDC' | 'XpressBees' | 'Delhivery' | 'Shadowfax' | undefined = undefined;
 
     // Apply intelligent auto courier routing engine if enabled
     if (settings.autoCourierEnabled) {
-      const courierCandidates: { courier: 'DTDC' | 'XpressBees' | 'Delhivery' | 'Velocity' | 'Shadowfax'; priority: number; active: boolean }[] = [
+      const courierCandidates: { courier: 'DTDC' | 'XpressBees' | 'Delhivery' | 'Shadowfax'; priority: number; active: boolean }[] = [
         { courier: 'DTDC', priority: settings.dtdcConfig?.priority ?? 1, active: settings.dtdcActive },
         { courier: 'XpressBees', priority: settings.xpressbeesConfig?.priority ?? 2, active: settings.xpressbeesActive },
         { courier: 'Delhivery', priority: settings.deliveryConfig?.priority ?? 3, active: settings.deliveryActive },
-        { courier: 'Velocity', priority: settings.velocityConfig?.priority ?? 4, active: settings.velocityActive },
-        { courier: 'Shadowfax', priority: settings.shadowfaxConfig?.priority ?? 5, active: settings.shadowfaxActive }
+        { courier: 'Shadowfax', priority: settings.shadowfaxConfig?.priority ?? 4, active: settings.shadowfaxActive }
       ];
 
       const activeCandidates = courierCandidates
@@ -214,7 +226,7 @@ export async function POST(request: Request) {
       phonePrimary,
       phoneSecondary: phoneSecondary || undefined,
       phoneTertiary: phoneTertiary || phonePrimary, // Default to primary if not distinct
-      phoneWhatsApp: phoneWhatsApp || undefined,
+      phoneWhatsApp: normalizedWhatsApp,
       address,
       pincode,
       state: stateAndArea.state,
@@ -223,7 +235,7 @@ export async function POST(request: Request) {
       paymentType,
       orderValue: parsedValue,
       weight: finalWeight,
-      createdBy,
+      createdBy: session.username,
       isVip: !!isVip,
       status: 'Created',
       courier: assignedCourier,
@@ -235,8 +247,8 @@ export async function POST(request: Request) {
         {
           status: 'Created',
           timestamp: now,
-          updatedBy: createdBy,
-          remarks: `Order manually created by ${createdBy}.${assignedCourier ? ` Auto-routed to ${assignedCourier} based on package weight.` : ''}`
+          updatedBy: session.username,
+          remarks: `Order manually created by ${session.username}.${assignedCourier ? ` Auto-routed to ${assignedCourier} based on package weight.` : ''}`
         }
       ]
     };
@@ -271,8 +283,12 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const session = await getActiveSession(request);
+    if (!session || !hasAllowedRole(session, ['Super Admin', 'Order Team'])) {
+      return NextResponse.json({ error: 'Order Team access required.' }, { status: 403 });
+    }
     const body = await request.json();
-    const { orderIds, deletedBy, role } = body;
+    const { orderIds } = body;
 
     if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
       return NextResponse.json({ error: 'No order IDs provided for bulk deletion.' }, { status: 400 });
@@ -285,15 +301,15 @@ export async function DELETE(request: Request) {
     for (const id of orderIds) {
       const order = await db.getOrderById(id);
       if (order && !order.isDeleted) {
-        if (role === 'Super Admin' || (role === 'Order Team' && order.status === 'Created')) {
+        if (session.role === 'Super Admin' || (session.role === 'Order Team' && order.status === 'Created')) {
           order.isDeleted = true;
           order.deletedAt = now;
-          order.deletedBy = deletedBy || 'user';
+          order.deletedBy = session.username;
           order.history.push({
             status: order.status,
             timestamp: now,
-            updatedBy: deletedBy || 'user',
-            remarks: `Bulk deleted by ${deletedBy} (${role}).`
+            updatedBy: session.username,
+            remarks: `Bulk deleted by ${session.username} (${session.role}).`
           });
           await db.saveOrder(order);
           deletedCount++;

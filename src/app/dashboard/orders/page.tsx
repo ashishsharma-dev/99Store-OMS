@@ -187,7 +187,6 @@ export default function Orders() {
 
   const handleWhatsAppClick = async (order: Order) => {
     const defaultSelected: string[] = [];
-    if (order.phonePrimary) defaultSelected.push(order.phonePrimary.trim());
     if (order.phoneWhatsApp) defaultSelected.push(order.phoneWhatsApp.trim());
     
     const uniqueDefaults = Array.from(new Set(defaultSelected)).filter(Boolean);
@@ -233,7 +232,7 @@ export default function Orders() {
       const res = await fetch(`/api/orders/${order.id}/whatsapp-track`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetNumbers: selectedNumbers, template: templateKey })
+        body: JSON.stringify({ template: templateKey })
       });
       const data = await res.json();
       
@@ -588,8 +587,13 @@ export default function Orders() {
     e.preventDefault();
     setFormError('');
 
-    if (!customerName || !phonePrimary || !address || !pincode || !productDetails || !orderValue || !weight) {
+    if (!customerName || !phonePrimary || !phoneWhatsApp || !address || !pincode || !productDetails || !orderValue || !weight) {
       setFormError('Please enter all required fields.');
+      return;
+    }
+
+    if (!/^[6-9]\d{9}$/.test(phoneWhatsApp)) {
+      setFormError('Please enter a valid 10-digit customer WhatsApp number.');
       return;
     }
 
@@ -942,7 +946,6 @@ export default function Orders() {
             <option value="DTDC">DTDC Express</option>
             <option value="XpressBees">XpressBees</option>
             <option value="Delhivery">Delhivery</option>
-            <option value="Velocity">Velocity</option>
             <option value="Shadowfax">Shadowfax</option>
           </select>
           <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
@@ -1391,8 +1394,8 @@ export default function Orders() {
 
                 <div className="premium-grid-2" style={{ marginBottom: '12px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '4px', textTransform: 'uppercase' }}>WhatsApp Number</label>
-                    <input type="tel" className="premium-input" placeholder="9876543213" value={phoneWhatsApp} onChange={(e) => setPhoneWhatsApp(e.target.value.replace(/\D/g, ''))} />
+                    <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '4px', textTransform: 'uppercase' }}>Customer WhatsApp Number *</label>
+                    <input type="tel" className="premium-input" placeholder="9876543213" value={phoneWhatsApp} onChange={(e) => setPhoneWhatsApp(e.target.value.replace(/\D/g, '').slice(0, 10))} required pattern="[6-9][0-9]{9}" />
                   </div>
                   <div>
                     {/* Balanced empty grid item */}
@@ -1870,15 +1873,12 @@ export default function Orders() {
 
             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <p style={{ color: '#A3A3A3', fontSize: '13px', margin: 0, lineHeight: '1.5' }}>
-                Select recipient numbers for order <strong>{whatsAppSelectModal.order.orderId}</strong>:
+                Messages for order <strong>{whatsAppSelectModal.order.orderId}</strong> are sent only to the customer WhatsApp number:
               </p>
 
               {/* Recipient select checkboxes */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 {[
-                  { label: 'Primary Contact (Customer)', value: whatsAppSelectModal.order.phonePrimary },
-                  { label: 'Secondary Contact (Alternate)', value: whatsAppSelectModal.order.phoneSecondary },
-                  { label: 'Tertiary Contact (Alternate)', value: whatsAppSelectModal.order.phoneTertiary },
                   { label: 'WhatsApp Number', value: whatsAppSelectModal.order.phoneWhatsApp },
                 ].filter(item => item.value && item.value.trim() !== '').map((item, idx) => {
                   const cleanNum = item.value!.trim();
@@ -1901,14 +1901,7 @@ export default function Orders() {
                       <input 
                         type="checkbox"
                         checked={isChecked}
-                        onChange={() => {
-                          setWhatsAppSelectModal(prev => {
-                            const newNumbers = prev.selectedNumbers.includes(cleanNum)
-                              ? prev.selectedNumbers.filter(n => n !== cleanNum)
-                              : [...prev.selectedNumbers, cleanNum];
-                            return { ...prev, selectedNumbers: newNumbers };
-                          });
-                        }}
+                        readOnly
                         style={{ width: '15px', height: '15px', accentColor: '#10B981', cursor: 'pointer' }}
                       />
                       <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>

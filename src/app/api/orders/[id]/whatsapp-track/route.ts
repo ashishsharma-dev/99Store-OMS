@@ -14,8 +14,11 @@ export async function POST(
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    // Try parsing body for specific targetNumbers selection and template/status override
-    let targetNumbers: string[] | undefined = undefined;
+    if (!order.phoneWhatsApp) {
+      return NextResponse.json({ error: 'This order does not have a customer WhatsApp number.' }, { status: 400 });
+    }
+
+    // The recipient is fixed server-side; the request may only select a template/status.
     let targetStatus = order.status;
     try {
       const body = await request.json();
@@ -24,9 +27,6 @@ export async function POST(
           targetStatus = body.template;
         } else if (body.status) {
           targetStatus = body.status;
-        }
-        if (Array.isArray(body.targetNumbers)) {
-          targetNumbers = body.targetNumbers;
         }
       }
     } catch (e) {
@@ -54,6 +54,8 @@ export async function POST(
       customerName: order.customerName,
       phonePrimary: order.phonePrimary,
       phoneSecondary: order.phoneSecondary,
+      phoneTertiary: order.phoneTertiary,
+      phoneWhatsApp: order.phoneWhatsApp,
       status: targetStatus,
       awb: order.awb || 'PENDING',
       courier: order.courier || 'N/A',
@@ -61,7 +63,6 @@ export async function POST(
       orderValue: order.orderValue,
       paymentType: order.paymentType,
       baseUrl,
-      targetNumbers,
       isOnDemand: true
     });
 

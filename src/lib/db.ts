@@ -4,6 +4,7 @@ import { mockUsers, mockSettings, mockOrders, mockNdrs, mockWhatsAppLogs, mockCo
 import fs from 'fs';
 import path from 'path';
 import dns from 'dns';
+import { applyIntegrationSecrets, stripIntegrationSecrets } from './integrationSecrets';
 
 try {
   dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
@@ -15,6 +16,22 @@ function escapeRegExp(string: string) {
 }
 
 const DB_FILE_PATH = path.join(process.cwd(), 'data', 'db.json');
+
+function mergeSettings(overrides?: Partial<SystemSettings>): SystemSettings {
+  return {
+    ...mockSettings,
+    ...(overrides || {}),
+    dtdcConfig: { ...mockSettings.dtdcConfig, ...(overrides?.dtdcConfig || {}) },
+    xpressbeesConfig: {
+      ...mockSettings.xpressbeesConfig,
+      ...(overrides?.xpressbeesConfig || {}),
+      airAccount: overrides?.xpressbeesConfig?.airAccount || mockSettings.xpressbeesConfig.airAccount,
+      surfaceAccount: overrides?.xpressbeesConfig?.surfaceAccount || mockSettings.xpressbeesConfig.surfaceAccount,
+    },
+    deliveryConfig: { ...mockSettings.deliveryConfig, ...(overrides?.deliveryConfig || {}) },
+    shadowfaxConfig: { ...mockSettings.shadowfaxConfig, ...(overrides?.shadowfaxConfig || {}) },
+  };
+}
 
 // --- IN-MEMORY PRIMARY DB & INDEXING ENGINE ---
 let localDb: any = null;
@@ -34,10 +51,10 @@ let memoryOrders: Order[] = localDb.orders || [...mockOrders];
 let memoryNdrs: NdrRecord[] = localDb.ndr || [...mockNdrs];
 let memoryWhatsAppLogs: WhatsAppLog[] = localDb.whatsappLogs || [...mockWhatsAppLogs];
 let memoryCourierLogs: CourierApiLog[] = localDb.courierLogs || [...mockCourierLogs];
-let memorySettings: SystemSettings = localDb.settings ? { ...mockSettings, ...localDb.settings } : { ...mockSettings };
+let memorySettings: SystemSettings = applyIntegrationSecrets(mergeSettings(localDb.settings));
 let memoryMessages: Message[] = localDb.messages || [...mockMessages];
 let memoryTrackingEvents: any[] = localDb.tracking_events || [];
-let memoryBulkJobs: any[] = localDb.bulk_jobs || [];
+const memoryBulkJobs: any[] = localDb.bulk_jobs || [];
 
 // Fast O(1) Hash Map Index Maps
 const idUserMap = new Map<string, User>();
@@ -80,6 +97,9 @@ let saveTimer: NodeJS.Timeout | null = null;
 
 function saveMemoryToLocalFile() {
   rebuildIndexes();
+  if (process.env.NODE_ENV === 'test' || process.env.NODE_TEST_CONTEXT || process.env.DISABLE_LOCAL_DB_WRITES === 'true') {
+    return;
+  }
   if (isDiskSaveScheduled) return;
   isDiskSaveScheduled = true;
 
@@ -93,7 +113,7 @@ function saveMemoryToLocalFile() {
         ndr: memoryNdrs,
         whatsappLogs: memoryWhatsAppLogs,
         courierLogs: memoryCourierLogs,
-        settings: memorySettings,
+        settings: stripIntegrationSecrets(memorySettings),
         messages: memoryMessages,
         tracking_events: memoryTrackingEvents,
         bulk_jobs: memoryBulkJobs
@@ -187,7 +207,7 @@ async function performWeeklyBackupIfDue() {
           ndr: memoryNdrs,
           whatsappLogs: memoryWhatsAppLogs,
           courierLogs: memoryCourierLogs,
-          settings: memorySettings,
+          settings: stripIntegrationSecrets(memorySettings),
           messages: memoryMessages,
           tracking_events: memoryTrackingEvents,
           bulk_jobs: memoryBulkJobs
@@ -195,6 +215,10 @@ async function performWeeklyBackupIfDue() {
       }
 
       if (dataToBackup) {
+        if (dataToBackup.settings) {
+          const { _id, key, ...backupSettings } = dataToBackup.settings;
+          dataToBackup.settings = { ...stripIntegrationSecrets(mergeSettings(backupSettings)), key: key || 'system-settings' };
+        }
         const backupName = database ? `db-backup-mongo-${now}.json` : `db-backup-local-${now}.json`;
         const backupPath = path.join(backupDir, backupName);
         await fs.promises.writeFile(backupPath, JSON.stringify(dataToBackup, null, 2), 'utf-8');
@@ -250,7 +274,7 @@ export const db = {
     memoryNdrs = [...mockNdrs];
     memoryWhatsAppLogs = [...mockWhatsAppLogs];
     memoryCourierLogs = [...mockCourierLogs];
-    memorySettings = { ...mockSettings };
+    memorySettings = applyIntegrationSecrets(mergeSettings());
     memoryMessages = [...mockMessages];
     memoryTrackingEvents = [];
     saveMemoryToLocalFile();
@@ -272,7 +296,7 @@ export const db = {
         if (mockNdrs.length > 0) await database.collection('ndr').insertMany(mockNdrs);
         if (mockWhatsAppLogs.length > 0) await database.collection('whatsappLogs').insertMany(mockWhatsAppLogs);
         if (mockCourierLogs.length > 0) await database.collection('courierLogs').insertMany(mockCourierLogs);
-        await database.collection('settings').insertOne({ ...mockSettings, key: 'system-settings' });
+        await database.collection('settings').insertOne({ ...stripIntegrationSecrets(mockSettings), key: 'system-settings' });
         if (mockMessages.length > 0) await database.collection('messages').insertMany(mockMessages);
       } catch (e) {
         console.warn('MongoDB reset warning:', e);
@@ -357,7 +381,14 @@ export const db = {
 
     const database = await safeGetDb();
     if (database) {
-      database.collection('users').replaceOne({ id: user.id }, enriched as any, { upsert: true }).catch(console.warn);
+      // OTP verification reads MongoDB first, so the generated OTP must be
+      // committed before the send-otp request reports success. Leaving this
+      // write in the background creates a race with an immediate login request.
+      await database.collection('users').replaceOne(
+        { id: user.id },
+        enriched as any,
+        { upsert: true },
+      );
     }
     return enriched;
   },
@@ -406,6 +437,148 @@ export const db = {
       } catch (e) {}
     }
     return orderIdOrderMap.get(orderId.toLowerCase());
+  },
+  claimCourierBooking: async (
+    id: string,
+    attemptId: string,
+  ): Promise<{
+    status: 'claimed' | 'already_booked' | 'in_progress' | 'reconciliation_required';
+    order: Order;
+  } | { status: 'not_found' | 'unavailable'; order?: undefined }> => {
+    const now = new Date().toISOString();
+    const database = await safeGetDb();
+
+    if (database) {
+      try {
+        const existingRaw = await database.collection('orders').findOne({ id });
+        if (!existingRaw) return { status: 'not_found' };
+        const { _id, ...existingRest } = existingRaw as any;
+        const existing = existingRest as Order;
+        if (existing.awb) return { status: 'already_booked', order: existing };
+        if (existing.courierBookingStatus === 'Reconciliation Required') {
+          return { status: 'reconciliation_required', order: existing };
+        }
+
+        const claimedRaw = await database.collection('orders').findOneAndUpdate(
+          {
+            id,
+            $and: [
+              { $or: [{ awb: { $exists: false } }, { awb: null }, { awb: '' }] },
+              {
+                $or: [
+                  { courierBookingStatus: { $exists: false } },
+                  { courierBookingStatus: 'Failed' },
+                ],
+              },
+            ],
+          },
+          {
+            $set: {
+              courierBookingStatus: 'Processing',
+              courierBookingAttemptId: attemptId,
+              courierBookingStartedAt: now,
+              courierBookingError: '',
+              updatedAt: now,
+            },
+            $inc: { courierBookingAttempts: 1 },
+          },
+          { returnDocument: 'after' },
+        );
+        const claimedDoc = (claimedRaw as any)?.value || claimedRaw;
+        if (claimedDoc) {
+          const { _id: claimedId, ...claimedRest } = claimedDoc as any;
+          const claimed = claimedRest as Order;
+          const idx = memoryOrders.findIndex(order => order.id === id);
+          if (idx >= 0) memoryOrders[idx] = claimed;
+          else memoryOrders.push(claimed);
+          saveMemoryToLocalFile();
+          return { status: 'claimed', order: claimed };
+        }
+
+        const latestRaw = await database.collection('orders').findOne({ id });
+        if (!latestRaw) return { status: 'not_found' };
+        const { _id: latestId, ...latestRest } = latestRaw as any;
+        const latest = latestRest as Order;
+        if (latest.awb) return { status: 'already_booked', order: latest };
+        if (latest.courierBookingStatus === 'Reconciliation Required' || latest.courierBookingStatus === 'Booked') {
+          return { status: 'reconciliation_required', order: latest };
+        }
+        return { status: 'in_progress', order: latest };
+      } catch (error) {
+        console.warn('MongoDB claimCourierBooking warning:', error);
+        return { status: 'unavailable' };
+      }
+    }
+
+    if (process.env.USE_MONGODB === 'true') {
+      return { status: 'unavailable' };
+    }
+
+    const existing = idOrderMap.get(id);
+    if (!existing) return { status: 'not_found' };
+    if (existing.awb) return { status: 'already_booked', order: existing };
+    if (existing.courierBookingStatus === 'Reconciliation Required') {
+      return { status: 'reconciliation_required', order: existing };
+    }
+    if (existing.courierBookingStatus === 'Processing') {
+      return { status: 'in_progress', order: existing };
+    }
+
+    existing.courierBookingStatus = 'Processing';
+    existing.courierBookingAttemptId = attemptId;
+    existing.courierBookingStartedAt = now;
+    existing.courierBookingError = undefined;
+    existing.courierBookingAttempts = (existing.courierBookingAttempts || 0) + 1;
+    existing.updatedAt = now;
+    saveMemoryToLocalFile();
+    return { status: 'claimed', order: existing };
+  },
+  finalizeCourierBooking: async (
+    id: string,
+    attemptId: string,
+    result: {
+      status: 'Booked' | 'Failed' | 'Reconciliation Required';
+      awb?: string;
+      eta?: string;
+      courier?: string;
+      shipmentContactPhone?: string;
+      shipmentContactType?: string;
+      error?: string;
+    },
+  ): Promise<boolean> => {
+    const now = new Date().toISOString();
+    const setValues: Record<string, unknown> = {
+      courierBookingStatus: result.status,
+      courierBookingCompletedAt: now,
+      courierBookingError: result.error || '',
+      updatedAt: now,
+    };
+    if (result.awb) setValues.awb = result.awb;
+    if (result.eta) setValues.eta = result.eta;
+    if (result.courier) setValues.courier = result.courier;
+    if (result.shipmentContactPhone) setValues.shipmentContactPhone = result.shipmentContactPhone;
+    if (result.shipmentContactType) setValues.shipmentContactType = result.shipmentContactType;
+
+    const database = await safeGetDb();
+    if (database) {
+      try {
+        const updateResult = await database.collection('orders').updateOne(
+          { id, courierBookingAttemptId: attemptId },
+          { $set: setValues },
+        );
+        if (updateResult.matchedCount === 0) return false;
+      } catch (error) {
+        console.warn('MongoDB finalizeCourierBooking warning:', error);
+        return false;
+      }
+    }
+
+    const order = idOrderMap.get(id);
+    if (order && order.courierBookingAttemptId === attemptId) {
+      Object.assign(order, setValues);
+      saveMemoryToLocalFile();
+    }
+    return true;
   },
   saveOrder: async (order: Order): Promise<Order> => {
     const idx = memoryOrders.findIndex(o => o.id === order.id);
@@ -554,36 +727,7 @@ export const db = {
         const result = await database.collection('settings').findOne({ key: 'system-settings' });
         if (result) {
           const { _id, key, ...rest } = result as any;
-          const settings = {
-            ...mockSettings,
-            ...rest,
-            shadowfaxActive: rest.shadowfaxActive !== undefined ? rest.shadowfaxActive : (mockSettings.shadowfaxActive ?? true),
-            shadowfaxConfig: {
-              ...mockSettings.shadowfaxConfig,
-              ...(rest.shadowfaxConfig || {})
-            }
-          } as SystemSettings;
-
-          if (
-            settings.dtdcConfig &&
-            (settings.dtdcConfig.customerCode === 'GL018' ||
-             settings.dtdcConfig.customerCode === 'MOCK_CUST' ||
-             settings.dtdcConfig.apiKey === 'f4ae602554b4a185d21695991885f0' ||
-             settings.dtdcConfig.apiKey === 'dtdc_live_sec_99store_8a9238bc')
-          ) {
-            settings.dtdcConfig = {
-              ...settings.dtdcConfig,
-              apiKey: 'e614c8b751f65543f53eced95f4174',
-              customerCode: 'UO4125',
-              serviceTypeId: 'B2C PRIORITY',
-              commodityId: '2',
-              username: 'UO4125_trk_json',
-              password: 'wm4tH',
-              accessToken: 'UO4125_trk_json:7a9d27b8932b2194e13e1665680c6d32'
-            };
-            database.collection('settings').updateOne({ key: 'system-settings' }, { $set: { dtdcConfig: settings.dtdcConfig } }).catch(console.warn);
-          }
-          return settings;
+          return applyIntegrationSecrets(mergeSettings(rest));
         }
       } catch (e) {}
     }
@@ -595,16 +739,69 @@ export const db = {
       saveMemoryToLocalFile();
     }
 
+    memorySettings = applyIntegrationSecrets(memorySettings);
     return memorySettings;
   },
+  takeXpressBeesAwb: async (): Promise<string | undefined> => {
+    const database = await safeGetDb();
+    if (database) {
+      try {
+        const beforeRaw = await database.collection('settings').findOneAndUpdate(
+          { key: 'system-settings', 'xpressbeesAwbPool.0': { $exists: true } },
+          { $pop: { xpressbeesAwbPool: -1 } },
+          { returnDocument: 'before' },
+        );
+        const before = (beforeRaw as any)?.value || beforeRaw;
+        const awb = before?.xpressbeesAwbPool?.[0];
+        if (typeof awb === 'string' && awb.trim()) {
+          memorySettings.xpressbeesAwbPool = (memorySettings.xpressbeesAwbPool || []).filter(value => value !== awb);
+          saveMemoryToLocalFile();
+          return awb;
+        }
+        return undefined;
+      } catch (error) {
+        console.warn('MongoDB takeXpressBeesAwb warning:', error);
+        return undefined;
+      }
+    }
+
+    const awb = memorySettings.xpressbeesAwbPool?.shift();
+    if (awb) saveMemoryToLocalFile();
+    return awb;
+  },
+  addXpressBeesAwbs: async (awbs: string[]): Promise<number> => {
+    const normalized = [...new Set(awbs.map(awb => String(awb).trim()).filter(Boolean))];
+    if (normalized.length === 0) return 0;
+
+    const existing = new Set(memorySettings.xpressbeesAwbPool || []);
+    const additions = normalized.filter(awb => !existing.has(awb));
+    memorySettings.xpressbeesAwbPool = [...(memorySettings.xpressbeesAwbPool || []), ...additions];
+    saveMemoryToLocalFile();
+
+    const database = await safeGetDb();
+    if (database) {
+      try {
+        await database.collection('settings').updateOne(
+          { key: 'system-settings' },
+          { $addToSet: { xpressbeesAwbPool: { $each: normalized } } },
+          { upsert: true },
+        );
+      } catch (error) {
+        console.warn('MongoDB addXpressBeesAwbs warning:', error);
+      }
+    }
+
+    return additions.length;
+  },
   saveSettings: async (settings: SystemSettings): Promise<SystemSettings> => {
-    memorySettings = { ...settings };
+    memorySettings = applyIntegrationSecrets(settings);
     saveMemoryToLocalFile();
     const database = await safeGetDb();
     if (database) {
-      database.collection('settings').replaceOne({ key: 'system-settings' }, { ...settings as any, key: 'system-settings' }, { upsert: true }).catch(console.warn);
+      const persistedSettings = stripIntegrationSecrets(memorySettings);
+      database.collection('settings').replaceOne({ key: 'system-settings' }, { ...persistedSettings as any, key: 'system-settings' }, { upsert: true }).catch(console.warn);
     }
-    return settings;
+    return memorySettings;
   },
 
   // --- MESSAGES OPERATIONS ---
@@ -704,11 +901,13 @@ export const db = {
 
 // Background backup runner
 if (typeof window === 'undefined') {
-  setTimeout(() => {
+  const initialBackupTimer = setTimeout(() => {
     performWeeklyBackupIfDue().catch(console.error);
   }, 10000);
+  initialBackupTimer.unref?.();
 
-  setInterval(() => {
+  const recurringBackupTimer = setInterval(() => {
     performWeeklyBackupIfDue().catch(console.error);
   }, 24 * 60 * 60 * 1000);
+  recurringBackupTimer.unref?.();
 }

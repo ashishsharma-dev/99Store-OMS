@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { OrderStatus } from '@/lib/types';
+import { verifyWebhookSignature } from '@/lib/webhookSecurity';
 
 function mapShadowfaxEventToOrderStatus(event: string, statusDisplay?: string): OrderStatus | null {
   const evt = (event || statusDisplay || '').toLowerCase();
@@ -17,7 +18,11 @@ function mapShadowfaxEventToOrderStatus(event: string, statusDisplay?: string): 
 
 export async function POST(request: Request) {
   try {
-    const payload = await request.json();
+    const rawBody = await request.text();
+    if (!verifyWebhookSignature(rawBody, request.headers, process.env.SHADOWFAX_WEBHOOK_SECRET)) {
+      return NextResponse.json({ error: 'Invalid webhook signature.' }, { status: 401 });
+    }
+    const payload = JSON.parse(rawBody);
 
     await db.addCourierLog({
       id: `cl-sfx-webhook-${Date.now()}`,

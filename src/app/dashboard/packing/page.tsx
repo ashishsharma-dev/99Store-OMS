@@ -17,12 +17,13 @@ import {
   Filter,
   ChevronDown
 } from 'lucide-react';
-import { Order, OrderStatus } from '@/lib/types';
+import { Order, OrderStatus, ShipmentContactType } from '@/lib/types';
 import { HealvitaShippingLabel } from '@/components/HealvitaShippingLabel';
 import { printThermalLabel } from '@/lib/printLabel';
 import { CourierLogo } from '@/components/CourierLogo';
 import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
 import { checkCourierServiceability } from '@/lib/utils';
+import { getShipmentContactValue, resolveShipmentContact } from '@/lib/shipmentContact';
 
 export default function Packing() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -39,10 +40,10 @@ export default function Packing() {
   const [showPrintLabel, setShowPrintLabel] = useState(false);
 
   // Selected courier overrides for each order during packing
-  const [courierOverrides, setCourierOverrides] = useState<Record<string, 'DTDC' | 'XpressBees' | 'Delhivery' | 'Aggregator' | 'Velocity' | 'Shadowfax'>>({});
+  const [courierOverrides, setCourierOverrides] = useState<Record<string, 'DTDC' | 'XpressBees' | 'Delhivery' | 'Shadowfax'>>({});
   
-  // Primary phone selection override if customer has multiple phone numbers
-  const [phoneSelections, setPhoneSelections] = useState<Record<string, string>>({});
+  // Shipment-specific contact selection; the order's four contact fields remain unchanged.
+  const [phoneSelections, setPhoneSelections] = useState<Record<string, ShipmentContactType>>({});
   
   // Selection states for bulk actions
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -61,7 +62,7 @@ export default function Packing() {
   const [courierFilter, setCourierFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
-  const [contactBindingFilter, setContactBindingFilter] = useState<string>('Primary');
+  const [contactBindingFilter, setContactBindingFilter] = useState<Exclude<ShipmentContactType, 'Custom'>>('Primary');
 
   // Reassign Modal States
   const [reassignOrder, setReassignOrder] = useState<Order | null>(null);
@@ -85,13 +86,18 @@ export default function Packing() {
   // Single AWB Dispatch Modal State
   const [singleDispatchOrder, setSingleDispatchOrder] = useState<Order | null>(null);
   const [singleDispatchCourier, setSingleDispatchCourier] = useState<string>('DTDC');
-  const [singleDispatchPhoneChoice, setSingleDispatchPhoneChoice] = useState<string>('Primary');
+  const [singleDispatchPhoneChoice, setSingleDispatchPhoneChoice] = useState<ShipmentContactType>('Primary');
   const [singleDispatchCustomPhone, setSingleDispatchCustomPhone] = useState<string>('');
 
   // Bulk AWB Dispatch Modal State
   const [showBulkDispatchModal, setShowBulkDispatchModal] = useState<boolean>(false);
   const [bulkDispatchCourier, setBulkDispatchCourier] = useState<string>('DTDC');
-  const [bulkDispatchPhoneBinding, setBulkDispatchPhoneBinding] = useState<string>('Primary');
+  const [bulkDispatchPhoneBinding, setBulkDispatchPhoneBinding] = useState<Exclude<ShipmentContactType, 'Custom'>>('Primary');
+
+  const [scanInput, setScanInput] = useState('');
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanResult, setScanResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const scanInputRef = useRef<HTMLInputElement>(null);
 
   // Infinite Scroll Reset
   useEffect(() => {
@@ -191,8 +197,8 @@ export default function Packing() {
     setCourierOverrides(prev => ({ ...prev, [orderId]: courier }));
   };
 
-  const handlePhoneSelectChange = (orderId: string, phoneNumber: string) => {
-    setPhoneSelections(prev => ({ ...prev, [orderId]: phoneNumber }));
+  const handlePhoneSelectChange = (orderId: string, contactType: ShipmentContactType) => {
+    setPhoneSelections(prev => ({ ...prev, [orderId]: contactType }));
   };
 
   const handleSelectOrder = (orderId: string) => {
@@ -224,6 +230,7 @@ export default function Packing() {
         o.phonePrimary.includes(q) ||
         (o.phoneSecondary && o.phoneSecondary.includes(q)) ||
         (o.phoneTertiary && o.phoneTertiary.includes(q)) ||
+        (o.phoneWhatsApp && o.phoneWhatsApp.includes(q)) ||
         (o.awb && o.awb.toLowerCase().includes(q)) ||
         (o.pincode && o.pincode.includes(q)) ||
         o.address.toLowerCase().includes(q);
@@ -318,7 +325,7 @@ export default function Packing() {
   const handleOpenSingleDispatchModal = (order: Order) => {
     setSingleDispatchOrder(order);
     setSingleDispatchCourier(courierOverrides[order.id] || order.courier || 'DTDC');
-    setSingleDispatchPhoneChoice('Primary');
+    setSingleDispatchPhoneChoice(phoneSelections[order.id] || order.shipmentContactType || 'Primary');
     setSingleDispatchCustomPhone('');
   };
 
@@ -326,26 +333,37 @@ export default function Packing() {
   const confirmSingleDispatch = async () => {
     if (!singleDispatchOrder) return;
 
-    let targetPhone = singleDispatchOrder.phonePrimary;
-    if (singleDispatchPhoneChoice === 'Secondary' && singleDispatchOrder.phoneSecondary) {
-      targetPhone = singleDispatchOrder.phoneSecondary;
-    } else if (singleDispatchPhoneChoice === 'Tertiary' && singleDispatchOrder.phoneTertiary) {
-      targetPhone = singleDispatchOrder.phoneTertiary;
-    } else if (singleDispatchPhoneChoice === 'Custom' && singleDispatchCustomPhone.trim()) {
-      targetPhone = singleDispatchCustomPhone.trim();
+    try {
+      resolveShipmentContact(singleDispatchOrder, singleDispatchPhoneChoice, singleDispatchCustomPhone);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Please select a valid shipment contact number.');
+      return;
     }
 
     const orderToProcess = singleDispatchOrder;
     const courierChoice = singleDispatchCourier;
     setSingleDispatchOrder(null);
-    handleGenerateLabel(orderToProcess, courierChoice, targetPhone);
+    handleGenerateLabel(orderToProcess, courierChoice, singleDispatchPhoneChoice, singleDispatchCustomPhone);
   };
 
   // Generate AWB for single order
-  const handleGenerateLabel = async (order: Order, courierChoice?: string, phoneChoice?: string) => {
-    setProcessingOrderId(order.id);
+  const handleGenerateLabel = async (
+    order: Order,
+    courierChoice?: string,
+    contactType: ShipmentContactType = phoneSelections[order.id] || 'Primary',
+    customPhone?: string,
+  ) => {
     const selectedCourier = courierChoice || courierOverrides[order.id] || order.courier || 'DTDC';
-    const targetPhone = phoneChoice || phoneSelections[order.id] || order.phonePrimary;
+    let shipmentContact;
+
+    try {
+      shipmentContact = resolveShipmentContact(order, contactType, customPhone);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Please select a valid shipment contact number.');
+      return;
+    }
+
+    setProcessingOrderId(order.id);
 
     try {
       const res = await fetch(`/api/orders/${order.id}`, {
@@ -354,9 +372,10 @@ export default function Packing() {
         body: JSON.stringify({
           status: 'Label Generated',
           courier: selectedCourier,
-          phonePrimary: targetPhone,
+          shipmentContactPhone: shipmentContact.phone,
+          shipmentContactType: shipmentContact.type,
           updatedBy: currentUser?.username || 'packing_operator',
-          remarks: `Packed items verified. Routing via ${selectedCourier} courier with shipping number ${targetPhone}.`
+          remarks: `Packed items verified. Routing via ${selectedCourier} using the selected ${shipmentContact.type} shipment contact.`
         })
       });
 
@@ -412,6 +431,41 @@ export default function Packing() {
     }
   };
 
+  const handleBarcodeDispatch = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const barcode = scanInput.trim();
+    if (!barcode || scanLoading) return;
+
+    setScanLoading(true);
+    setScanResult(null);
+    try {
+      const res = await fetch('/api/orders/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ barcode }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setScanResult({ ok: false, message: data.error || 'Unable to dispatch this barcode.' });
+      } else {
+        const notificationMessage = data.notificationSent
+          ? 'Customer WhatsApp notification sent.'
+          : `Parcel dispatched, but WhatsApp failed${data.notificationError ? `: ${data.notificationError}` : '.'}`;
+        setScanResult({
+          ok: data.notificationSent,
+          message: `${data.order.orderId}${data.alreadyDispatched ? ' was already dispatched.' : ' dispatched successfully.'} ${notificationMessage}`,
+        });
+        setScanInput('');
+        await fetchPackingQueue();
+      }
+    } catch {
+      setScanResult({ ok: false, message: 'Barcode dispatch network error.' });
+    } finally {
+      setScanLoading(false);
+      window.setTimeout(() => scanInputRef.current?.focus(), 0);
+    }
+  };
+
   // Open bulk dispatch modal
   const handleOpenBulkDispatchModal = () => {
     if (selectedIds.length === 0) return;
@@ -420,11 +474,15 @@ export default function Packing() {
       alert('No selected orders require AWB generation.');
       return;
     }
+    setBulkDispatchPhoneBinding(contactBindingFilter);
     setShowBulkDispatchModal(true);
   };
 
   // BULK ACTIONS
-  const executeBulkGenerateLabels = async (chosenCourier: string, chosenPhoneBinding: string) => {
+  const executeBulkGenerateLabels = async (
+    chosenCourier: string,
+    chosenPhoneBinding: Exclude<ShipmentContactType, 'Custom'>,
+  ) => {
     if (selectedIds.length === 0) return;
 
     const pendingAWB = orders.filter(o => selectedIds.includes(o.id) && !o.awb);
@@ -702,6 +760,33 @@ export default function Packing() {
         </div>
       </div>
 
+      <form onSubmit={handleBarcodeDispatch} className="premium-card" style={{ padding: '14px 18px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', borderColor: '#10B981' }}>
+        <Barcode size={20} style={{ color: '#34D399' }} />
+        <div style={{ minWidth: '180px' }}>
+          <div style={{ color: '#FAFAFA', fontSize: '13px', fontWeight: 600 }}>Scan parcel to dispatch</div>
+          <div style={{ color: '#737373', fontSize: '11px' }}>Accepts the order barcode or courier AWB.</div>
+        </div>
+        <input
+          ref={scanInputRef}
+          className="premium-input"
+          value={scanInput}
+          onChange={(event) => setScanInput(event.target.value)}
+          placeholder="Scan barcode and press Enter"
+          autoComplete="off"
+          autoFocus
+          disabled={scanLoading}
+          style={{ flex: 1, minWidth: '240px' }}
+        />
+        <button type="submit" className="premium-btn premium-btn-primary" disabled={scanLoading || !scanInput.trim()} style={{ backgroundColor: '#10B981', borderColor: '#10B981' }}>
+          {scanLoading ? 'Dispatching...' : 'Scan & Dispatch'}
+        </button>
+        {scanResult && (
+          <div style={{ width: '100%', color: scanResult.ok ? '#34D399' : '#F87171', fontSize: '12px' }} role="status">
+            {scanResult.message}
+          </div>
+        )}
+      </form>
+
       {/* Queue Counter Dashboard banner */}
       <div className="premium-card" style={{ padding: '14px 20px', display: 'flex', gap: '16px', alignItems: 'center', backgroundColor: '#0F0F11', borderStyle: 'dashed', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -831,7 +916,6 @@ export default function Packing() {
             <option value="DTDC">DTDC Express</option>
             <option value="XpressBees">XpressBees Logistics</option>
             <option value="Delhivery">Delhivery Express</option>
-            <option value="Velocity">Velocity Logistics</option>
             <option value="Shadowfax">Shadowfax (SFX)</option>
           </select>
           <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
@@ -853,11 +937,12 @@ export default function Packing() {
               cursor: 'pointer'
             }}
             value={contactBindingFilter}
-            onChange={(e) => setContactBindingFilter(e.target.value)}
+            onChange={(e) => setContactBindingFilter(e.target.value as Exclude<ShipmentContactType, 'Custom'>)}
           >
-            <option value="Primary">Primary Store Contact</option>
-            <option value="Secondary">Secondary Fulfillment Hub</option>
-            <option value="Tertiary">CUSTOMER_NUMBER (Masked)</option>
+            <option value="Primary">Primary Contact (Settings)</option>
+            <option value="Secondary">Secondary Contact (Settings)</option>
+            <option value="Customer">Customer Number</option>
+            <option value="WhatsApp">WhatsApp / Additional Number</option>
           </select>
           <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
         </div>
@@ -942,8 +1027,9 @@ export default function Packing() {
               {filteredOrders.slice(0, displayLimit).map((o) => {
                 const isProcessing = processingOrderId === o.id || bulkProcessing;
                 const activeCourier = courierOverrides[o.id] || o.courier || 'DTDC';
-                const hasMultiplePhones = o.phoneSecondary || o.phoneTertiary;
-                const activePhone = phoneSelections[o.id] || o.phonePrimary;
+                const hasMultiplePhones = Boolean(o.phoneSecondary || o.phoneTertiary || o.phoneWhatsApp);
+                const activePhoneType = phoneSelections[o.id] || o.shipmentContactType || 'Primary';
+                const activePhone = getShipmentContactValue(o, activePhoneType) || o.shipmentContactPhone || o.phonePrimary;
 
                 // Color highlights for partially paid amount
                 const isPartiallyPaid = o.partiallyPaidAmount !== undefined && o.partiallyPaidAmount > 0;
@@ -1014,7 +1100,6 @@ export default function Packing() {
                               <option value="XpressBees Air">XpressBees Air</option>
                               <option value="XpressBees Surface">XpressBees Surface</option>
                               <option value="Delhivery">Delhivery (Priority 3)</option>
-                              <option value="Aggregator">Aggregator API</option>
                               <option value="Shadowfax">Shadowfax (SFX)</option>
                             </select>
                             {!isServiceable && (
@@ -1036,18 +1121,19 @@ export default function Packing() {
                             <select
                               className="premium-input"
                               style={{ padding: '2px 6px', fontSize: '11px', width: '100%', borderColor: '#F59E0B' }}
-                              value={activePhone}
-                              onChange={(e) => handlePhoneSelectChange(o.id, e.target.value)}
+                              value={activePhoneType}
+                              onChange={(e) => handlePhoneSelectChange(o.id, e.target.value as ShipmentContactType)}
                               disabled={isProcessing}
                             >
-                              <option value={o.phonePrimary}>{o.phonePrimary} (Prim)</option>
-                              {o.phoneSecondary && <option value={o.phoneSecondary}>{o.phoneSecondary} (Sec)</option>}
-                              {o.phoneTertiary && <option value={o.phoneTertiary}>CUSTOMER_NUMBER (Tert)</option>}
+                              <option value="Primary">{o.phonePrimary} (Primary / Settings)</option>
+                              {o.phoneSecondary && <option value="Secondary">{o.phoneSecondary} (Secondary / Settings)</option>}
+                              {o.phoneTertiary && <option value="Customer">{o.phoneTertiary} (Customer)</option>}
+                              {o.phoneWhatsApp && <option value="WhatsApp">{o.phoneWhatsApp} (WhatsApp / Additional)</option>}
                             </select>
                           </div>
                         ) : (
                           <span style={{ fontSize: '11px', color: '#8A8A8A', fontFamily: 'monospace' }}>
-                            {activePhone === o.phoneTertiary ? 'CUSTOMER_NUMBER' : activePhone}
+                            {activePhone}
                           </span>
                         )}
                       </div>
@@ -1161,7 +1247,14 @@ export default function Packing() {
                       marginBottom: idx < printingOrders.length - 1 ? '20px' : '0'
                     }}
                   >
-                    <HealvitaShippingLabel order={order} phoneSelection={phoneSelections[order.id]} />
+                    <HealvitaShippingLabel
+                      order={order}
+                      phoneSelection={
+                        phoneSelections[order.id]
+                          ? getShipmentContactValue(order, phoneSelections[order.id])
+                          : order.shipmentContactPhone
+                      }
+                    />
                   </div>
                 ))}
               </div>
@@ -1522,7 +1615,6 @@ export default function Packing() {
                   <option value="DTDC">DTDC</option>
                   <option value="XpressBees">XpressBees</option>
                   <option value="Delhivery">Delhivery</option>
-                  <option value="Velocity">Velocity</option>
                   <option value="Shadowfax">Shadowfax</option>
                 </select>
               </div>
@@ -1575,7 +1667,6 @@ export default function Packing() {
                   <option value="DTDC">DTDC Express</option>
                   <option value="XpressBees">XpressBees Logistics</option>
                   <option value="Delhivery">Delhivery Express</option>
-                  <option value="Velocity">Velocity Logistics</option>
                   <option value="Shadowfax">Shadowfax (SFX Unified)</option>
                 </select>
               </div>
@@ -1628,27 +1719,29 @@ export default function Packing() {
                   <option value="DTDC">DTDC Express (Priority 1)</option>
                   <option value="XpressBees">XpressBees Logistics</option>
                   <option value="Delhivery">Delhivery Express</option>
-                  <option value="Velocity">Velocity Logistics</option>
                   <option value="Shadowfax">Shadowfax SFX</option>
                 </select>
               </div>
 
               <div>
                 <label style={{ fontSize: '11px', color: '#A1A1AA', display: 'block', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 600 }}>
-                  Select Primary Parcel Contact Number:
+                  Select Shipment Contact Number:
                 </label>
                 <select
                   className="premium-input"
                   style={{ padding: '8px 12px', fontSize: '13px', width: '100%', borderColor: '#F59E0B' }}
                   value={singleDispatchPhoneChoice}
-                  onChange={(e) => setSingleDispatchPhoneChoice(e.target.value)}
+                  onChange={(e) => setSingleDispatchPhoneChoice(e.target.value as ShipmentContactType)}
                 >
-                  <option value="Primary">Primary Customer Phone: {singleDispatchOrder.phonePrimary}</option>
+                  <option value="Primary">Primary Contact (Settings): {singleDispatchOrder.phonePrimary}</option>
                   {singleDispatchOrder.phoneSecondary && (
-                    <option value="Secondary">Secondary Phone: {singleDispatchOrder.phoneSecondary}</option>
+                    <option value="Secondary">Secondary Contact (Settings): {singleDispatchOrder.phoneSecondary}</option>
                   )}
                   {singleDispatchOrder.phoneTertiary && (
-                    <option value="Tertiary">Tertiary Customer Number</option>
+                    <option value="Customer">Customer Number: {singleDispatchOrder.phoneTertiary}</option>
+                  )}
+                  {singleDispatchOrder.phoneWhatsApp && (
+                    <option value="WhatsApp">WhatsApp / Additional Number: {singleDispatchOrder.phoneWhatsApp}</option>
                   )}
                   <option value="Custom">Custom Phone Number Input</option>
                 </select>
@@ -1658,9 +1751,9 @@ export default function Packing() {
                     type="text"
                     className="premium-input"
                     style={{ marginTop: '8px', padding: '8px 12px', fontSize: '13px', width: '100%' }}
-                    placeholder="Enter 10-digit primary phone number..."
+                    placeholder="Enter a 10-digit shipment contact number..."
                     value={singleDispatchCustomPhone}
-                    onChange={(e) => setSingleDispatchCustomPhone(e.target.value)}
+                    onChange={(e) => setSingleDispatchCustomPhone(e.target.value.replace(/\D/g, '').slice(0, 12))}
                   />
                 )}
               </div>
@@ -1713,24 +1806,24 @@ export default function Packing() {
                   <option value="DTDC">DTDC Express (Priority 1)</option>
                   <option value="XpressBees">XpressBees Logistics</option>
                   <option value="Delhivery">Delhivery Express</option>
-                  <option value="Velocity">Velocity Logistics</option>
                   <option value="Shadowfax">Shadowfax SFX</option>
                 </select>
               </div>
 
               <div>
                 <label style={{ fontSize: '11px', color: '#A1A1AA', display: 'block', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 600 }}>
-                  Select Primary Parcel Phone Binding:
+                  Select Shipment Contact For All Orders:
                 </label>
                 <select
                   className="premium-input"
                   style={{ padding: '8px 12px', fontSize: '13px', width: '100%', borderColor: '#F59E0B' }}
                   value={bulkDispatchPhoneBinding}
-                  onChange={(e) => setBulkDispatchPhoneBinding(e.target.value)}
+                  onChange={(e) => setBulkDispatchPhoneBinding(e.target.value as Exclude<ShipmentContactType, 'Custom'>)}
                 >
-                  <option value="Primary">Primary Store Phone (Default)</option>
-                  <option value="Secondary">Secondary Hub Phone</option>
-                  <option value="Tertiary">Tertiary Customer Phone</option>
+                  <option value="Primary">Primary Contact (Settings)</option>
+                  <option value="Secondary">Secondary Contact (Settings)</option>
+                  <option value="Customer">Customer Number</option>
+                  <option value="WhatsApp">WhatsApp / Additional Number</option>
                 </select>
               </div>
             </div>

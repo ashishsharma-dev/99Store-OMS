@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { SystemSettings } from '@/lib/types';
+import { getActiveSession } from '@/lib/authorization';
 
-export async function GET() {
+async function isSuperAdmin(request: Request) {
+  return (await getActiveSession(request))?.role === 'Super Admin';
+}
+
+export async function GET(request: Request) {
   try {
+    if (!await isSuperAdmin(request)) return NextResponse.json({ error: 'Super Admin access required.' }, { status: 403 });
     const settings = await db.getSettings();
     const whatsappLogs = await db.getWhatsAppLogs();
     const courierLogs = await db.getCourierLogs();
@@ -21,6 +27,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    if (!await isSuperAdmin(request)) return NextResponse.json({ error: 'Super Admin access required.' }, { status: 403 });
     const body = await request.json();
 
     // Check if it is a request to reset the database
@@ -40,18 +47,6 @@ export async function POST(request: Request) {
         success: true, 
         message: 'All orders and NDR logs have been successfully deleted.'
       });
-    }
-
-    // Module 5: Role-Based Hierarchy for Contact Configurations (RBAC Check)
-    const userRole = request.headers.get('x-user-role') || body.userRole || '';
-    const isUpdatingContacts = body.primaryContactNumbers !== undefined || body.secondaryContactNumbers !== undefined;
-    const isAdmin = userRole === 'Super Admin' || userRole === 'Admin' || userRole.toLowerCase().includes('admin');
-
-    if (isUpdatingContacts && !isAdmin) {
-      return NextResponse.json(
-        { error: '403 Forbidden: Only Admin session roles can edit global contact configurations.' },
-        { status: 403 }
-      );
     }
 
     const settings = await db.getSettings();
@@ -89,13 +84,10 @@ export async function POST(request: Request) {
       dtdcActive: typeof body.dtdcActive === 'boolean' ? body.dtdcActive : settings.dtdcActive,
       xpressbeesActive: typeof body.xpressbeesActive === 'boolean' ? body.xpressbeesActive : settings.xpressbeesActive,
       deliveryActive: typeof body.deliveryActive === 'boolean' ? body.deliveryActive : settings.deliveryActive,
-      aggregatorActive: typeof body.aggregatorActive === 'boolean' ? body.aggregatorActive : settings.aggregatorActive,
-      velocityActive: typeof body.velocityActive === 'boolean' ? body.velocityActive : settings.velocityActive,
       shadowfaxActive: typeof body.shadowfaxActive === 'boolean' ? body.shadowfaxActive : settings.shadowfaxActive,
       dtdcConfig: body.dtdcConfig ? { ...settings.dtdcConfig, ...body.dtdcConfig } : settings.dtdcConfig,
       xpressbeesConfig: body.xpressbeesConfig ? { ...settings.xpressbeesConfig, ...body.xpressbeesConfig } : settings.xpressbeesConfig,
       deliveryConfig: body.deliveryConfig ? { ...settings.deliveryConfig, ...body.deliveryConfig } : settings.deliveryConfig,
-      velocityConfig: body.velocityConfig ? { ...settings.velocityConfig, ...body.velocityConfig } : settings.velocityConfig,
       shadowfaxConfig: body.shadowfaxConfig ? { ...settings.shadowfaxConfig, ...body.shadowfaxConfig } : settings.shadowfaxConfig,
     };
 

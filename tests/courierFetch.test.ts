@@ -116,7 +116,7 @@ describe('Courier Fetch With Retry Unit Tests', () => {
           {
             fetchFn: mockFetch as any,
             awb: '10004',
-            courierName: 'Velocity',
+            courierName: 'Delhivery',
             timeoutMs: 5000,
             maxAttempts: 3,
             initialDelayMs: 10

@@ -114,7 +114,6 @@ export async function POST(request: Request) {
       eta, 
       orderValue, 
       paymentType,
-      targetNumbers,
       isOnDemand
     } = body;
 
@@ -138,7 +137,6 @@ export async function POST(request: Request) {
       orderValue,
       paymentType,
       baseUrl,
-      targetNumbers,
       isOnDemand
     });
 

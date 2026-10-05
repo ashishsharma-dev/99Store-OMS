@@ -3,9 +3,17 @@ import { db } from '@/lib/db';
 import { NdrRecord } from '@/lib/types';
 import { triggerWhatsAppNotification } from '@/lib/whatsapp';
 import { getXpressBeesToken } from '@/lib/xpressbees';
+import { hasAllowedRole } from '@/lib/session';
+import { getActiveSession } from '@/lib/authorization';
+
+async function authorizeTracking(request: Request) {
+  const session = await getActiveSession(request);
+  return session && hasAllowedRole(session, ['Super Admin', 'Tracking Team']) ? session : null;
+}
 
 export async function GET(request: Request) {
   try {
+    if (!await authorizeTracking(request)) return NextResponse.json({ error: 'Tracking Team access required.' }, { status: 403 });
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
@@ -70,10 +78,12 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const session = await authorizeTracking(request);
+    if (!session) return NextResponse.json({ error: 'Tracking Team access required.' }, { status: 403 });
     const body = await request.json();
-    const { id, status, reattemptDate, internalNotes, actionRemarks, updatedBy, addRemarkOnly } = body;
+    const { id, status, reattemptDate, internalNotes, actionRemarks, addRemarkOnly } = body;
 
-    if (!id || (!status && !addRemarkOnly) || !updatedBy) {
+    if (!id || (!status && !addRemarkOnly)) {
       return NextResponse.json({ error: 'Missing required NDR update fields.' }, { status: 400 });
     }
 
@@ -95,7 +105,7 @@ export async function POST(request: Request) {
       record.temporal_remarks.push({
         remark_text: actionRemarks,
         created_at: now,
-        author_user_id: updatedBy
+        author_user_id: session.username
       });
     }
 
@@ -103,7 +113,7 @@ export async function POST(request: Request) {
     record.history.push({
       action: addRemarkOnly ? 'User Remark Added' : `Status Update: ${status}`,
       timestamp: now,
-      remarks: actionRemarks || `NDR status changed from ${previousStatus} to ${status} by ${updatedBy}.`
+      remarks: actionRemarks || `NDR status changed from ${previousStatus} to ${status} by ${session.username}.`
     });
 
     await db.saveNdrRecord(record);
@@ -122,7 +132,7 @@ export async function POST(request: Request) {
         order.history.push({
           status: 'Dispatched',
           timestamp: now,
-          updatedBy,
+          updatedBy: session.username,
           remarks: `Delivery re-attempt scheduled for ${reattemptDate}. NDR Escalation closed.`
         });
         await db.saveOrder(order);
@@ -145,7 +155,7 @@ export async function POST(request: Request) {
               
               let targetNdrUrl;
               let ndrPayload;
-              let headersObj: any = {
+              const headersObj: any = {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
               };
@@ -242,8 +252,8 @@ export async function POST(request: Request) {
         order.history.push({
           status: 'Return',
           timestamp: now,
-          updatedBy,
-          remarks: `NDR Escalation marked as Return to Origin (RTO) by ${updatedBy}. Package returning.`
+          updatedBy: session.username,
+          remarks: `NDR Escalation marked as Return to Origin (RTO) by ${session.username}. Package returning.`
         });
         await db.saveOrder(order);
       }
@@ -258,16 +268,14 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const session = await authorizeTracking(request);
+    if (!session) return NextResponse.json({ error: 'Tracking Team access required.' }, { status: 403 });
     const body = await request.json();
-    const { id, ids, deletedBy, role } = body;
+    const { id, ids } = body;
     const targetIds = ids || (id ? [id] : []);
 
     if (!targetIds || targetIds.length === 0) {
       return NextResponse.json({ error: 'No NDR IDs provided for deletion.' }, { status: 400 });
-    }
-
-    if (role !== 'Super Admin' && role !== 'Tracking Team') {
-      return NextResponse.json({ error: `Role '${role}' is not authorized to delete NDR records.` }, { status: 403 });
     }
 
     let deletedCount = 0;
@@ -278,11 +286,11 @@ export async function DELETE(request: Request) {
       if (rec && !rec.isDeleted) {
         rec.isDeleted = true;
         rec.deletedAt = now;
-        rec.deletedBy = deletedBy || 'user';
+        rec.deletedBy = session.username;
         rec.history.push({
           action: 'NDR Record Deleted',
           timestamp: now,
-          remarks: `NDR Record deleted by ${deletedBy} (${role}).`
+          remarks: `NDR Record deleted by ${session.username} (${session.role}).`
         });
         await db.saveNdrRecord(rec);
         deletedCount++;

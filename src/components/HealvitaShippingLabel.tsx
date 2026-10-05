@@ -164,7 +164,7 @@ function numberToWords(num: number): string {
   let integerPart = Math.floor(num);
 
   while (integerPart > 0) {
-    let rem = integerPart % 1000;
+    const rem = integerPart % 1000;
     if (rem > 0) {
       word = makeGroup(rem) + g[i] + ' ' + word;
     }

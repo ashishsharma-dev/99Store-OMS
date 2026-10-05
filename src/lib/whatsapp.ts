@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { WhatsAppLog } from '@/lib/types';
 import { WalabzClient } from '@/lib/walabz';
 import { generatePackingSlipImage } from '@/lib/screenshot';
+import { normalizeCustomerWhatsAppNumber } from '@/lib/customerPhone';
 
 export interface TriggerWhatsAppParams {
   orderId: string;
@@ -18,7 +19,6 @@ export interface TriggerWhatsAppParams {
   paymentType: string;
   productName?: string;
   baseUrl?: string;
-  targetNumbers?: string[];
   isOnDemand?: boolean;
 }
 
@@ -227,7 +227,6 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
     paymentType,
     productName,
     baseUrl,
-    targetNumbers,
     isOnDemand
   } = params;
 
@@ -241,55 +240,10 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
   const courierSupportName = settings.whatsappCourierSupportName || 'Courier Helpdesk';
   const courierSupportNumber = settings.whatsappCourierSupportNumber || settings.secondaryContactNumbers?.[0] || '+91 9123456789';
 
-  // Recipient resolution: Always target the customer's actual phone numbers
+  // Notifications are intentionally restricted to the customer's dedicated WhatsApp number.
   const order = await db.getOrderByOrderId(orderId);
-  const allNumbers = new Set<string>();
-
-  if (targetNumbers && targetNumbers.length > 0) {
-    targetNumbers.forEach(n => allNumbers.add(n.trim()));
-  } else {
-    // 1. Identify store admin and hub numbers to avoid spamming merchant phones
-    const storeNumbers = new Set(
-      [
-        ...(settings.primaryContactNumbers || []),
-        ...(settings.secondaryContactNumbers || []),
-        '9876543210',
-        '9123456789',
-        '+91 9876543210',
-        '+91 9123456789'
-      ].map(n => n.replace(/\D/g, ''))
-    );
-
-    // 2. Identify candidate customer numbers in priority order
-    const customerCandidates = [
-      phoneWhatsApp,
-      order?.phoneWhatsApp,
-      phoneTertiary,
-      order?.phoneTertiary,
-      phonePrimary,
-      order?.phonePrimary,
-      phoneSecondary,
-      order?.phoneSecondary
-    ].filter(n => n && typeof n === 'string' && n.trim().length >= 10) as string[];
-
-    // 3. Add numbers that are NOT the store's own admin/hub contacts
-    let customerFound = false;
-    for (const num of customerCandidates) {
-      const clean = num.replace(/\D/g, '');
-      const last10 = clean.slice(-10);
-      if (!storeNumbers.has(clean) && !storeNumbers.has(last10)) {
-        allNumbers.add(num.trim());
-        customerFound = true;
-      }
-    }
-
-    // 4. Fallback: if no dedicated non-store number found, use primary phone
-    if (!customerFound && phonePrimary) {
-      allNumbers.add(phonePrimary.trim());
-    }
-  }
-
-  const uniqueNumbers = Array.from(allNumbers).filter(n => n && n.trim().length >= 10);
+  const customerWhatsApp = normalizeCustomerWhatsAppNumber(order?.phoneWhatsApp || phoneWhatsApp);
+  const uniqueNumbers = customerWhatsApp ? [customerWhatsApp] : [];
   if (uniqueNumbers.length === 0) {
     console.warn(`[WhatsApp Dispatcher] No valid recipient phone numbers found for order ${orderId}.`);
     return logsSent;

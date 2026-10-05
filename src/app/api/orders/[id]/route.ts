@@ -1,14 +1,19 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { Order, OrderStatus, NdrRecord } from '@/lib/types';
+import { OrderStatus, NdrRecord, ShipmentContactType } from '@/lib/types';
 import { triggerWhatsAppNotification } from '@/lib/whatsapp';
-import { bookCourierShipment } from '@/lib/courierHelper';
+import { bookOrderCourierShipment } from '@/lib/courierReliability';
+import { isShipmentContactType, resolveShipmentContact } from '@/lib/shipmentContact';
+import { hasAllowedRole } from '@/lib/session';
+import { getActiveSession } from '@/lib/authorization';
+import { normalizeCustomerWhatsAppNumber } from '@/lib/customerPhone';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (!await getActiveSession(request)) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     const { id } = await params;
     const order = await db.getOrderById(id);
     if (!order) {
@@ -32,12 +37,13 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getActiveSession(request);
+    if (!session) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     const { id } = await params;
     const body = await request.json();
     const { 
       status, 
-      remarks, 
-      updatedBy, 
+      remarks,
       courier, 
       awb, 
       eta,
@@ -47,12 +53,10 @@ export async function PATCH(
       inNdrWorkingSheet,
       ndrAction,
       futureDeliveryDate,
-      isVip
+      isVip,
+      shipmentContactPhone,
+      shipmentContactType
     } = body;
-
-    if (!updatedBy) {
-      return NextResponse.json({ error: 'updatedBy is a required field.' }, { status: 400 });
-    }
 
     const order = await db.getOrderById(id);
     if (!order) {
@@ -62,6 +66,35 @@ export async function PATCH(
     const previousStatus = order.status;
     const now = new Date().toISOString();
     const targetStatus = status || previousStatus;
+    const statusChanged = Boolean(status && targetStatus !== previousStatus);
+    const waTriggerStatuses = ['Label Generated', 'Dispatched', 'OFD', 'Delivered', 'NDR', 'Return'];
+    if (statusChanged && waTriggerStatuses.includes(targetStatus) && !normalizeCustomerWhatsAppNumber(order.phoneWhatsApp)) {
+      return NextResponse.json({ error: 'A valid customer WhatsApp number is required before this status change.' }, { status: 400 });
+    }
+    let selectedShipmentContact: { type: ShipmentContactType; phone: string } | null = null;
+
+    if (targetStatus === 'Label Generated' && !order.awb) {
+      const requestedContactType: ShipmentContactType = shipmentContactType === undefined
+        ? (shipmentContactPhone ? 'Custom' : 'Primary')
+        : shipmentContactType;
+
+      if (!isShipmentContactType(requestedContactType)) {
+        return NextResponse.json({ error: 'Invalid shipmentContactType.' }, { status: 400 });
+      }
+
+      try {
+        selectedShipmentContact = resolveShipmentContact(
+          order,
+          requestedContactType,
+          requestedContactType === 'Custom' ? shipmentContactPhone : undefined,
+        );
+      } catch (error) {
+        return NextResponse.json(
+          { error: error instanceof Error ? error.message : 'Invalid shipment contact number.' },
+          { status: 400 },
+        );
+      }
+    }
 
     // 1. Update status and tracking details
     order.status = targetStatus as OrderStatus;
@@ -101,32 +134,45 @@ export async function PATCH(
       const selectedCourier = courier || order.courier || 'DTDC';
       try {
         const settings = await db.getSettings();
-        const courierData = await bookCourierShipment(
+        const courierData = await bookOrderCourierShipment(
           order,
           settings,
-          order.weight,
-          selectedCourier,
-          order.phonePrimary
+          {
+            weight: order.weight,
+            courier: selectedCourier,
+            phone: selectedShipmentContact?.phone || order.phonePrimary,
+            shipmentContactType: selectedShipmentContact?.type,
+          },
         );
 
         if (courierData.success) {
           order.awb = courierData.awb;
           order.eta = courierData.eta;
           order.courier = courierData.courier as any;
-          if (courierData.velocity_label_url) {
-            order.velocity_label_url = courierData.velocity_label_url;
+          if (selectedShipmentContact) {
+            order.shipmentContactPhone = selectedShipmentContact.phone;
+            order.shipmentContactType = selectedShipmentContact.type;
           }
-          if (courierData.velocity_shipment_id) {
-            order.velocity_shipment_id = courierData.velocity_shipment_id;
-          }
+          order.courierBookingStatus = 'Booked';
+          order.courierBookingError = undefined;
+          order.courierBookingCompletedAt = new Date().toISOString();
           systemRemarks += ` (Automated: AWB ${courierData.awb} generated via ${selectedCourier} API successfully.)`;
         } else {
+          if (courierData.error?.includes('already in progress')) {
+            return NextResponse.json({ error: courierData.error }, { status: 409 });
+          }
           awbError = courierData.error || 'Unknown Error';
+          order.status = previousStatus;
+          order.courierBookingStatus = courierData.reconciliationRequired ? 'Reconciliation Required' : 'Failed';
+          order.courierBookingError = awbError;
           systemRemarks += ` (Warning: Automated AWB generation failed: ${awbError})`;
         }
       } catch (err: any) {
         console.error('Background courier generation failed:', err);
         awbError = err.message || 'Courier integration API network error.';
+        order.status = previousStatus;
+        order.courierBookingStatus = 'Reconciliation Required';
+        order.courierBookingError = awbError || 'Courier integration API network error.';
         systemRemarks += ` (Warning: Courier integration API network error.)`;
       }
     }
@@ -137,14 +183,14 @@ export async function PATCH(
       order.temporal_remarks.push({
         remark_text: remarks,
         created_at: now,
-        author_user_id: updatedBy || 'system'
+        author_user_id: session.username
       });
     }
 
     order.history.push({
       status: order.status,
       timestamp: now,
-      updatedBy,
+      updatedBy: session.username,
       remarks: systemRemarks
     });
 
@@ -180,8 +226,7 @@ export async function PATCH(
     }
 
     // D. Trigger Automated WhatsApp messaging for logistics
-    const waTriggerStatuses = ['Label Generated', 'Dispatched', 'OFD', 'Delivered', 'NDR', 'Return'];
-    if (status && waTriggerStatuses.includes(status)) {
+    if (statusChanged && waTriggerStatuses.includes(targetStatus)) {
       const baseUrl = new URL(request.url).origin;
       // Trigger real WhatsApp in background directly, bypassing loopback network dependencies
       triggerWhatsAppNotification({
@@ -214,16 +259,12 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getActiveSession(request);
+    if (!session || !hasAllowedRole(session, ['Super Admin'])) {
+      return NextResponse.json({ error: 'Super Admin access required.' }, { status: 403 });
+    }
     const { id } = await params;
     const body = await request.json();
-    
-    // Check permission - must be Admin
-    const userRole = request.headers.get('x-user-role') || body.role || '';
-    const isAdmin = userRole === 'Super Admin' || userRole === 'Admin' || userRole.toLowerCase().includes('admin');
-    
-    if (!isAdmin) {
-      return NextResponse.json({ error: '403 Forbidden: Only Admin role can edit orders.' }, { status: 403 });
-    }
 
     const order = await db.getOrderById(id);
     if (!order) {
@@ -247,9 +288,15 @@ export async function PUT(
       weight,
       internalRemarks,
       isVip,
-      partiallyPaidAmount,
-      updatedBy
+      partiallyPaidAmount
     } = body;
+
+    const normalizedWhatsApp = normalizeCustomerWhatsAppNumber(
+      phoneWhatsApp !== undefined ? phoneWhatsApp : order.phoneWhatsApp,
+    );
+    if (!normalizedWhatsApp) {
+      return NextResponse.json({ error: 'Enter a valid 10-digit customer WhatsApp number.' }, { status: 400 });
+    }
 
     const now = new Date().toISOString();
 
@@ -277,7 +324,7 @@ export async function PUT(
     if (phonePrimary !== undefined) order.phonePrimary = phonePrimary;
     if (phoneSecondary !== undefined) order.phoneSecondary = phoneSecondary || undefined;
     if (phoneTertiary !== undefined) order.phoneTertiary = phoneTertiary || undefined;
-    if (phoneWhatsApp !== undefined) order.phoneWhatsApp = phoneWhatsApp || undefined;
+    order.phoneWhatsApp = normalizedWhatsApp;
     if (address !== undefined) order.address = address;
     if (pincode !== undefined) order.pincode = pincode;
     if (state !== undefined) order.state = state;
@@ -300,7 +347,7 @@ export async function PUT(
     order.history.push({
       status: order.status,
       timestamp: now,
-      updatedBy: updatedBy || 'admin',
+      updatedBy: session.username,
       remarks: `Order details edited/corrected by admin.`
     });
 
@@ -316,10 +363,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getActiveSession(request);
+    if (!session || !hasAllowedRole(session, ['Super Admin', 'Order Team'])) {
+      return NextResponse.json({ error: 'Order Team access required.' }, { status: 403 });
+    }
     const { id } = await params;
-    const { searchParams } = new URL(request.url);
-    const deletedBy = searchParams.get('deletedBy') || 'user';
-    const userRole = searchParams.get('role') || '';
 
     const order = await db.getOrderById(id);
     if (!order) {
@@ -327,11 +375,7 @@ export async function DELETE(
     }
 
     // Role Permission Checks
-    if (userRole !== 'Super Admin' && userRole !== 'Order Team') {
-      return NextResponse.json({ error: `Role '${userRole}' is not authorized to delete orders.` }, { status: 403 });
-    }
-
-    if (userRole === 'Order Team' && order.status !== 'Created') {
+    if (session.role === 'Order Team' && order.status !== 'Created') {
       return NextResponse.json({ error: `Order Team can only delete orders in Created status.` }, { status: 403 });
     }
 
@@ -339,12 +383,12 @@ export async function DELETE(
     const now = new Date().toISOString();
     order.isDeleted = true;
     order.deletedAt = now;
-    order.deletedBy = deletedBy;
+    order.deletedBy = session.username;
     order.history.push({
       status: order.status,
       timestamp: now,
-      updatedBy: deletedBy,
-      remarks: `Order marked as deleted by ${deletedBy} (${userRole}).`
+      updatedBy: session.username,
+      remarks: `Order marked as deleted by ${session.username} (${session.role}).`
     });
 
     await db.saveOrder(order);

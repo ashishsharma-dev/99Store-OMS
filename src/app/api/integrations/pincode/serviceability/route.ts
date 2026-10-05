@@ -23,9 +23,6 @@ function checkCourierServiceabilityFallback(pincode: string, courier: string): b
   if (normalizedCourier.includes('shadowfax') || normalizedCourier.includes('sfx')) {
     return prefix !== '8';
   }
-  if (normalizedCourier.includes('velocity') || normalizedCourier.includes('aggregator')) {
-    return prefix !== '3';
-  }
 
   return true;
 }
@@ -106,7 +103,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ serviceable: checkCourierServiceabilityFallback(pincode, courier), method: 'Static Fallback' });
     }
 
-    // 3. Fallback for DTDC, Velocity, Aggregators
+    // 3. Static fallback for couriers without a live serviceability response.
     const staticCheck = checkCourierServiceabilityFallback(pincode, courier);
     return NextResponse.json({ serviceable: staticCheck, method: 'Static Fallback' });
 

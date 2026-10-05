@@ -1,29 +1,31 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { isOtpBypassEnabled, verifyPassword } from '@/lib/auth';
+import { clearRateLimit, consumeRateLimit, getClientIp } from '@/lib/rateLimit';
+import { createSessionToken, SESSION_COOKIE_NAME, sessionCookieOptions } from '@/lib/session';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { username, otp, bypassIpCheck } = body;
+    const { username, otp } = body;
 
     if (!username) {
       return NextResponse.json({ error: 'Username is required.' }, { status: 400 });
     }
 
-    // 1. IP Whitelist Security Verification
-    const settings = await db.getSettings();
-    const headers = request.headers;
-    let clientIp = headers.get('x-forwarded-for') || headers.get('x-real-ip') || '127.0.0.1';
-    
-    // Clean up IPv6 loopback or proxy arrays
-    if (clientIp.includes(',')) {
-      clientIp = clientIp.split(',')[0].trim();
-    }
-    if (clientIp === '::1') {
-      clientIp = '127.0.0.1';
+    const normalizedUsername = String(username).trim().toLowerCase();
+    const clientIp = getClientIp(request);
+    const rateLimitKey = `login:${clientIp}:${normalizedUsername}`;
+    const rateLimit = consumeRateLimit(rateLimitKey, 8, 10 * 60 * 1000);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many login attempts. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfterSeconds) } },
+      );
     }
 
-    if (settings.isIpWhitelistEnabled && !bypassIpCheck) {
+    const settings = await db.getSettings();
+    if (settings.isIpWhitelistEnabled) {
       const isWhitelisted = settings.ipWhitelist.some(ip => ip.trim() === clientIp.trim());
       
       // If client IP is not whitelisted
@@ -38,7 +40,7 @@ export async function POST(request: Request) {
     }
 
     // 3. Retrieve user
-    const user = await db.getUserByUsername(username);
+    const user = await db.getUserByUsername(normalizedUsername);
     if (!user) {
       return NextResponse.json({ error: 'User account not found. Please contact your Super Admin.' }, { status: 404 });
     }
@@ -53,9 +55,9 @@ export async function POST(request: Request) {
     }
 
     // Check for standard bypass or real OTP
-    const isBypass = otp === '999999' || process.env.DISABLE_OTP === 'true';
+    const isBypass = isOtpBypassEnabled() && otp === '999999';
     if (!isBypass) {
-      if (!user.tempOtp || user.tempOtp !== otp) {
+      if (!user.tempOtp || !verifyPassword(otp, user.tempOtp)) {
         return NextResponse.json({ error: 'Incorrect OTP code.' }, { status: 401 });
       }
 
@@ -72,9 +74,9 @@ export async function POST(request: Request) {
     // Update user's last login IP and save
     user.lastLoginIp = clientIp;
     await db.saveUser(user);
+    clearRateLimit(rateLimitKey);
 
-    // Return the authenticated session details
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       user: {
         id: user.id,
@@ -84,6 +86,8 @@ export async function POST(request: Request) {
         lastLoginIp: clientIp
       }
     });
+    response.cookies.set(SESSION_COOKIE_NAME, createSessionToken(user), sessionCookieOptions());
+    return response;
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Authentication error.' }, { status: 500 });

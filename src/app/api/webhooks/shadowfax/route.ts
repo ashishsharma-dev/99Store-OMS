@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { syncOrderStatus } from '@/lib/courierSync';
+import { verifyWebhookSignature } from '@/lib/webhookSecurity';
 
 export async function POST(request: Request) {
   try {
-    const payload = await request.json();
+    const rawBody = await request.text();
+    if (!verifyWebhookSignature(rawBody, request.headers, process.env.SHADOWFAX_WEBHOOK_SECRET)) {
+      return NextResponse.json({ error: 'Invalid webhook signature.' }, { status: 401 });
+    }
+    const payload = JSON.parse(rawBody);
 
     const awb = payload.awb_number || payload.awb || payload.waybill;
     const orderId = payload.order_id || payload.orderId;

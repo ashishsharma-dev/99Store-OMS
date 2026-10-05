@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { syncOrderStatus } from '@/lib/courierSync';
+import { verifyWebhookSignature } from '@/lib/webhookSecurity';
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const rawBody = await request.text();
+    if (!verifyWebhookSignature(rawBody, request.headers, process.env.DTDC_WEBHOOK_SECRET)) {
+      return NextResponse.json({ error: 'Invalid webhook signature.' }, { status: 401 });
+    }
+    const body = JSON.parse(rawBody);
 
     // 1. Extract Tracking Identifiers & Event details
     const awb =

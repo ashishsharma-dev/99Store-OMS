@@ -2,11 +2,31 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { User, UserRole } from '@/lib/types';
 import { hashPassword } from '@/lib/auth';
+import { getActiveSession } from '@/lib/authorization';
 
-export async function GET() {
+async function authorize(request: Request) {
+  const session = await getActiveSession(request);
+  return session?.role === 'Super Admin' ? session : null;
+}
+
+function publicUser(user: User) {
+  return {
+    id: user.id,
+    username: user.username,
+    name: user.name,
+    role: user.role,
+    isActive: user.isActive,
+    lastLoginIp: user.lastLoginIp,
+    createdAt: user.createdAt,
+    phone: user.phone,
+  };
+}
+
+export async function GET(request: Request) {
   try {
+    if (!await authorize(request)) return NextResponse.json({ error: 'Super Admin access required.' }, { status: 403 });
     const users = await db.getUsers();
-    return NextResponse.json({ success: true, users });
+    return NextResponse.json({ success: true, users: users.map(publicUser) });
   } catch (error: any) {
     return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
   }
@@ -14,6 +34,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    if (!await authorize(request)) return NextResponse.json({ error: 'Super Admin access required.' }, { status: 403 });
     const body = await request.json();
     const { username, name, role, isActive, phone, password } = body;
 
@@ -38,7 +59,7 @@ export async function POST(request: Request) {
     };
 
     await db.saveUser(newUser);
-    return NextResponse.json({ success: true, user: newUser });
+    return NextResponse.json({ success: true, user: publicUser(newUser) });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to create user' }, { status: 500 });
   }
@@ -46,6 +67,7 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
+    if (!await authorize(request)) return NextResponse.json({ error: 'Super Admin access required.' }, { status: 403 });
     const body = await request.json();
     const { id, name, role, isActive, phone, password } = body;
 
@@ -67,7 +89,7 @@ export async function PATCH(request: Request) {
     }
 
     await db.saveUser(user);
-    return NextResponse.json({ success: true, user });
+    return NextResponse.json({ success: true, user: publicUser(user) });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to update user' }, { status: 500 });
   }
@@ -75,6 +97,7 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    if (!await authorize(request)) return NextResponse.json({ error: 'Super Admin access required.' }, { status: 403 });
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

@@ -5,9 +5,11 @@ export async function GET() {
   const startTime = Date.now();
   
   try {
-    const orders = await db.getOrders();
-    const users = await db.getUsers();
-    const settings = await db.getSettings();
+    await Promise.all([
+      db.getOrders(),
+      db.getUsers(),
+      db.getSettings(),
+    ]);
     
     const responseTimeMs = Date.now() - startTime;
     
@@ -16,18 +18,19 @@ export async function GET() {
       system: '99Store OMS V2 (High-Performance Engine)',
       uptime: process.uptime(),
       responseTimeMs,
-      stats: {
-        totalOrders: orders.length,
-        totalUsers: users.length,
-        isIpWhitelistEnabled: settings.isIpWhitelistEnabled,
-        autoCourierEnabled: settings.autoCourierEnabled
-      },
+      database: 'connected',
       timestamp: new Date().toISOString()
+    }, {
+      headers: { 'Cache-Control': 'no-store' },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Health check failed';
     return NextResponse.json({
       status: 'unhealthy',
-      error: error.message
-    }, { status: 500 });
+      error: message,
+    }, {
+      status: 503,
+      headers: { 'Cache-Control': 'no-store' },
+    });
   }
 }

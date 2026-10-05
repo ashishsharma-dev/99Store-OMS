@@ -18,14 +18,19 @@ export default function Login() {
   
   const [ipBlocked, setIpBlocked] = useState(false);
   const [clientIp, setClientIp] = useState('');
-  const [bypassCheck, setBypassCheck] = useState(false);
+  const demoToolsEnabled = process.env.NODE_ENV !== 'production' && process.env.NEXT_PUBLIC_ENABLE_DEMO_TOOLS === 'true';
 
   useEffect(() => {
-    // If already logged in, redirect
-    const user = localStorage.getItem('99store_user');
-    if (user) {
-      router.push('/dashboard');
-    }
+    let active = true;
+    fetch('/api/auth/session', { cache: 'no-store' })
+      .then(async response => response.ok ? response.json() : null)
+      .then(data => {
+        if (!active || !data?.user) return;
+        localStorage.setItem('99store_user', JSON.stringify(data.user));
+        router.replace('/dashboard');
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
   }, [router]);
 
   const handleSendOtp = async (e: React.FormEvent) => {
@@ -82,8 +87,7 @@ export default function Login() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: username.trim().toLowerCase(),
-          otp,
-          bypassIpCheck: bypassCheck
+          otp
         })
       });
 
@@ -366,8 +370,8 @@ export default function Login() {
             </form>
           )}
 
-          {/* Quick Switch Demo Credentials for Reviewers */}
-          <div style={{
+          {/* Explicitly enabled development-only test helpers. */}
+          {demoToolsEnabled && <div style={{
             marginTop: '32px',
             borderTop: '1px dashed #1E1E24',
             paddingTop: '20px'
@@ -416,7 +420,7 @@ export default function Login() {
                 🚚 Tracking Team
               </button>
             </div>
-          </div>
+          </div>}
         </div>
 
         {/* Footer */}
@@ -485,18 +489,6 @@ export default function Login() {
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <button
-                  onClick={() => {
-                    setBypassCheck(true);
-                    setIpBlocked(false);
-                    setError('');
-                    setMessage('Development Whitelist Bypass applied. Try logging in again.');
-                  }}
-                  className="premium-btn premium-btn-primary"
-                  style={{ width: '100%', padding: '10px 0' }}
-                >
-                  Bypass Firewall Check (Local Reviewer Mode)
-                </button>
                 <button
                   onClick={() => {
                     setIpBlocked(false);

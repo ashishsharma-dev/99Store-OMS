@@ -1,5 +1,6 @@
 import { Order, SystemSettings } from '@/lib/types';
 import { cleanCityName, cleanStateName } from '@/lib/courierHelper';
+import { isCourierSimulationEnabled } from '@/lib/courierSimulation';
 
 export interface ShadowfaxConfig {
   apiKey: string;
@@ -136,7 +137,8 @@ export async function generateShadowfaxAwbs(
 export async function bookShadowfaxOrder(
   order: Order,
   settings: SystemSettings,
-  weightOverride?: number
+  weightOverride?: number,
+  phoneOverride?: string,
 ): Promise<{
   success: boolean;
   awb?: string;
@@ -155,12 +157,19 @@ export async function bookShadowfaxOrder(
     const weightInGrams = Math.round(weightInKg * 1000);
     const paymentMode = order.paymentType === 'COD' ? 'COD' : 'Prepaid';
 
-    const cleanPhone = (order.phonePrimary || '').replace(/\D/g, '').slice(-10) || '9999999999';
+    const cleanPhone = (phoneOverride || order.phonePrimary || '').replace(/\D/g, '').slice(-10) || '9999999999';
     const cleanCity = cleanCityName(order.area, order.state, order.pincode);
     const cleanState = cleanStateName(order.state, order.pincode);
 
     // Mock mode response if no real token configured
     if (isMock) {
+      if (!isCourierSimulationEnabled()) {
+        return {
+          success: false,
+          error: 'Shadowfax credentials are missing or configured as placeholders. Courier simulation is disabled.',
+          requestPayload: { orderId: order.orderId, shipmentPhone: cleanPhone },
+        };
+      }
       const randomAwbSuffix = Math.floor(100000000 + Math.random() * 900000000).toString();
       const awb = `SF${randomAwbSuffix}TST`;
       const charge = 50 + weightInKg * 20 + (paymentMode === 'COD' ? 30 : 0);
@@ -174,7 +183,7 @@ export async function bookShadowfaxOrder(
         eta: etaString,
         courier: 'Shadowfax',
         charge: parseFloat(charge.toFixed(2)),
-        requestPayload: { orderId: order.orderId, isMock: true },
+        requestPayload: { orderId: order.orderId, isMock: true, shipmentPhone: cleanPhone },
         responsePayload: { status: 'SUCCESS', awb, message: 'Simulated Shadowfax Booking' }
       };
     }

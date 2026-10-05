@@ -1,0 +1,11 @@
+[Unit]
+Description=Check 99Store OMS health every five minutes
+
+[Timer]
+OnBootSec=2m
+OnUnitActiveSec=5m
+AccuracySec=30s
+Unit=99store-oms-health.service
+
+[Install]
+WantedBy=timers.target

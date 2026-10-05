@@ -439,7 +439,7 @@ export default function NdrManagement() {
 
     const escapeCsv = (str: any) => {
       if (str === undefined || str === null) return '""';
-      let clean = String(str).replace(/"/g, '""');
+      const clean = String(str).replace(/"/g, '""');
       if (clean.includes(',') || clean.includes('\n') || clean.includes('"')) {
         return `"${clean}"`;
       }

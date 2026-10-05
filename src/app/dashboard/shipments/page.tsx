@@ -114,7 +114,6 @@ export default function AllShipments() {
 
   const handleWhatsAppClick = (order: Order) => {
     const defaultSelected: string[] = [];
-    if (order.phonePrimary) defaultSelected.push(order.phonePrimary.trim());
     if (order.phoneWhatsApp) defaultSelected.push(order.phoneWhatsApp.trim());
     
     const uniqueDefaults = Array.from(new Set(defaultSelected)).filter(Boolean);
@@ -141,7 +140,7 @@ export default function AllShipments() {
       const res = await fetch(`/api/orders/${order.id}/whatsapp-track`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetNumbers: selectedNumbers })
+        body: JSON.stringify({})
       });
       const data = await res.json();
       
@@ -375,7 +374,6 @@ export default function AllShipments() {
             <option value="DTDC">DTDC</option>
             <option value="XpressBees">XpressBees</option>
             <option value="Delhivery">Delhivery</option>
-            <option value="Velocity">Velocity</option>
             <option value="Shadowfax">Shadowfax</option>
           </select>
           <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
@@ -823,14 +821,11 @@ export default function AllShipments() {
               ) : (
                 <>
                   <p style={{ color: '#A3A3A3', fontSize: '13px', margin: 0, lineHeight: '1.5' }}>
-                    Choose which numbers associated with order <strong>{whatsAppSelectModal.order.orderId}</strong> should receive this update:
+                    This update for order <strong>{whatsAppSelectModal.order.orderId}</strong> will be sent only to the customer WhatsApp number:
                   </p>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {[
-                      { label: 'Primary Contact (Customer)', value: whatsAppSelectModal.order.phonePrimary },
-                      { label: 'Secondary Contact (Alternate)', value: whatsAppSelectModal.order.phoneSecondary },
-                      { label: 'Tertiary Contact (Alternate)', value: whatsAppSelectModal.order.phoneTertiary },
                       { label: 'WhatsApp Number', value: whatsAppSelectModal.order.phoneWhatsApp },
                     ].filter(item => item.value && item.value.trim() !== '').map((item, idx) => {
                       const cleanNum = item.value!.trim();
@@ -853,14 +848,7 @@ export default function AllShipments() {
                           <input 
                             type="checkbox"
                             checked={isChecked}
-                            onChange={() => {
-                              setWhatsAppSelectModal(prev => {
-                                const newNumbers = prev.selectedNumbers.includes(cleanNum)
-                                  ? prev.selectedNumbers.filter(n => n !== cleanNum)
-                                  : [...prev.selectedNumbers, cleanNum];
-                                return { ...prev, selectedNumbers: newNumbers };
-                              });
-                            }}
+                            readOnly
                             style={{ width: '16px', height: '16px', accentColor: '#10B981', cursor: 'pointer' }}
                           />
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>

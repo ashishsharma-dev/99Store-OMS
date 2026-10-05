@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer-core';
 import fs from 'fs';
-import { execSync } from 'child_process';
+import path from 'path';
 
 /**
  * Automatically detects the Google Chrome or Chromium executable path
@@ -15,7 +15,7 @@ function findChromePath(): string {
       'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
     ];
     for (const p of winPaths) {
-      if (fs.existsSync(p)) return p;
+      if (fs.existsSync(/* turbopackIgnore: true */ p)) return p;
     }
   }
 
@@ -28,24 +28,18 @@ function findChromePath(): string {
       '/usr/bin/google-chrome-beta'
     ];
     for (const p of linuxPaths) {
-      if (fs.existsSync(p)) return p;
+      if (fs.existsSync(/* turbopackIgnore: true */ p)) return p;
     }
 
-    try {
-      const pathFromWhich = execSync('which google-chrome || which chromium || which chromium-browser', { encoding: 'utf8' }).trim();
-      if (pathFromWhich) return pathFromWhich;
-    } catch (e) {}
   }
 
   if (process.platform === 'darwin') {
     const macPath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-    if (fs.existsSync(macPath)) return macPath;
+    if (fs.existsSync(/* turbopackIgnore: true */ macPath)) return macPath;
   }
 
   throw new Error('Google Chrome/Chromium executable not found. Please install chromium on your VPS or set CHROME_PATH environment variable.');
 }
-
-import path from 'path';
 
 /**
  * Renders the order packing slip in a headless browser, takes a screenshot,
@@ -97,14 +91,14 @@ export async function generatePackingSlipImage(orderId: string, baseUrl?: string
     browser = null;
 
     // Ensure local directory exists in the public folder
-    const slipsDir = path.join(process.cwd(), 'public', 'packing-slips');
-    if (!fs.existsSync(slipsDir)) {
-      fs.mkdirSync(slipsDir, { recursive: true });
+    const slipsDir = path.join(/* turbopackIgnore: true */ process.cwd(), 'public', 'packing-slips');
+    if (!fs.existsSync(/* turbopackIgnore: true */ slipsDir)) {
+      fs.mkdirSync(/* turbopackIgnore: true */ slipsDir, { recursive: true });
     }
 
     // Save image file locally to disk
     const filePath = path.join(slipsDir, `${orderId}.png`);
-    fs.writeFileSync(filePath, imageBuffer);
+    fs.writeFileSync(/* turbopackIgnore: true */ filePath, imageBuffer);
     console.log(`[Screenshot] Saved packing slip image locally at "${filePath}"`);
 
     // Construct public accessibility URL

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { hashPassword, generateOtp } from '@/lib/auth';
+import { generateOtp, hashPassword, isOtpBypassEnabled, verifyPassword } from '@/lib/auth';
 import { sendLoginOTP } from '@/lib/whatsapp';
+import { consumeRateLimit, getClientIp } from '@/lib/rateLimit';
 
 export async function POST(request: Request) {
   try {
@@ -12,23 +13,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Username and password are required.' }, { status: 400 });
     }
 
-    // Retrieve user by username
-    const user = await db.getUserByUsername(username);
-    if (!user) {
-      return NextResponse.json({ error: 'User account not found. Please contact your Super Admin.' }, { status: 404 });
+    const normalizedUsername = String(username).trim().toLowerCase();
+    const rateLimit = consumeRateLimit(`send-otp:${getClientIp(request)}:${normalizedUsername}`, 5, 10 * 60 * 1000);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many OTP requests. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfterSeconds) } },
+      );
+    }
+
+    const user = await db.getUserByUsername(normalizedUsername);
+    if (!user || !user.password || !verifyPassword(password, user.password)) {
+      return NextResponse.json({ error: 'Invalid username or password.' }, { status: 401 });
     }
 
     if (!user.isActive) {
       return NextResponse.json({ error: 'Your user account is suspended.' }, { status: 403 });
-    }
-
-    // Verify password if the user has one configured
-    if (!user.password) {
-      return NextResponse.json({ error: 'Password has not been set for this account. Please contact your Super Admin to configure a password.' }, { status: 400 });
-    }
-
-    if (hashPassword(password) !== user.password) {
-      return NextResponse.json({ error: 'Invalid username or password.' }, { status: 401 });
     }
 
     // Retrieve system settings to check for a global OTP WhatsApp number
@@ -46,20 +46,15 @@ export async function POST(request: Request) {
     const otp = generateOtp();
     
     // Set tempOtp and tempOtpExpiry (valid for 5 minutes)
-    user.tempOtp = otp;
+    user.tempOtp = hashPassword(otp);
     user.tempOtpExpiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
     
     await db.saveUser(user);
 
-    // Log the generated OTP for developer convenience in local testing
-    console.log(`[AUTH] Generated login OTP for ${user.username} (Target Phone: ${targetPhone}): ${otp}`);
-
-    // If OTP is disabled via environment variable, return immediately without calling external WhatsApp gateway
-    if (process.env.DISABLE_OTP === 'true') {
-      console.log(`[AUTH] DISABLE_OTP is true. Bypassing external WhatsApp dispatch. OTP is: ${otp}`);
+    if (isOtpBypassEnabled()) {
       return NextResponse.json({
         success: true,
-        message: `OTP bypass active. You can enter 999999 or ${otp} to log in.`
+        message: 'Development OTP bypass is active. Use 999999.'
       });
     }
 
@@ -67,7 +62,7 @@ export async function POST(request: Request) {
     const waRes = await sendLoginOTP(targetPhone, otp);
 
     if (!waRes.success) {
-      console.warn(`[AUTH] WhatsApp send failed for ${targetPhone}. Generated OTP is: ${otp}. Error: ${waRes.error}`);
+      console.warn(`[AUTH] WhatsApp OTP dispatch failed for ${user.username}: ${waRes.error}`);
       return NextResponse.json({ 
         error: `Failed to send OTP via WhatsApp: ${waRes.error || 'Gateway issue'}` 
       }, { status: 502 });

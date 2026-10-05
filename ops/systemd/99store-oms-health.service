@@ -1,0 +1,15 @@
+[Unit]
+Description=Check the public health of 99Store OMS
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=nobody
+Group=nobody
+ExecStart=/usr/bin/curl --fail --silent --show-error --max-time 10 https://oms.ayurvedacare.store/api/health
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+

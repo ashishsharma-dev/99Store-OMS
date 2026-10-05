@@ -284,7 +284,7 @@ export default function OfdManagement() {
     setActionLoading(true);
 
     try {
-      let payload: any = {
+      const payload: any = {
         updatedBy: currentUser?.username || 'ofd_operator'
       };
 

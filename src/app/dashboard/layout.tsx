@@ -72,6 +72,7 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const demoToolsEnabled = process.env.NODE_ENV !== 'production' && process.env.NEXT_PUBLIC_ENABLE_DEMO_TOOLS === 'true';
 
   const [user, setUser] = useState<User | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -109,12 +110,24 @@ export default function DashboardLayout({
 
   useEffect(() => {
     setIsClient(true);
-    const storedUser = localStorage.getItem('99store_user');
-    if (!storedUser) {
-      router.push('/login');
-    } else {
-      setUser(JSON.parse(storedUser));
-    }
+    let active = true;
+    fetch('/api/auth/session', { cache: 'no-store' })
+      .then(async response => response.ok ? response.json() : null)
+      .then(data => {
+        if (!active) return;
+        if (!data?.user) {
+          localStorage.removeItem('99store_user');
+          router.replace('/login');
+          return;
+        }
+        setUser(data.user);
+        localStorage.setItem('99store_user', JSON.stringify(data.user));
+      })
+      .catch(() => {
+        if (!active) return;
+        localStorage.removeItem('99store_user');
+        router.replace('/login');
+      });
 
     const savedCollapse = localStorage.getItem('99store_sidebar_collapsed');
     if (savedCollapse === 'true') {
@@ -126,6 +139,7 @@ export default function DashboardLayout({
         Notification.requestPermission();
       }
     }
+    return () => { active = false; };
   }, [router]);
 
   // Background bulk tracking status sync on route changes (TEMPORARILY DISABLED)
@@ -420,9 +434,10 @@ export default function DashboardLayout({
     );
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => undefined);
     localStorage.removeItem('99store_user');
-    router.push('/login');
+    router.replace('/login');
   };
 
   // Helper to dynamically override role for quick debugging
@@ -508,8 +523,8 @@ export default function DashboardLayout({
       backgroundColor: '#0A0A0A',
       color: '#FAFAFA'
     }}>
-      {/* 1. Dynamic Role-Switching Debug Overlay Bar */}
-      <div className="reviewer-debug-bar" style={{
+      {/* 1. Explicitly enabled development-only role preview bar. */}
+      {demoToolsEnabled && <div className="reviewer-debug-bar" style={{
         position: 'fixed',
         top: 0,
         left: 0,
@@ -561,7 +576,7 @@ export default function DashboardLayout({
             </button>
           ))}
         </div>
-      </div>
+      </div>}
 
       {/* 2. Left Desktop Sidebar */}
       <aside style={{
@@ -571,7 +586,7 @@ export default function DashboardLayout({
         display: 'flex',
         flexDirection: 'column',
         position: 'fixed',
-        top: '36px',
+        top: demoToolsEnabled ? '36px' : 0,
         bottom: 0,
         left: 0,
         zIndex: 999,
@@ -775,7 +790,7 @@ export default function DashboardLayout({
         minWidth: 0,
         width: '100%',
         paddingLeft: isSidebarCollapsed ? '72px' : '260px',
-        paddingTop: '36px',
+        paddingTop: demoToolsEnabled ? '36px' : 0,
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
@@ -839,7 +854,7 @@ export default function DashboardLayout({
           display: 'none',
           backgroundColor: '#0F0F11',
           position: 'sticky',
-          top: '36px',
+          top: demoToolsEnabled ? '36px' : 0,
           zIndex: 1100
         }} className="mobile-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1217,13 +1232,13 @@ export default function DashboardLayout({
                 >
                   Return to Dashboard
                 </button>
-                <button
+                {demoToolsEnabled && <button
                   onClick={() => handleDebugRoleSwitch('Super Admin')}
                   className="premium-btn premium-btn-secondary"
                   style={{ borderColor: '#E11D48', color: '#E11D48' }}
                 >
                   Force Super Admin Override
-                </button>
+                </button>}
               </div>
             </div>
           )}

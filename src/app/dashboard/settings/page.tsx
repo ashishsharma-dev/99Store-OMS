@@ -37,7 +37,7 @@ export default function IntegrationsSettings() {
 
   // Tab states for organized clutter-free UX
   const [activeMainTab, setActiveMainTab] = useState<'couriers' | 'googlesheet' | 'security' | 'console' | 'contacts'>('couriers');
-  const [activeCourierSubTab, setActiveCourierSubTab] = useState<'xpressbees' | 'dtdc' | 'delhivery' | 'velocity' | 'shadowfax' | 'routing'>('xpressbees');
+  const [activeCourierSubTab, setActiveCourierSubTab] = useState<'xpressbees' | 'dtdc' | 'delhivery' | 'shadowfax' | 'routing'>('xpressbees');
   const [activeXpressSubTab, setActiveXpressSubTab] = useState<'credentials' | 'endpoints' | 'warehouse'>('credentials');
   const [activeConsoleTab, setActiveConsoleTab] = useState<'courier' | 'whatsapp'>('courier');
   const [logSearchQuery, setLogSearchQuery] = useState('');
@@ -73,7 +73,6 @@ export default function IntegrationsSettings() {
   const [dtdcActive, setDtdcActive] = useState(true);
   const [xpressActive, setXpressActive] = useState(true);
   const [dlvActive, setDlvActive] = useState(true);
-  const [aggActive, setAggActive] = useState(true);
 
   // Courier keys
   const [dtdcKey, setDtdcKey] = useState('');
@@ -124,24 +123,9 @@ export default function IntegrationsSettings() {
   const [dtdcUsername, setDtdcUsername] = useState('');
   const [dtdcPassword, setDtdcPassword] = useState('');
 
-  // Velocity fields
-  const [velocityActive, setVelocityActive] = useState(true);
-  const [velocityUsername, setVelocityUsername] = useState('shivaynew66@gmail.com');
-  const [velocityPassword, setVelocityPassword] = useState('Som@9870740681');
-  const [velocityPriority, setVelocityPriority] = useState(4);
-  const [velocityBaseUrl, setVelocityBaseUrl] = useState('https://shazam.velocity.in/');
-  const [velocityWarehouseId, setVelocityWarehouseId] = useState('WH66DU');
-  const [velocityWarehouseName, setVelocityWarehouseName] = useState('Main Warehouse');
-  const [velocityContactName, setVelocityContactName] = useState('Shivay Manager');
-  const [velocityPhone, setVelocityPhone] = useState('9870740681');
-  const [velocityAddress, setVelocityAddress] = useState('123 Velocity St');
-  const [velocityCity, setVelocityCity] = useState('Agra');
-  const [velocityState, setVelocityState] = useState('Uttar Pradesh');
-  const [velocityPincode, setVelocityPincode] = useState('282001');
-
   // Shadowfax fields
   const [shadowfaxActive, setShadowfaxActive] = useState(true);
-  const [shadowfaxApiKey, setShadowfaxApiKey] = useState('sfx_tok_demo_99store_a1b2c3d4');
+  const [shadowfaxApiKey, setShadowfaxApiKey] = useState('');
   const [shadowfaxPriority, setShadowfaxPriority] = useState(5);
   const [shadowfaxBaseUrl, setShadowfaxBaseUrl] = useState('https://dale.staging.shadowfax.in/api');
   const [shadowfaxOrderType, setShadowfaxOrderType] = useState<'warehouse' | 'marketplace'>('warehouse');
@@ -200,22 +184,6 @@ export default function IntegrationsSettings() {
         setDtdcActive(s.dtdcActive);
         setXpressActive(s.xpressbeesActive);
         setDlvActive(s.deliveryActive);
-        setAggActive(s.aggregatorActive);
-        setVelocityActive(s.velocityActive !== undefined ? s.velocityActive : true);
-        if (s.velocityConfig) {
-          setVelocityUsername(s.velocityConfig.username || 'shivaynew66@gmail.com');
-          setVelocityPassword(s.velocityConfig.password || 'Som@9870740681');
-          setVelocityPriority(s.velocityConfig.priority || 4);
-          setVelocityBaseUrl(s.velocityConfig.baseUrl || 'https://shazam.velocity.in/');
-          setVelocityWarehouseId(s.velocityConfig.warehouseId || 'WH66DU');
-          setVelocityWarehouseName(s.velocityConfig.warehouseName || 'Main Warehouse');
-          setVelocityContactName(s.velocityConfig.contactName || 'Shivay Manager');
-          setVelocityPhone(s.velocityConfig.phone || '9870740681');
-          setVelocityAddress(s.velocityConfig.address || '123 Velocity St');
-          setVelocityCity(s.velocityConfig.city || 'Agra');
-          setVelocityState(s.velocityConfig.state || 'Uttar Pradesh');
-          setVelocityPincode(s.velocityConfig.pincode || '282001');
-        }
         setShadowfaxActive(s.shadowfaxActive !== undefined ? s.shadowfaxActive : true);
         if (s.shadowfaxConfig) {
           setShadowfaxApiKey(s.shadowfaxConfig.apiKey || '');
@@ -433,8 +401,6 @@ export default function IntegrationsSettings() {
           dtdcActive,
           xpressbeesActive: xpressActive,
           deliveryActive: dlvActive,
-          aggregatorActive: aggActive,
-          velocityActive: velocityActive,
           dtdcConfig: {
             apiKey: dtdcKey,
             customerCode: dtdcCustomerCode,
@@ -477,20 +443,6 @@ export default function IntegrationsSettings() {
             clientName: dlvClientName,
             pickupLocation: dlvPickupLocation,
             shippingMode: dlvShippingMode
-          },
-          velocityConfig: {
-            username: velocityUsername,
-            password: velocityPassword,
-            priority: Number(velocityPriority),
-            baseUrl: velocityBaseUrl,
-            warehouseId: velocityWarehouseId,
-            warehouseName: velocityWarehouseName,
-            contactName: velocityContactName,
-            phone: velocityPhone,
-            address: velocityAddress,
-            city: velocityCity,
-            state: velocityState,
-            pincode: velocityPincode
           },
           shadowfaxActive,
           shadowfaxConfig: {
@@ -791,21 +743,6 @@ export default function IntegrationsSettings() {
               <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: dlvActive ? '#F59E0B' : '#71717A' }} />
               <span>Delhivery Direct</span>
               {dlvActive && <span style={{ fontSize: '10px', background: 'rgba(245, 158, 11, 0.2)', color: '#FBBF24', padding: '1px 6px', borderRadius: '4px' }}>Active</span>}
-            </button>
-
-            <button
-              onClick={() => setActiveCourierSubTab('velocity')}
-              style={{
-                padding: '10px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, border: '1px solid', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: '8px',
-                backgroundColor: activeCourierSubTab === 'velocity' ? 'rgba(168, 85, 247, 0.12)' : '#121212',
-                borderColor: activeCourierSubTab === 'velocity' ? '#A855F7' : '#27272A',
-                color: activeCourierSubTab === 'velocity' ? '#C084FC' : '#A1A1AA'
-              }}
-            >
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: velocityActive ? '#A855F7' : '#71717A' }} />
-              <span>Velocity Aggregator</span>
-              {velocityActive && <span style={{ fontSize: '10px', background: 'rgba(168, 85, 247, 0.2)', color: '#C084FC', padding: '1px 6px', borderRadius: '4px' }}>Active</span>}
             </button>
 
             <button
@@ -1198,89 +1135,6 @@ export default function IntegrationsSettings() {
                         <option value="Express">Express (Priority / Air)</option>
                         <option value="Surface">Surface (Ground)</option>
                       </select>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* VELOCITY TAB */}
-            {activeCourierSubTab === 'velocity' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #27272A' }}>
-                  <div>
-                    <h3 style={{ fontSize: '16px', color: '#FAFAFA', fontWeight: 600 }}>Velocity Aggregator API Integration</h3>
-                    <p style={{ fontSize: '12.5px', color: '#A1A1AA', marginTop: '2px' }}>Configure Velocity token generation and warehouse settings.</p>
-                  </div>
-
-                  <label htmlFor="vel_active_toggle" style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', background: '#18181B', padding: '8px 14px', borderRadius: '8px', border: '1px solid #27272A' }}>
-                    <input type="checkbox" id="vel_active_toggle" checked={velocityActive} onChange={(e) => setVelocityActive(e.target.checked)} style={{ width: '16px', height: '16px', accentColor: '#A855F7' }} />
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: velocityActive ? '#C084FC' : '#71717A' }}>
-                      {velocityActive ? 'Integration Active' : 'Integration Inactive'}
-                    </span>
-                  </label>
-                </div>
-
-                {velocityActive && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>API Base URL</label>
-                      <input type="text" className="premium-input" placeholder="https://shazam.velocity.in/" value={velocityBaseUrl} onChange={(e) => setVelocityBaseUrl(e.target.value)} style={{ fontFamily: 'monospace' }} />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Username (Email/Phone)</label>
-                      <input type="text" className="premium-input" placeholder="Username" value={velocityUsername} onChange={(e) => setVelocityUsername(e.target.value)} />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Password</label>
-                      <input type="password" className="premium-input" placeholder="Password" value={velocityPassword} onChange={(e) => setVelocityPassword(e.target.value)} />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Priority Order</label>
-                      <input type="number" className="premium-input" value={velocityPriority} onChange={(e) => setVelocityPriority(Number(e.target.value))} />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Warehouse ID</label>
-                      <input type="text" className="premium-input" placeholder="WH66DU" value={velocityWarehouseId} onChange={(e) => setVelocityWarehouseId(e.target.value)} />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Warehouse Name</label>
-                      <input type="text" className="premium-input" placeholder="Main Warehouse" value={velocityWarehouseName} onChange={(e) => setVelocityWarehouseName(e.target.value)} />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Contact Manager</label>
-                      <input type="text" className="premium-input" placeholder="Contact Manager Name" value={velocityContactName} onChange={(e) => setVelocityContactName(e.target.value)} />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Warehouse Phone</label>
-                      <input type="text" className="premium-input" placeholder="Warehouse Phone Number" value={velocityPhone} onChange={(e) => setVelocityPhone(e.target.value)} />
-                    </div>
-
-                    <div style={{ gridColumn: '1 / -1' }}>
-                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Address</label>
-                      <input type="text" className="premium-input" placeholder="Street Address" value={velocityAddress} onChange={(e) => setVelocityAddress(e.target.value)} />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>City</label>
-                      <input type="text" className="premium-input" placeholder="City" value={velocityCity} onChange={(e) => setVelocityCity(e.target.value)} />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>State</label>
-                      <input type="text" className="premium-input" placeholder="State" value={velocityState} onChange={(e) => setVelocityState(e.target.value)} />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Pincode</label>
-                      <input type="text" className="premium-input" placeholder="Pincode" value={velocityPincode} onChange={(e) => setVelocityPincode(e.target.value)} />
                     </div>
                   </div>
                 )}

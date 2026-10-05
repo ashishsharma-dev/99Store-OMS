@@ -33,6 +33,19 @@ export type OrderStatus =
   | 'RDC' // Return Delivery Center
   | 'NDR'; // Non-Delivery Report
 
+export type ShipmentContactType =
+  | 'Primary'
+  | 'Secondary'
+  | 'Customer'
+  | 'WhatsApp'
+  | 'Custom';
+
+export type CourierBookingStatus =
+  | 'Processing'
+  | 'Booked'
+  | 'Failed'
+  | 'Reconciliation Required';
+
 export interface TemporalRemark {
   remark_text: string;
   created_at: string;
@@ -73,7 +86,15 @@ export interface Order {
   
   status: OrderStatus;
   awb?: string;
-  courier?: 'DTDC' | 'XpressBees' | 'Delhivery' | 'Aggregator' | 'Velocity' | 'Shadowfax';
+  courier?: 'DTDC' | 'XpressBees' | 'Delhivery' | 'Shadowfax';
+  shipmentContactPhone?: string;
+  shipmentContactType?: ShipmentContactType;
+  courierBookingStatus?: CourierBookingStatus;
+  courierBookingAttemptId?: string;
+  courierBookingStartedAt?: string;
+  courierBookingCompletedAt?: string;
+  courierBookingAttempts?: number;
+  courierBookingError?: string;
   eta?: string;
   createdAt: string;
   updatedAt: string;
@@ -96,10 +117,6 @@ export interface Order {
   last_tracking_update?: string;
   label_generated?: boolean;
   cancelled?: boolean;
-
-  // Velocity fields
-  velocity_label_url?: string;
-  velocity_shipment_id?: string;
 
   isDeleted?: boolean;
   deletedAt?: string;
@@ -186,8 +203,6 @@ export interface SystemSettings {
   dtdcActive: boolean;
   xpressbeesActive: boolean;
   deliveryActive: boolean;
-  aggregatorActive: boolean;
-  velocityActive: boolean;
   shadowfaxActive: boolean;
   dtdcConfig: {
     apiKey: string;
@@ -256,20 +271,6 @@ export interface SystemSettings {
     pickupLocation?: string;
     shippingMode?: 'Express' | 'Surface';
   };
-  velocityConfig: {
-    username?: string;
-    password?: string;
-    priority: number;
-    baseUrl?: string;
-    warehouseId?: string;
-    warehouseName?: string;
-    contactName?: string;
-    phone?: string;
-    address?: string;
-    city?: string;
-    state?: string;
-    pincode?: string;
-  };
   shadowfaxConfig: {
     apiKey: string;
     priority: number;
@@ -318,6 +319,10 @@ export interface BulkJob {
   failedCount: number;
   activeOrder: string;
   results: BulkJobResult[];
+  orderIds: string[];
+  courier: string;
+  createdBy: string;
+  phoneBinding: Exclude<ShipmentContactType, 'Custom'>;
   createdAt: string;
   updatedAt: string;
 }

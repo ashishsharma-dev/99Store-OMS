@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the 99Store OMS MongoDB backup daily
+
+[Timer]
+OnCalendar=*-*-* 02:15:00 Asia/Kolkata
+Persistent=true
+RandomizedDelaySec=10m
+Unit=99store-mongodb-backup.service
+
+[Install]
+WantedBy=timers.target
