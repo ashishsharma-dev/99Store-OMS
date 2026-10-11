@@ -37,8 +37,7 @@ export function mapCourierStatusToInternal(courierStatus: any): OrderStatus | nu
   }
 
   if (
-    status === 'call placed' ||
-    status === 'call placed notification' ||
+    status.includes('call placed') ||
     status.includes('call_placed') ||
     status.includes('consignee contacted') ||
     status.includes('customer contacted') ||
@@ -140,17 +139,24 @@ export async function syncOrderStatus(
     // Override or refine mapped status based on remarks/instructions context
     if (sysRemarks) {
       const remarksLower = sysRemarks.toLowerCase();
-      // 1. Check for Out for Delivery override
+      // 1. Delhivery reports its ST-114 call event in Instructions while the
+      // top-level shipment status remains "Dispatched".
+      if (remarksLower.includes('call placed')) {
+        if (mappedStatus !== 'Delivered' && mappedStatus !== 'Return' && mappedStatus !== 'RDC') {
+          mappedStatus = 'Call Placed Notification';
+        }
+      }
+      // 2. Check for Out for Delivery override
       if (remarksLower.includes('out for delivery') || remarksLower.includes('out_for_delivery') || remarksLower.includes('ofd') || remarksLower.includes('out with courier') || remarksLower.includes('pending delivery')) {
         if (mappedStatus !== 'Delivered' && mappedStatus !== 'Return' && mappedStatus !== 'RDC') {
           mappedStatus = 'OFD';
         }
       }
-      // 2. Check for Return override
+      // 3. Check for Return override
       if (remarksLower.includes('return to origin') || remarksLower.includes('rto') || remarksLower.includes('returned') || remarksLower.includes('type: rt') || remarksLower.includes('status: rt')) {
         mappedStatus = 'Return';
       }
-      // 3. Check for NDR override
+      // 4. Check for NDR override
       if (remarksLower.includes('consignee unavailable') || remarksLower.includes('unavailable') || remarksLower.includes('reattempt') || remarksLower.includes('failed attempt') || remarksLower.includes('not available') || remarksLower.includes('undelivered') || remarksLower.includes('refused') || remarksLower.includes('rejected') || remarksLower.includes('unreachable') || remarksLower.includes('delayed') || remarksLower.includes('no such') || remarksLower.includes('incorrect address')) {
         if (mappedStatus !== 'Delivered' && mappedStatus !== 'Return' && mappedStatus !== 'RDC') {
           mappedStatus = 'NDR';

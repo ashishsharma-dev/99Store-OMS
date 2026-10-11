@@ -8,6 +8,7 @@ import { bookOrderCourierShipment, isCourierSimulationEnabled, validateManifestW
 import { trackShadowfaxOrder } from '@/lib/shadowfax';
 import { fetchWithRetry } from '@/lib/fetchWithRetry';
 import { getActiveSession } from '@/lib/authorization';
+import { getLatestDelhiveryScan } from '@/lib/delhiveryTracking';
 
 export async function GET(request: Request) {
   try {
@@ -684,7 +685,7 @@ export async function GET(request: Request) {
       const courierStatus = data?.ShipmentData?.[0]?.Shipment?.Status?.Status;
       const scanLocation = data?.ShipmentData?.[0]?.Shipment?.Status?.StatusLocation;
       const liveEta = data?.ShipmentData?.[0]?.Shipment?.ExpectedDeliveryDate || data?.ShipmentData?.[0]?.Shipment?.expected_delivery_date || data?.expected_delivery_date || null;
-      const latestScan = data?.ShipmentData?.[0]?.Shipment?.Scans?.[0]?.ScanDetail;
+      const latestScan = getLatestDelhiveryScan(data?.ShipmentData?.[0]?.Shipment?.Scans);
       const statusObj = data?.ShipmentData?.[0]?.Shipment?.Status;
       const customRemarks = `Current Status: "${statusObj?.Status}" [Type: ${statusObj?.StatusType || 'UD'}, Instructions: ${statusObj?.Instructions || ''}]. Latest Scan: ${latestScan ? `${latestScan.Scan} (${latestScan.Instructions})` : 'None'}`;
       if (courierStatus) {
