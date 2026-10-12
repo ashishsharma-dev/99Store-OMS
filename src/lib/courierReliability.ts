@@ -165,7 +165,7 @@ export async function bookOrderCourierShipment(
     return result;
   }
 
-  const uncertain = isUncertainBookingFailure(result.error);
+  const uncertain = result.reconciliationRequired === true || isUncertainBookingFailure(result.error);
   await db.finalizeCourierBooking(claimedOrder.id, attemptId, {
     status: uncertain ? 'Reconciliation Required' : 'Failed',
     error: result.error || 'Courier booking failed.',

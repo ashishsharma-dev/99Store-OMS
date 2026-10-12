@@ -3,6 +3,7 @@ import { CourierApiLog, SystemSettings, Order } from '@/lib/types';
 import { getXpressBeesToken, resolveXpressBeesConfig } from '@/lib/xpressbees';
 import { bookShadowfaxOrder } from '@/lib/shadowfax';
 import { isCourierSimulationEnabled } from '@/lib/courierSimulation';
+import { dtdcCustomerReference } from '@/lib/dtdcBooking';
 
 export interface CourierBookingResult {
   success: boolean;
@@ -12,6 +13,7 @@ export interface CourierBookingResult {
   charge?: number;
   error?: string;
   note?: string;
+  reconciliationRequired?: boolean;
 }
 
 export function isDtdcStaging(apiKey?: string, username?: string): boolean {
@@ -790,7 +792,7 @@ export async function bookCourierShipment(
           city: order.area || 'New Delhi',
           state: order.state || 'Delhi'
         },
-        customer_reference_number: order.orderId,
+        customer_reference_number: dtdcCustomerReference(order),
         commodity_id: commodityId,
         description: order.productDetails || 'Fulfillment parcel',
         reference_number: ''
@@ -825,7 +827,10 @@ export async function bookCourierShipment(
           bookData = { error: responseText, success: false };
         }
 
-        const isSuccess = bookRes.ok && (
+        const item = bookData.data?.[0];
+        const echoedReference = item?.customer_reference_number || bookData.customer_reference_number;
+        const referenceMismatch = Boolean(echoedReference && echoedReference !== consignmentObj.customer_reference_number);
+        const isSuccess = bookRes.ok && item?.success !== false && bookData.success !== false && !referenceMismatch && (
           bookData.success === true ||
           bookData.status === 'OK' ||
           bookData.status === 'success' ||
@@ -843,12 +848,15 @@ export async function bookCourierShipment(
         });
 
         if (!isSuccess) {
+          if (referenceMismatch) {
+            return { success: false, reconciliationRequired: true, error: 'DTDC returned a different customer reference. Manual reconciliation is required before retrying.' };
+          }
           return { success: false, error: `DTDC Booking failed: ${bookData.message || responseText}` };
         }
 
         const finalAwb = bookData.data?.[0]?.reference_number || bookData.reference_number || '';
         if (!finalAwb) {
-          return { success: false, error: `DTDC Booking succeeded but no AWB was allocated: ${JSON.stringify(bookData)}` };
+          return { success: false, reconciliationRequired: true, error: `DTDC Booking succeeded but no AWB was allocated: ${JSON.stringify(bookData)}` };
         }
 
         const etaDays = 3;
