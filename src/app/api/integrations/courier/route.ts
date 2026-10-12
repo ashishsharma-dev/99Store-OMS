@@ -9,6 +9,7 @@ import { trackShadowfaxOrder } from '@/lib/shadowfax';
 import { fetchWithRetry } from '@/lib/fetchWithRetry';
 import { getActiveSession } from '@/lib/authorization';
 import { getLatestDelhiveryScan } from '@/lib/delhiveryTracking';
+import { DtdcTrackingError, trackDtdcShipment } from '@/lib/dtdcTracking';
 
 export async function GET(request: Request) {
   try {
@@ -292,69 +293,19 @@ export async function GET(request: Request) {
           return NextResponse.json(simulatedTracking);
         }
 
-        const username = settings.dtdcConfig.username || 'username';
-        const password = settings.dtdcConfig.password || 'password';
+        const username = settings.dtdcConfig.username || '';
+        const password = settings.dtdcConfig.password || '';
         const isStaging = isDtdcStaging(apiKey, username);
 
-        const trackAuthUrl = isStaging 
-          ? 'https://dtdcstagingapi.dtdc.com/dtdc-api/api/dtdc/authenticate' 
-          : 'https://blktracksvc.dtdc.com/dtdc-api/api/dtdc/authenticate';
-          
-        const trackDetailsUrl = isStaging
-          ? 'https://dtdcstagingapi.dtdc.com/dtdc-tracking-api/dtdc-api/rest/JSONCnTrk/getTrackDetails'
-          : 'https://blktracksvc.dtdc.com/dtdc-api/rest/JSONCnTrk/getTrackDetails';
-
-        let accessToken = settings.dtdcConfig.accessToken || '';
-        if (!accessToken) {
-          let authResponseText = '';
-          try {
-            const authRes = await fetch(`${trackAuthUrl}?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
-              method: 'GET'
-            });
-            authResponseText = await authRes.text();
-            accessToken = authRes.headers.get('X-Access-Token') || authRes.headers.get('x-access-token') || authResponseText.trim();
-            try {
-              const authJson = JSON.parse(authResponseText);
-              accessToken = authJson.token || authJson.accessToken || authJson.xAccessToken || accessToken;
-            } catch(e) {}
-          } catch (authErr: any) {
-            return NextResponse.json({ error: `DTDC Tracking Auth failed: ${authErr.message}` }, { status: 500 });
-          }
-        }
-
-        const trackPayload = {
-          trkType: 'cnno',
-          strcnno: waybill,
-          addtnlDtl: 'Y'
-        };
-
         try {
-          const trackRes = await fetchWithRetry(
-            trackDetailsUrl,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-access-token': accessToken,
-                'X-Access-Token': accessToken
-              },
-              body: JSON.stringify(trackPayload)
-            },
-            {
-              awb: waybill,
-              courierName: 'DTDC',
-              timeoutMs: 10000,
-              maxAttempts: 3
-            }
-          );
-
-          const trackResText = await trackRes.text();
-          let trackData;
-          try {
-            trackData = JSON.parse(trackResText);
-          } catch (e) {
-            trackData = { error: trackResText };
-          }
+          const trackingResult = await trackDtdcShipment({
+            waybill,
+            username,
+            password,
+            configuredAccessToken: settings.dtdcConfig.accessToken,
+            isStaging,
+          });
+          const { data: trackData, requestPayload: trackPayload, requestUrl: trackDetailsUrl } = trackingResult;
 
           await db.addCourierLog({
             id: `cl-dtdc-track-${Date.now()}`,
@@ -363,7 +314,7 @@ export async function GET(request: Request) {
             action: 'Track Shipment',
             requestPayload: `POST ${trackDetailsUrl}\nPayload: ${JSON.stringify(trackPayload)}`,
             responsePayload: JSON.stringify(trackData, null, 2),
-            status: trackRes.ok ? 'Success' : 'Error'
+            status: 'Success'
           });
 
           const rawScans = Array.isArray(trackData) 
@@ -413,7 +364,22 @@ export async function GET(request: Request) {
 
           return NextResponse.json(unifiedData);
         } catch (err: any) {
-          return NextResponse.json({ error: `DTDC Tracking Request failed: ${err.message}` }, { status: 500 });
+          const message = err instanceof DtdcTrackingError
+            ? err.message
+            : `DTDC tracking service is unavailable: ${err.message}`;
+          await db.addCourierLog({
+            id: `cl-dtdc-track-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            courier: 'DTDC',
+            action: 'Track Shipment',
+            requestPayload: `Tracking request for AWB ${waybill}`,
+            responsePayload: JSON.stringify({
+              error: message,
+              upstreamStatus: err instanceof DtdcTrackingError ? err.upstreamStatus : undefined,
+            }, null, 2),
+            status: 'Error'
+          });
+          return NextResponse.json({ error: message }, { status: 502 });
         }
       }
 
