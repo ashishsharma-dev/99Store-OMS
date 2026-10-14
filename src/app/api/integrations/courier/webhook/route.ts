@@ -68,7 +68,9 @@ export async function POST(request: Request) {
     const customRemarks = `Webhook received from ${courier}. Status: "${status}"${location ? ` at ${location}` : ''}. ${remarks}`;
 
     // 5. Run Sync Update
-    const result = await syncOrderStatus(String(awb), String(status), String(location), customRemarks);
+    const result = await syncOrderStatus(String(awb), String(status), String(location), customRemarks, undefined, body.event_time || body.timestamp || body.ShipmentData?.[0]?.Shipment?.Status?.StatusDateTime);
+
+    if (result.error) return NextResponse.json({ success: false, error: result.error }, { status: 500 });
 
     // 6. Log Webhook Payload in system database for settings diagnostic terminal
     await db.addCourierLog({

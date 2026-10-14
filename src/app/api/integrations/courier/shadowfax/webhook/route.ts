@@ -1,3 +1,4 @@
+import { syncOrderStatus } from '@/lib/courierSync';
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { OrderStatus } from '@/lib/types';
@@ -51,49 +52,11 @@ export async function POST(request: Request) {
 
     if (order) {
       const newStatus = mapShadowfaxEventToOrderStatus(event, payload.status);
-      const updatedHistory = [...(order.history || []), {
-        status: newStatus || order.status,
-        timestamp: new Date().toISOString(),
-        updatedBy: 'Shadowfax Webhook',
-        remarks: comments
-      }];
-
-      const updatedOrder = {
-        ...order,
-        status: newStatus || order.status,
-        current_status: payload.status || event,
-        last_tracking_update: new Date().toISOString(),
-        history: updatedHistory,
-        updatedAt: new Date().toISOString()
-      };
-
-      await db.saveOrder(updatedOrder);
-
-      // Handle NDR auto-logging if non-delivery event occurs
-      if (newStatus === 'NDR') {
-        const ndrRecords = await db.getNdrRecords();
-        const existingNdr = ndrRecords.find(n => n.orderId === order.orderId || n.awb === awb);
-        if (!existingNdr) {
-          await db.saveNdrRecord({
-            id: `ndr-${Date.now()}`,
-            orderId: order.orderId,
-            customerName: order.customerName,
-            phonePrimary: order.phonePrimary,
-            courier: 'Shadowfax',
-            awb: awb || order.awb || '',
-            reason: comments || 'Customer Undelivered / Not Contactable',
-            status: 'Pending',
-            internalNotes: 'Auto-created via Shadowfax Callback Webhook',
-            history: [{
-              action: 'NDR Reported',
-              timestamp: new Date().toISOString(),
-              remarks: comments
-            }],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          });
-        }
+      if (newStatus && order.awb) {
+        const result = await syncOrderStatus(order.awb, newStatus, payload.location, comments, undefined, payload.timestamp || payload.created || payload.event_time);
+        if (result.error) return NextResponse.json({ success: false, error: result.error }, { status: 500 });
       }
+
     }
 
     return NextResponse.json({ success: true, message: 'Callback processed successfully' });

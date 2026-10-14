@@ -7,6 +7,7 @@ export interface ShadowfaxConfig {
   priority: number;
   baseUrl?: string;
   orderType?: 'warehouse' | 'marketplace';
+  serviceTier?: 'Regular' | 'Surface';
   warehouseCode?: string;
   contactName?: string;
   phone?: string;
@@ -31,18 +32,20 @@ export function getShadowfaxBaseUrl(config?: ShadowfaxConfig): string {
 export async function checkShadowfaxServiceability(
   pincode: string,
   config?: ShadowfaxConfig
-): Promise<{ serviceable: boolean; services: string[]; message?: string }> {
+): Promise<{ serviceable: boolean | null; services: string[]; message?: string }> {
   try {
     const apiKey = config?.apiKey || '';
     if (!apiKey || apiKey.startsWith('MOCK')) {
-      // Mock fallback for test environment
-      return { serviceable: true, services: ['customer_delivery', 'Regular', 'Surface'] };
+      // Missing credentials cannot establish coverage.
+      return { serviceable: null, services: [], message: 'Shadowfax credentials are not configured.' };
     }
 
     const baseUrl = getShadowfaxBaseUrl(config);
     const url = `${baseUrl}/v1/clients/serviceability/?service=customer_delivery&pincodes=${pincode}`;
     const res = await fetch(url, {
       method: 'GET',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(10000),
       headers: {
         'Authorization': `Token ${apiKey}`,
         'Content-Type': 'application/json'
@@ -50,20 +53,19 @@ export async function checkShadowfaxServiceability(
     });
 
     if (!res.ok) {
-      return { serviceable: false, services: [], message: `Serviceability check failed with HTTP ${res.status}` };
+      return { serviceable: null, services: [], message: `Serviceability check failed with HTTP ${res.status}` };
     }
 
     const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) {
-      const match = data.find((item: any) => String(item.code) === String(pincode));
-      if (match && Array.isArray(match.services) && match.services.length > 0) {
-        return { serviceable: true, services: match.services };
-      }
-    }
+    const rows = Array.isArray(data) ? data : data?.data || data?.results;
+    if (!Array.isArray(rows)) return { serviceable: null, services: [], message: 'Unrecognized Shadowfax serviceability response.' };
+    const match = rows.find((item: any) => String(item.code ?? item.pincode) === pincode);
+    if (!match) return { serviceable: false, services: [] };
+    if (!Array.isArray(match.services)) return { serviceable: null, services: [], message: 'Missing serviceability details.' };
+    return { serviceable: match.services.includes(config?.serviceTier || 'Regular'), services: match.services };
 
-    return { serviceable: false, services: [] };
   } catch (err: any) {
-    return { serviceable: false, services: [], message: err.message };
+    return { serviceable: null, services: [], message: err.message };
   }
 }
 
@@ -395,6 +397,8 @@ export async function trackShadowfaxOrder(
 
     const res = await fetch(url, {
       method: 'GET',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(10000),
       headers: {
         'Authorization': `Token ${apiKey}`,
         'Content-Type': 'application/json'

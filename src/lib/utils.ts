@@ -19,10 +19,10 @@ export const getUserDisplayName = (username: string): string => {
 /**
  * Checks courier serviceability based on the destination pincode.
  * - DTDC: Unserviceable for Zone 7 (pincode starts with 7)
- * - XpressBees: Unserviceable for Zone 6 (pincode starts with 6)
+ * - XpressBees / Shadowfax: unknown until the carrier confirms coverage
  * - Delhivery: Unserviceable for Zone 5 (pincode starts with 5)
  */
-export const checkCourierServiceability = (pincode: string, courier: string): boolean => {
+export const checkCourierServiceability = (pincode: string, courier: string): boolean | null => {
   if (!pincode || pincode.length !== 6 || !/^\d+$/.test(pincode)) {
     return false;
   }
@@ -33,8 +33,9 @@ export const checkCourierServiceability = (pincode: string, courier: string): bo
     return prefix !== '7';
   }
   if (normalizedCourier.includes('xpressbees')) {
-    return prefix !== '6';
+    return null;
   }
+  if (normalizedCourier.includes('shadowfax') || normalizedCourier.includes('sfx')) return null;
   if (normalizedCourier.includes('delhivery')) {
     return prefix !== '5';
   }

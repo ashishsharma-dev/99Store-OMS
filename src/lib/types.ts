@@ -116,6 +116,7 @@ export interface Order {
   current_status?: string;
   current_status_code?: string;
   last_tracking_update?: string;
+  lastCourierEventAt?: string;
   label_generated?: boolean;
   cancelled?: boolean;
 

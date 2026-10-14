@@ -590,7 +590,7 @@ export const db = {
 
     const database = await safeGetDb();
     if (database) {
-      database.collection('orders').replaceOne({ id: order.id }, order as any, { upsert: true }).catch(console.warn);
+      await database.collection('orders').replaceOne({ id: order.id }, order as any, { upsert: true });
     }
 
     // Trigger non-blocking real-time Google Sheet synchronization
@@ -858,11 +858,13 @@ export const db = {
     return memoryTrackingEvents.filter(e => e.shipment === shipment);
   },
   addTrackingEvent: async (event: any): Promise<void> => {
+    const identity = { shipment: event.shipment, status_code: event.status_code, status_name: event.status_name, location: event.location, date: event.date, time: event.time };
+    if (memoryTrackingEvents.some(existing => Object.entries(identity).every(([key, value]) => existing[key] === value))) return;
     memoryTrackingEvents.push(event);
     saveMemoryToLocalFile();
     const database = await safeGetDb();
     if (database) {
-      database.collection('tracking_events').insertOne(event).catch(console.warn);
+      await database.collection('tracking_events').updateOne(identity, { $setOnInsert: event }, { upsert: true });
     }
   },
   getBulkJob: async (id: string): Promise<any | null> => {

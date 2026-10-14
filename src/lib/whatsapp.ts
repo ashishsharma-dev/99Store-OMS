@@ -256,20 +256,11 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
   }
 
   const pName = productName || order?.productDetails || '99Store Product';
-  const resolvedBaseUrl = baseUrl || 'https://99-store-oms.vercel.app';
+  const resolvedBaseUrl = baseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://99-store-oms.vercel.app';
   const packingSlipUrl = `${resolvedBaseUrl}/packing-slip/${orderId}`;
   const trackingUrl = awb && awb !== 'PENDING' ? `${resolvedBaseUrl}/track?awb=${encodeURIComponent(awb)}` : packingSlipUrl;
 
-  // Generate optional high-DPI packing slip image URL for media-header templates
   let imageUrl: string | null = null;
-  const shouldAttachMedia = ['Dispatched', 'RDC', 'OFD', 'Delivered', 'Label Generated'].includes(status);
-  if (shouldAttachMedia) {
-    try {
-      imageUrl = await generatePackingSlipImage(orderId, resolvedBaseUrl);
-    } catch (err) {
-      console.warn(`[WhatsApp Dispatcher] Failed to generate packing slip screenshot for ${orderId}:`, err);
-    }
-  }
 
   // Resolve template ID mapped in settings
   const templateId = resolveTemplateId(status, settings.walabzTemplates);
@@ -350,10 +341,12 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
           l.orderId === (order?.orderId || orderId) &&
           l.phone === cleanPhone &&
           l.templateName === status &&
+          l.status !== 'Failed' &&
           Date.now() - new Date(l.timestamp).getTime() < 60000
       );
       if (recentDuplicate) {
         console.log(`[WhatsApp Dispatcher] Rate-limit skip: Duplicate message recently sent to ${cleanPhone} for order ${orderId}`);
+        logsSent.push(recentDuplicate);
         continue;
       }
     }
@@ -385,6 +378,13 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
 
     // Dispatch via Walabz Campaign API
     try {
+      const template = await walabzClient.getTemplateById(templateId);
+      if (!template) throw new Error('Configured WhatsApp template was not found.');
+      if (template.header_type === 'image') {
+        imageUrl = await generatePackingSlipImage(orderId, resolvedBaseUrl);
+        if (!imageUrl) throw new Error('Packing slip image could not be generated for the image-header template. Retry after checking Chrome and the public application URL.');
+        log.imageUrl = imageUrl;
+      }
       const campaignName = `Ord-${orderId}-${status}-${Date.now()}`.slice(0, 50);
       const result = await walabzClient.sendCampaign({
         campaignName,
@@ -397,7 +397,10 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
       });
 
       if (result.success) {
-        log.status = 'Sent';
+        if (!result.campaignId) throw new Error('Walabz accepted the request without a campaign ID.');
+        const deliveryStatus = await waitForOtpCampaignStatus(() => walabzClient.getCampaignProgress(result.campaignId!));
+        log.status = deliveryStatus === 'failed' ? 'Failed' : deliveryStatus === 'sent' ? 'Sent' : 'Queued';
+        if (deliveryStatus === 'failed') log.errorDetail = 'Walabz failed to send the campaign. Check the provider delivery report.';
         log.campaignId = result.campaignId;
         log.message = `${messagePreview}\n\n🚀 Walabz Campaign ID: ${result.campaignId}`;
         console.log(`[WhatsApp Dispatcher] Successfully queued Walabz campaign ${result.campaignId} for order ${orderId} (${cleanPhone})`);

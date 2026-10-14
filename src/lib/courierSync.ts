@@ -1,3 +1,4 @@
+import { normalizeCourierEventTime } from '@/lib/courierEventTime';
 import { db } from '@/lib/db';
 import { Order, OrderStatus, NdrRecord } from '@/lib/types';
 import { triggerWhatsAppNotification } from '@/lib/whatsapp';
@@ -14,6 +15,11 @@ export function mapCourierStatusToInternal(courierStatus: any): OrderStatus | nu
       : String(courierStatus);
       
   const status = statusStr.toLowerCase().trim();
+
+  if (status === 'rdc' || status.includes('returned to delivery center') || status.includes('returned to warehouse') || status.includes('returned to hub')) return 'RDC';
+  if (status === 'nc' || status === 'na' || status.includes('not contactable') || status.includes('not attempted')) return 'NDR';
+  if (status === 'picked' || status === 'picked up' || status === 'received') return 'Dispatched';
+  if (status === 'rts') return 'Return';
 
   if (
     status === 'delivered' || 
@@ -95,15 +101,6 @@ export function mapCourierStatusToInternal(courierStatus: any): OrderStatus | nu
     return 'Return';
   }
 
-  if (
-    status.includes('returned to warehouse') || 
-    status === 'rdc' || 
-    status.includes('returned to delivery center') || 
-    status.includes('returned to hub')
-  ) {
-    return 'RDC';
-  }
-
   return null;
 }
 
@@ -111,12 +108,13 @@ export function mapCourierStatusToInternal(courierStatus: any): OrderStatus | nu
  * Synchronizes an order's status with a live courier status, 
  * triggering db saves, order history records, WhatsApp alerts, and NDR logging.
  */
-export async function syncOrderStatus(
+async function applyOrderStatus(
   waybill: string,
   courierStatus: string,
   scanLocation?: string,
   customRemarks?: string,
-  eta?: string
+  eta?: string,
+  eventTimestamp?: string
 ): Promise<{ updated: boolean; order?: Order; error?: string }> {
   try {
     const orders = await db.getOrders();
@@ -153,11 +151,11 @@ export async function syncOrderStatus(
         }
       }
       // 3. Check for Return override
-      if (remarksLower.includes('return to origin') || remarksLower.includes('rto') || remarksLower.includes('returned') || remarksLower.includes('type: rt') || remarksLower.includes('status: rt')) {
+      if (mappedStatus !== 'Delivered' && mappedStatus !== 'RDC' && (remarksLower.includes('return to origin') || remarksLower.includes('rto') || remarksLower.includes('returned') || remarksLower.includes('type: rt') || remarksLower.includes('status: rt'))) {
         mappedStatus = 'Return';
       }
       // 4. Check for NDR override
-      if (remarksLower.includes('consignee unavailable') || remarksLower.includes('unavailable') || remarksLower.includes('reattempt') || remarksLower.includes('failed attempt') || remarksLower.includes('not available') || remarksLower.includes('undelivered') || remarksLower.includes('refused') || remarksLower.includes('rejected') || remarksLower.includes('unreachable') || remarksLower.includes('delayed') || remarksLower.includes('no such') || remarksLower.includes('incorrect address')) {
+      if (remarksLower.includes('consignee unavailable') || remarksLower.includes('unavailable') || remarksLower.includes('failed attempt') || remarksLower.includes('not available') || remarksLower.includes('undelivered') || remarksLower.includes('refused') || remarksLower.includes('rejected') || remarksLower.includes('unreachable') || remarksLower.includes('delayed') || remarksLower.includes('no such') || remarksLower.includes('incorrect address')) {
         if (mappedStatus !== 'Delivered' && mappedStatus !== 'Return' && mappedStatus !== 'RDC') {
           mappedStatus = 'NDR';
         }
@@ -168,7 +166,26 @@ export async function syncOrderStatus(
       return { updated: false, error: `Unable to map courier status: "${courierStatus}"` };
     }
 
+    const eventTime = normalizeCourierEventTime(eventTimestamp);
+    const previousTime = order.lastCourierEventAt;
+    if (eventTime && order.status !== mappedStatus && order.history.some(item => item.status === mappedStatus && item.timestamp === eventTime)) {
+      return { updated: false, order };
+    }
+    if (eventTime && previousTime && Date.parse(eventTime) < Date.parse(previousTime)) {
+      return { updated: false, order };
+    }
+    if (!eventTime && mappedStatus === 'Dispatched' && ['OFD', 'NDR', 'Call Placed Notification', 'RDC'].includes(order.status)) return { updated: false, order };
+    // A late or undated feed must not reopen a completed shipment.
+    if (order.status === 'Delivered' && mappedStatus !== 'Delivered') return { updated: false, order };
+    if (order.status === 'Return' && !['Return', 'RDC'].includes(mappedStatus)) return { updated: false, order };
+    const statusChanged = order.status !== mappedStatus;
     let hasChanges = false;
+    if (eventTime && eventTime !== previousTime) {
+      order.lastCourierEventAt = eventTime;
+      hasChanges = true;
+    }
+    order.last_tracking_update = now;
+
 
     // Parse Field Executive (FE) number if it's OFD or Call Placed
     if (mappedStatus === 'OFD' || mappedStatus === 'Call Placed Notification') {
@@ -184,12 +201,12 @@ export async function syncOrderStatus(
     }
 
     // 1. Update Order Status
-    if (order.status !== mappedStatus) {
+    if (statusChanged) {
       order.status = mappedStatus;
       order.updatedAt = now;
       order.history.push({
         status: mappedStatus,
-        timestamp: now,
+        timestamp: eventTime || now,
         updatedBy: 'courier_api_sync',
         remarks: sysRemarks
       });
@@ -202,12 +219,6 @@ export async function syncOrderStatus(
       if (cleanEta && cleanEta.length >= 8 && order.eta !== cleanEta) {
         order.eta = cleanEta;
         order.updatedAt = now;
-        order.history.push({
-          status: order.status,
-          timestamp: now,
-          updatedBy: 'courier_api_sync',
-          remarks: `Updated live estimated delivery date (ETD): ${cleanEta}`
-        });
         hasChanges = true;
       }
     }
@@ -248,8 +259,8 @@ export async function syncOrderStatus(
 
     // 5. WhatsApp Notification Trigger
     const waTriggerStatuses = ['Label Generated', 'Dispatched', 'OFD', 'Delivered', 'NDR', 'Return'];
-    if (waTriggerStatuses.includes(mappedStatus)) {
-      triggerWhatsAppNotification({
+    if (statusChanged && waTriggerStatuses.includes(mappedStatus)) {
+      await triggerWhatsAppNotification({
         orderId: order.orderId,
         customerName: order.customerName,
         phonePrimary: order.phonePrimary,
@@ -271,4 +282,16 @@ export async function syncOrderStatus(
     console.error('Error synchronizing courier status:', error);
     return { updated: false, error: error.message || 'Courier sync failed.' };
   }
+}
+
+// Serialize webhook/poll updates for an AWB on the single-instance server.
+const syncState = globalThis as typeof globalThis & { courierPendingSyncs?: Map<string, Promise<unknown>> };
+const pendingSyncs = syncState.courierPendingSyncs ||= new Map<string, Promise<unknown>>();
+export async function syncOrderStatus(...args: Parameters<typeof applyOrderStatus>): ReturnType<typeof applyOrderStatus> {
+  const key = args[0].trim().toLowerCase();
+  const previous = pendingSyncs.get(key) || Promise.resolve();
+  const task = previous.catch(() => {}).then(() => applyOrderStatus(...args));
+  pendingSyncs.set(key, task);
+  try { return await task; }
+  finally { if (pendingSyncs.get(key) === task) pendingSyncs.delete(key); }
 }

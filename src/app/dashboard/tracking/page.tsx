@@ -119,6 +119,11 @@ export default function Tracking() {
           ['Label Generated', 'Dispatched', 'OFD', 'Delivered', 'Undelivered', 'Return', 'RDC', 'NDR'].includes(o.status)
         );
         setOrders(shipments);
+        setSelectedOrder(current => {
+          if (!current) return current;
+          const latest = shipments.find(order => order.id === current.id);
+          return latest && latest.updatedAt !== current.updatedAt ? latest : current;
+        });
       }
       setLoading(false);
     } catch (err) {

@@ -108,8 +108,10 @@ export async function POST(request: Request) {
       // Perform unified status sync (updates order.status, history, WhatsApp, NDR)
       const statusToSync = String(statusName || statusCode);
       const customRemarks = `DTDC Webhook: [Code: ${statusCode}] ${statusName}${location ? ` at ${location}` : ''}. ${remarks}`;
-      syncResult = await syncOrderStatus(order.awb || String(awb), statusToSync, String(location), customRemarks);
+      syncResult = await syncOrderStatus(order.awb || String(awb), statusToSync, String(location), customRemarks, undefined, body.event_date || body.date ? `${dateVal}T${timeVal}` : undefined);
     }
+
+    if (syncResult.error) return NextResponse.json({ success: false, error: syncResult.error }, { status: 500 });
 
     // 3. Log diagnostic payload in courierLogs
     await db.addCourierLog({

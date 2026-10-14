@@ -1,5 +1,6 @@
 // In-memory cache map for XpressBees tokens per email account
 const tokenCache: Record<string, { token: string; expiresAt: number }> = {};
+const pendingTokens = new Map<string, Promise<string>>();
 
 /**
  * Retrieves a cached XpressBees JWT login token or fetches a new one if expired.
@@ -88,4 +89,42 @@ export function resolveXpressBeesConfig(xbConfig: any, accountOverride?: string)
     xbKey: selectedSubAccount?.xbKey || xbConfig.xbKey,
     activeAccount: isSurface ? 'Surface' : 'Air'
   };
+}
+
+/** API success does not mean that a pincode is serviceable. */
+export function parseXpressBeesServiceability(data: any, pincode: string): boolean | null {
+  if (data?.error || (data?.ReturnCode != null && String(data.ReturnCode) !== '100')) return null;
+  const rows = Array.isArray(data) ? data : data?.data ?? data?.Data ?? data?.PincodeDetails;
+  const row = Array.isArray(rows)
+    ? rows.find((item: any) => String(item.Pincode ?? item.PinCode ?? item.pincode ?? item.code) === pincode)
+    : rows && typeof rows === 'object' ? rows : data;
+  if (Array.isArray(rows) && !row) return false;
+  for (const key of ['serviceable', 'Serviceable', 'IsServiceable', 'isServiceable', 'Delivery', 'delivery']) {
+    const value = row?.[key];
+    if (value === true || value === 1 || /^(true|yes|y|1)$/i.test(String(value))) return true;
+    if (value === false || value === 0 || /^(false|no|n|0)$/i.test(String(value))) return false;
+  }
+  return null;
+}
+
+export async function checkXpressBeesServiceability(pincode: string, rawConfig: any, courier?: string): Promise<boolean | null> {
+  const override = /surface|sfc/i.test(courier || '') ? 'Surface' : /air/i.test(courier || '') ? 'Air' : undefined;
+  const config = resolveXpressBeesConfig(rawConfig, override);
+  const key = JSON.stringify([config.email, config.activeAccount, config.tokenUrl]);
+  let pending = pendingTokens.get(key);
+  if (!pending) {
+    pending = getXpressBeesToken(config).finally(() => pendingTokens.delete(key));
+    pendingTokens.set(key, pending);
+  }
+  const token = await pending;
+  if (token.startsWith('MOCK')) return null;
+  const url = new URL(config.pincodeUrl || 'https://xbmasterapi.xbees.in/expose/get/serviceabilitypincode/details');
+  url.searchParams.set('pincode', pincode);
+  const response = await fetch(url, {
+    method: 'POST', cache: 'no-store', signal: AbortSignal.timeout(10000),
+    headers: { 'Content-Type': 'application/json', Token: token, XBKey: config.xbKey || '' },
+    body: JSON.stringify({ BusinessUnit: 'B2C', BusinessFlow: 'Forward', BusinessService: config.activeAccount }),
+  });
+  if (!response.ok) throw new Error(`XpressBees serviceability HTTP ${response.status}`);
+  return parseXpressBeesServiceability(await response.json(), pincode);
 }

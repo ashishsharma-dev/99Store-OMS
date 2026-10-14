@@ -1,3 +1,5 @@
+import { db } from './db';
+import { createSessionToken, SESSION_COOKIE_NAME } from './session';
 import puppeteer from 'puppeteer-core';
 import fs from 'fs';
 import path from 'path';
@@ -69,6 +71,9 @@ export async function generatePackingSlipImage(orderId: string, baseUrl?: string
     const targetUrl = `http://localhost:${port}/packing-slip/${orderId}`;
     console.log(`[Screenshot] Navigating to: ${targetUrl}`);
     
+    const user = (await db.getUsers()).find(user => user.isActive && user.role === 'Super Admin');
+    if (!user) throw new Error('No active admin account is available to render the packing slip.');
+    await browser.setCookie({ name: SESSION_COOKIE_NAME, value: createSessionToken(user), domain: 'localhost', path: '/', httpOnly: true });
     await page.goto(targetUrl, { waitUntil: 'networkidle0', timeout: 15000 });
     
     // Inject CSS to hide Next.js development overlays/dialogs/badges

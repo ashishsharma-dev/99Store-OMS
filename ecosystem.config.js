@@ -13,7 +13,8 @@ module.exports = {
       exp_backoff_restart_delay: 100,
       env: {
         NODE_ENV: "production",
-        PORT: 3000
+        PORT: 3000,
+        COURIER_TRACKING_POLL_ENABLED: "true"
       }
     }
   ]

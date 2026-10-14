@@ -225,11 +225,12 @@ export async function PATCH(
       }
     }
 
+    let notificationError: string | undefined;
     // D. Trigger Automated WhatsApp messaging for logistics
     if (statusChanged && waTriggerStatuses.includes(targetStatus)) {
       const baseUrl = new URL(request.url).origin;
       // Trigger real WhatsApp in background directly, bypassing loopback network dependencies
-      triggerWhatsAppNotification({
+      const notificationLogs = await triggerWhatsAppNotification({
         orderId: order.orderId,
         customerName: order.customerName,
         phonePrimary: order.phonePrimary,
@@ -244,10 +245,12 @@ export async function PATCH(
         orderValue: order.orderValue,
         paymentType: order.paymentType,
         baseUrl
-      }).catch(err => console.error('Failed to trigger background direct WhatsApp:', err));
+      }).catch(err => { notificationError = err instanceof Error ? err.message : 'WhatsApp send failed.'; return []; });
+      notificationError ||= notificationLogs.find(log => log.status === 'Failed')?.errorDetail;
+      if (!notificationLogs.length) notificationError ||= 'No notification was queued. Check the customer WhatsApp number.';
     }
 
-    return NextResponse.json({ success: true, order, awbError });
+    return NextResponse.json({ success: true, order, awbError, notificationError });
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to update order.' }, { status: 500 });

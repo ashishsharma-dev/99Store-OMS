@@ -58,9 +58,12 @@ export async function POST(request: Request) {
         waybillToSync,
         String(courierStatus),
         scanLocation,
-        customRemarks
+        customRemarks,
+        undefined,
+        payload.timestamp || payload.created || payload.event_time
       );
 
+      if (result.error) return NextResponse.json({ success: false, error: result.error }, { status: 500 });
       return NextResponse.json({
         success: true,
         updated: result.updated,

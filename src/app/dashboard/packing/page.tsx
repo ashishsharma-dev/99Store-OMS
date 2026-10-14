@@ -72,9 +72,9 @@ export default function Packing() {
   const [reassignLoading, setReassignLoading] = useState(false);
   const [showAwbErrorModal, setShowAwbErrorModal] = useState(false);
   const [awbErrorDetails, setAwbErrorDetails] = useState<{ orderId: string; courier: string; pincode: string; error: string } | null>(null);
-  const [serviceabilityCache, setServiceabilityCache] = useState<Record<string, boolean>>({});
+  const [serviceabilityCache, setServiceabilityCache] = useState<Record<string, boolean | null>>({});
   const fetchingKeys = useRef<Set<string>>(new Set());
-  const [modalServiceability, setModalServiceability] = useState<Record<string, 'loading' | 'serviceable' | 'unserviceable'>>({});
+  const [modalServiceability, setModalServiceability] = useState<Record<string, 'loading' | 'serviceable' | 'unserviceable' | 'unknown'>>({});
   const [showBulkReassignModal, setShowBulkReassignModal] = useState(false);
   const [bulkReassignCourier, setBulkReassignCourier] = useState('Delhivery');
   const [bulkReassignLoading, setBulkReassignLoading] = useState(false);
@@ -110,7 +110,7 @@ export default function Packing() {
         const couriers = ['Delhivery', 'XpressBees', 'DTDC', 'Shadowfax'];
         const pincode = awbErrorDetails.pincode;
         
-        const initialStates: Record<string, 'loading' | 'serviceable' | 'unserviceable'> = {};
+        const initialStates: Record<string, 'loading' | 'serviceable' | 'unserviceable' | 'unknown'> = {};
         couriers.forEach(c => {
           initialStates[c] = 'loading';
         });
@@ -128,24 +128,24 @@ export default function Packing() {
           if (res.ok) {
             const data = await res.json();
             const results = data.results || {};
-            const updatedStates: Record<string, 'loading' | 'serviceable' | 'unserviceable'> = {};
+            const updatedStates: Record<string, 'loading' | 'serviceable' | 'unserviceable' | 'unknown'> = {};
             couriers.forEach(c => {
               const key = `${pincode}-${c}`;
               const isServiceable = results[key] === true;
-              updatedStates[c] = isServiceable ? 'serviceable' : 'unserviceable';
+              updatedStates[c] = results[key] == null ? 'unknown' : isServiceable ? 'serviceable' : 'unserviceable';
             });
             setModalServiceability(updatedStates);
           } else {
-            const fallbackStates: Record<string, 'loading' | 'serviceable' | 'unserviceable'> = {};
+            const fallbackStates: Record<string, 'loading' | 'serviceable' | 'unserviceable' | 'unknown'> = {};
             couriers.forEach(c => {
-              fallbackStates[c] = 'unserviceable';
+              fallbackStates[c] = /shadowfax|xpressbees/i.test(c) ? 'unknown' : 'unserviceable';
             });
             setModalServiceability(fallbackStates);
           }
         } catch (e) {
-          const fallbackStates: Record<string, 'loading' | 'serviceable' | 'unserviceable'> = {};
+          const fallbackStates: Record<string, 'loading' | 'serviceable' | 'unserviceable' | 'unknown'> = {};
           couriers.forEach(c => {
-            fallbackStates[c] = 'unserviceable';
+            fallbackStates[c] = /shadowfax|xpressbees/i.test(c) ? 'unknown' : 'unserviceable';
           });
           setModalServiceability(fallbackStates);
         }
@@ -243,14 +243,14 @@ export default function Packing() {
   useEffect(() => {
     let isMounted = true;
 
-    const checkAllServiceability = async () => {
+    const checkAllServiceability = async (refresh = false) => {
       const uniqueChecksMap: Record<string, { pincode: string; courier: string }> = {};
 
       filteredOrders.forEach(o => {
         const activeCourier = courierOverrides[o.id] || o.courier || 'DTDC';
         const cacheKey = `${o.pincode}-${activeCourier}`;
 
-        if (serviceabilityCache[cacheKey] === undefined && !fetchingKeys.current.has(cacheKey)) {
+        if ((serviceabilityCache[cacheKey] === undefined || (refresh && /shadowfax|sfx|xpressbees|xbees/i.test(activeCourier))) && !fetchingKeys.current.has(cacheKey)) {
           uniqueChecksMap[cacheKey] = { pincode: o.pincode, courier: activeCourier };
         }
       });
@@ -281,7 +281,7 @@ export default function Packing() {
       } catch (err) {
         console.error('Batch serviceability check failed, falling back to static rules:', err);
         if (isMounted) {
-          const fallbackResults: Record<string, boolean> = {};
+          const fallbackResults: Record<string, boolean | null> = {};
           pendingChecks.forEach(({ pincode, courier }) => {
             const cacheKey = `${pincode}-${courier}`;
             fallbackResults[cacheKey] = checkCourierServiceability(pincode, courier);
@@ -297,8 +297,10 @@ export default function Packing() {
     };
 
     checkAllServiceability();
+    const retry = setInterval(() => checkAllServiceability(true), 60000);
 
     return () => {
+      clearInterval(retry);
       isMounted = false;
     };
   }, [filteredOrders, courierOverrides]);
@@ -422,8 +424,12 @@ export default function Packing() {
       });
 
       setProcessingOrderId(null);
+      const result = await res.json();
       if (res.ok) {
+        if (result.notificationError) alert(`Parcel dispatched. WhatsApp: ${result.notificationError}`);
         fetchPackingQueue();
+      } else {
+        alert(result.error || 'Dispatch failed.');
       }
     } catch (err) {
       setProcessingOrderId(null);
@@ -1091,7 +1097,7 @@ export default function Packing() {
                           <>
                             <select
                               className="premium-input"
-                              style={{ padding: '4px 8px', fontSize: '11.5px', width: '100%', borderColor: !isServiceable ? '#EF4444' : 'var(--border)' }}
+                              style={{ padding: '4px 8px', fontSize: '11.5px', width: '100%', borderColor: isServiceable === false ? '#EF4444' : 'var(--border)' }}
                               value={activeCourier}
                               onChange={(e) => handleCourierSelectChange(o.id, e.target.value as any)}
                               disabled={isProcessing}
@@ -1102,7 +1108,8 @@ export default function Packing() {
                               <option value="Delhivery">Delhivery (Priority 3)</option>
                               <option value="Shadowfax">Shadowfax (SFX)</option>
                             </select>
-                            {!isServiceable && (
+                            {isServiceable == null && <span style={{ color: '#F59E0B', fontSize: '11px' }}>Serviceability unconfirmed; booking will verify.</span>}
+                            {isServiceable === false && (
                               <span style={{ color: '#EF4444', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
                                 ⚠️ Unserviceable with {activeCourier}
                               </span>
@@ -1147,7 +1154,7 @@ export default function Packing() {
                       <div style={{ display: 'inline-flex', gap: '8px' }}>
                         {/* Phase 1: Generated AWB Label or Reschedule */}
                         {!o.awb && (
-                          isServiceable ? (
+                          isServiceable !== false ? (
                             <button
                               onClick={() => handleOpenSingleDispatchModal(o)}
                               className="premium-btn premium-btn-primary animate-fade-in"
@@ -1536,7 +1543,7 @@ export default function Packing() {
                             {cName} {isCurrent && <span style={{ color: '#A1A1AA', fontSize: '11px' }}>(Current)</span>}
                           </span>
                           <span style={{ fontSize: '11px', fontWeight: 600, color: status === 'serviceable' ? '#10B981' : (status === 'unserviceable' ? '#EF4444' : '#EAB308') }}>
-                            {status === 'loading' ? '⌛ Checking serviceability...' : (status === 'serviceable' ? '✓ Serviceable' : '✗ Unserviceable')}
+                            {status === 'loading' ? '⌛ Checking serviceability...' : (status === 'unknown' ? 'Check unavailable - retry' : status === 'serviceable' ? '✓ Serviceable' : '✗ Unserviceable')}
                           </span>
                         </div>
                         

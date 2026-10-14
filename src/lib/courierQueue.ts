@@ -146,7 +146,7 @@ async function processCourierJobs() {
             await db.saveOrder(order);
 
             // Trigger WhatsApp
-            triggerWhatsAppNotification({
+            await triggerWhatsAppNotification({
               orderId: order.orderId,
               customerName: order.customerName,
               phonePrimary: order.phonePrimary,

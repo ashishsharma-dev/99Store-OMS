@@ -54,7 +54,7 @@ export function getOtpResendCooldownSeconds(lastIssuedAt: string | undefined, no
 
 export function summarizeOtpCampaignProgress(progress: CampaignProgress): OtpDeliveryStatus {
   const status = String(progress.status || '').toLowerCase();
-  if (status === 'failed') return 'failed';
+  if (status === 'failed' || (Number(progress.failed || 0) > 0 && Number(progress.sent || 0) === 0 && Number(progress.delivered || 0) === 0 && Number(progress.read || 0) === 0)) return 'failed';
   if (
     status === 'completed' ||
     Number(progress.sent || 0) > 0 ||

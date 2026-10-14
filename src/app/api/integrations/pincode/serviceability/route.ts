@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getXpressBeesToken } from '@/lib/xpressbees';
+import { checkXpressBeesServiceability } from '@/lib/xpressbees';
 import { checkShadowfaxServiceability } from '@/lib/shadowfax';
 
 // Static check function as fallback
-function checkCourierServiceabilityFallback(pincode: string, courier: string): boolean {
+function checkCourierServiceabilityFallback(pincode: string, courier: string): boolean | null {
   if (!pincode || pincode.length !== 6 || !/^\d+$/.test(pincode)) {
     return false;
   }
@@ -14,14 +14,14 @@ function checkCourierServiceabilityFallback(pincode: string, courier: string): b
   if (normalizedCourier.includes('dtdc')) {
     return prefix !== '7';
   }
-  if (normalizedCourier.includes('xpressbees')) {
-    return prefix !== '6';
+  if (normalizedCourier.includes('xpressbees') || normalizedCourier.includes('xbees')) {
+    return null;
   }
   if (normalizedCourier.includes('delhivery')) {
     return prefix !== '5';
   }
   if (normalizedCourier.includes('shadowfax') || normalizedCourier.includes('sfx')) {
-    return prefix !== '8';
+    return null;
   }
 
   return true;
@@ -78,27 +78,8 @@ export async function GET(request: Request) {
     // 2. Check XpressBees live API if active
     if (normalizedCourier.includes('xpressbees') || normalizedCourier.includes('xbees')) {
       if (settings.xpressbeesActive) {
-        const token = await getXpressBeesToken(settings.xpressbeesConfig);
-        const pincodeUrl = settings.xpressbeesConfig.pincodeUrl || 'https://xbmasterapi.xbees.in/expose/get/serviceabilitypincode/details';
-
-        const res = await fetch(`${pincodeUrl}?pincode=${pincode}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Token': token,
-            'XBKey': settings.xpressbeesConfig.xbKey || ''
-          },
-          body: JSON.stringify({
-            BusinessUnit: 'B2C',
-            BusinessFlow: 'Forward',
-            BusinessService: settings.xpressbeesConfig.serviceType || 'Air'
-          })
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const isServiceable = !!(data && (data.status === true || data.status === 'success' || data.ReturnCode === 100 || data.data));
-          return NextResponse.json({ serviceable: isServiceable, method: 'XpressBees API' });
-        }
+        const serviceable = await checkXpressBeesServiceability(pincode, settings.xpressbeesConfig, courier);
+        return NextResponse.json({ serviceable, method: 'XpressBees API' });
       }
       return NextResponse.json({ serviceable: checkCourierServiceabilityFallback(pincode, courier), method: 'Static Fallback' });
     }
@@ -108,7 +89,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ serviceable: staticCheck, method: 'Static Fallback' });
 
   } catch (error: any) {
-    return NextResponse.json({ serviceable: false, error: error.message || 'Verification failed.' });
+    const affectedCourier = /shadowfax|sfx|xpressbees|xbees/i.test(new URL(request.url).searchParams.get('courier') || '');
+    return NextResponse.json({ serviceable: affectedCourier ? null : false, error: error.message || 'Verification failed.' });
   }
 }
 
@@ -122,16 +104,7 @@ export async function POST(request: Request) {
     }
 
     const settings = await db.getSettings();
-    const results: Record<string, boolean> = {};
-
-    let xpressbeesToken = '';
-    if (settings.xpressbeesActive) {
-      try {
-        xpressbeesToken = await getXpressBeesToken(settings.xpressbeesConfig);
-      } catch (err) {
-        console.error('Failed to get Xpressbees token for batch:', err);
-      }
-    }
+    const results: Record<string, boolean | null> = {};
 
     await Promise.all(
       checks.map(async ({ pincode, courier }) => {
@@ -181,27 +154,9 @@ export async function POST(request: Request) {
           }
 
           if (normalizedCourier.includes('xpressbees') || normalizedCourier.includes('xbees')) {
-            if (settings.xpressbeesActive && xpressbeesToken) {
-              const pincodeUrl = settings.xpressbeesConfig.pincodeUrl || 'https://xbmasterapi.xbees.in/expose/get/serviceabilitypincode/details';
-
-              const res = await fetch(`${pincodeUrl}?pincode=${pincode}`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Token': xpressbeesToken,
-                  'XBKey': settings.xpressbeesConfig.xbKey || ''
-                },
-                body: JSON.stringify({
-                  BusinessUnit: 'B2C',
-                  BusinessFlow: 'Forward',
-                  BusinessService: settings.xpressbeesConfig.serviceType || 'Air'
-                })
-              });
-              if (res.ok) {
-                const data = await res.json();
-                results[key] = !!(data && (data.status === true || data.status === 'success' || data.ReturnCode === 100 || data.data));
-                return;
-              }
+            if (settings.xpressbeesActive) {
+              results[key] = await checkXpressBeesServiceability(pincode, settings.xpressbeesConfig, courier);
+              return;
             }
             results[key] = checkCourierServiceabilityFallback(pincode, courier);
             return;
