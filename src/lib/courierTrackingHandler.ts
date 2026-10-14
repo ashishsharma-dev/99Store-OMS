@@ -112,7 +112,7 @@ export async function handleCourierTracking(request: Request) {
 
         if (authType === 'new') {
           const trackUrl = xbConfig.trackBulkUrl || 'https://apishipmenttracking.xbees.in/GetCurrentShipmentStatus';
-          reqPayloadStr = `POST ${trackUrl} body: { awb: ${waybill} }`;
+          reqPayloadStr = `POST ${trackUrl} body: { AWBNumber: ${waybill} }`;
           res = await fetchWithRetry(
             trackUrl,
             {
@@ -121,17 +121,12 @@ export async function handleCourierTracking(request: Request) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
                 'Token': token,
-                'token': token,
                 'TokenNumber': token,
                 'XBKey': xbConfig.xbKey || '',
-                'xb-key': xbConfig.xbKey || '',
                 'versionnumber': 'v1'
               },
               body: JSON.stringify({
-                awb: waybill,
-                awbs: [waybill],
-                TokenNumber: token,
-                Token: token
+                AWBNumber: waybill
               })
             },
             {
@@ -164,20 +159,60 @@ export async function handleCourierTracking(request: Request) {
         }
 
         let unifiedData = data;
-        if (data && !data.ShipmentData) {
-          const rawScans = Array.isArray(data.scans) 
-            ? data.scans 
-            : Array.isArray(data.data) 
-              ? data.data 
-              : Array.isArray(data) 
-                ? data 
+
+        // Handle new-style XpressBees response: [{AWBNO, ReturnCode, ReturnMessage, CurrentShipmentStatus}]
+        const xbArr = Array.isArray(data) ? data : null;
+        const xbEntry = xbArr?.[0];
+        if (xbEntry && 'ReturnCode' in xbEntry) {
+          if (String(xbEntry.ReturnCode) !== '100') {
+            await db.addCourierLog({
+              id: `cl-xb-track-${Date.now()}`,
+              timestamp: new Date().toISOString(),
+              courier: 'XpressBees',
+              action: 'Track Shipment',
+              requestPayload: reqPayloadStr,
+              responsePayload: JSON.stringify(data, null, 2),
+              status: 'Error'
+            });
+            return NextResponse.json({ error: `XpressBees tracking error: ${xbEntry.ReturnMessage || 'Unknown error'} (code ${xbEntry.ReturnCode})` }, { status: 502 });
+          }
+          const css = xbEntry.CurrentShipmentStatus;
+          unifiedData = {
+            ShipmentData: [
+              {
+                Shipment: {
+                  AWB: xbEntry.AWBNO || waybill,
+                  Status: {
+                    Status: css?.Status || '',
+                    StatusLocation: css?.CurrentLocation || css?.OriginLocation || 'Hub',
+                    StatusDateTime: css?.StatusDateTime || ''
+                  },
+                  Scans: css ? [{
+                    ScanDetail: {
+                      ScannedLocation: css.CurrentLocation || css.OriginLocation || 'Hub',
+                      ScanDateTime: css.StatusDateTime || '',
+                      Scan: css.Status || 'Scan Recorded',
+                      Instructions: css.Remark || ''
+                    }
+                  }] : []
+                }
+              }
+            ]
+          };
+        } else if (data && !data.ShipmentData) {
+          const rawScans = Array.isArray(data.scans)
+            ? data.scans
+            : Array.isArray(data.data)
+              ? data.data
+              : Array.isArray(data)
+                ? data
                 : (data.history || []);
-          const statusVal = (typeof data.status === 'string' ? data.status : null) || 
-                            (typeof data.current_status === 'string' ? data.current_status : null) || 
-                            (data.data && typeof data.data.status === 'string' ? data.data.status : null) || 
+          const statusVal = (typeof data.status === 'string' ? data.status : null) ||
+                            (typeof data.current_status === 'string' ? data.current_status : null) ||
+                            (data.data && typeof data.data.status === 'string' ? data.data.status : null) ||
                             '';
-          const locationVal = (typeof data.location === 'string' ? data.location : null) || 
-                              (data.data && typeof data.data.location === 'string' ? data.data.location : null) || 
+          const locationVal = (typeof data.location === 'string' ? data.location : null) ||
+                              (data.data && typeof data.data.location === 'string' ? data.data.location : null) ||
                               'Origin Hub';
 
           unifiedData = {

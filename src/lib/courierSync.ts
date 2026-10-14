@@ -57,14 +57,15 @@ export function mapCourierStatusToInternal(courierStatus: any): OrderStatus | nu
   }
 
   if (
-    status === 'in transit' || 
-    status === 'dispatched' || 
-    status === 'shipped' || 
-    status === 'transit' || 
-    status.includes('manifest uploaded') || 
-    status === 'manifested' || 
-    status.includes('in_transit') || 
-    status.includes('departed') || 
+    status === 'in transit' ||
+    status === 'dispatched' ||
+    status === 'shipped' ||
+    status === 'transit' ||
+    status.includes('manifest uploaded') ||
+    status === 'manifested' ||
+    status.includes('data received') ||
+    status.includes('in_transit') ||
+    status.includes('departed') ||
     status === 'in-transit'
   ) {
     return 'Dispatched';
