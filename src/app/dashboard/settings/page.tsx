@@ -57,7 +57,7 @@ export default function IntegrationsSettings() {
   const [whatsappAccessToken, setWhatsappAccessToken] = useState('');
 
   // Walabz WhatsApp Business Configuration State
-  const [walabzBaseUrl, setWalabzBaseUrl] = useState('https://walabz.com');
+  const [walabzBaseUrl, setWalabzBaseUrl] = useState('https://labzwaba.com');
   const [walabzUsername, setWalabzUsername] = useState('');
   const [walabzPassword, setWalabzPassword] = useState('');
   const [walabzApiKey, setWalabzApiKey] = useState('');
@@ -171,7 +171,7 @@ export default function IntegrationsSettings() {
         setWhatsappAccessToken(s.whatsappAccessToken || '');
 
         // Walabz fields
-        setWalabzBaseUrl(s.walabzBaseUrl || 'https://walabz.com');
+        setWalabzBaseUrl(s.walabzBaseUrl || 'https://labzwaba.com');
         setWalabzUsername(s.walabzUsername || '');
         setWalabzPassword(s.walabzPassword || '');
         setWalabzApiKey(s.walabzApiKey || '');
@@ -1683,7 +1683,7 @@ export default function IntegrationsSettings() {
                 <input
                   type="text"
                   className="premium-input"
-                  placeholder="https://walabz.com"
+                  placeholder="https://labzwaba.com"
                   value={walabzBaseUrl}
                   onChange={(e) => setWalabzBaseUrl(e.target.value)}
                 />

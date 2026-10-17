@@ -27,7 +27,7 @@ export async function GET() {
       connected,
       error: connectionError,
       templates,
-      walabzBaseUrl: settings.walabzBaseUrl || 'https://walabz.com',
+      walabzBaseUrl: settings.walabzBaseUrl || 'https://labzwaba.com',
       hasApiKey: !!settings.walabzApiKey,
       hasCredentials: !!(settings.walabzUsername && settings.walabzPassword),
       configuredTemplates: settings.walabzTemplates || {},

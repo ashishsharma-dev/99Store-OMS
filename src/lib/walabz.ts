@@ -1,7 +1,7 @@
 /**
  * Walabz WhatsApp Business API Client Library
  * Reference: scratch/walabz-api-reference.md
- * Platform: https://walabz.com
+ * Platform: https://labzwaba.com
  */
 
 export interface WalabzConfig {
@@ -90,13 +90,13 @@ export class WalabzClient {
     let raw = (
       config?.baseUrl ||
       process.env.WALABZ_BASE_URL ||
-      'https://walabz.com'
+      'https://labzwaba.com'
     ).trim().replace(/\/+$/, '');
 
     if (raw.endsWith('/api')) {
       raw = raw.slice(0, -4).replace(/\/+$/, '');
     }
-    this.baseUrl = raw || 'https://walabz.com';
+    this.baseUrl = raw || 'https://labzwaba.com';
 
     this.username = config?.username || process.env.WALABZ_USERNAME;
     this.password = config?.password || process.env.WALABZ_PASSWORD;

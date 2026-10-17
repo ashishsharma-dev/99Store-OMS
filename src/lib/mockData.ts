@@ -65,7 +65,7 @@ export const mockSettings: SystemSettings = {
   whatsappSupportNumber: '+91 9876543210',
   whatsappCourierSupportName: 'Courier Helpdesk',
   whatsappCourierSupportNumber: '+91 9123456789',
-  walabzBaseUrl: 'https://walabz.com',
+  walabzBaseUrl: 'https://labzwaba.com',
   walabzDefaultCountryCode: 'IN',
   walabzDefaultDialCode: '91',
   walabzTemplates: {

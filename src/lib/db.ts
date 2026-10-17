@@ -733,7 +733,7 @@ export const db = {
     }
 
     if (!memorySettings.walabzBaseUrl) {
-      memorySettings.walabzBaseUrl = process.env.WALABZ_BASE_URL || 'https://walabz.com';
+      memorySettings.walabzBaseUrl = process.env.WALABZ_BASE_URL || 'https://labzwaba.com';
       memorySettings.walabzDefaultCountryCode = 'IN';
       memorySettings.walabzDefaultDialCode = '91';
       saveMemoryToLocalFile();

@@ -69,7 +69,7 @@ export async function POST(request: Request) {
       whatsappDeviceId: typeof body.whatsappDeviceId === 'string' ? body.whatsappDeviceId.trim() : settings.whatsappDeviceId,
       whatsappAccessToken: typeof body.whatsappAccessToken === 'string' ? body.whatsappAccessToken.trim() : settings.whatsappAccessToken,
       // Walabz Configuration
-      walabzBaseUrl: typeof body.walabzBaseUrl === 'string' ? body.walabzBaseUrl.trim() : (settings.walabzBaseUrl || 'https://walabz.com'),
+      walabzBaseUrl: typeof body.walabzBaseUrl === 'string' ? body.walabzBaseUrl.trim() : (settings.walabzBaseUrl || 'https://labzwaba.com'),
       walabzUsername: typeof body.walabzUsername === 'string' ? body.walabzUsername.trim() : settings.walabzUsername,
       walabzPassword: typeof body.walabzPassword === 'string' ? body.walabzPassword : settings.walabzPassword,
       walabzApiKey: typeof body.walabzApiKey === 'string' ? body.walabzApiKey.trim() : settings.walabzApiKey,
