@@ -305,76 +305,13 @@ export async function bookShadowfaxOrder(
       ? responseData.errors
       : (Array.isArray(responseData.errors) ? responseData.errors.join(', ') : (responseData.message || 'Shadowfax Order Booking Failed'));
 
-    // Intelligent Pickup Hub Fallback:
-    // If the configured warehouse pincode is not yet enabled/mapped in the Shadowfax client account
-    // (e.g. 282006 Agra is not in the seller's authorized pickup master),
-    // automatically retry with an authorized hub (110060 in prod, 110001 in staging)
-    // so the merchant's shipments are never blocked, while returning an actionable notice.
     const isPickupPincodeError = errorMsg.toLowerCase().includes('pickup pincode') && errorMsg.toLowerCase().includes('not serviceable');
-    const isStagingEnv = baseUrl.includes('staging') || baseUrl.includes('dale.staging') || apiKey.toLowerCase().includes('staging');
-    const fallbackPincode = isStagingEnv ? 110001 : 110060;
-    const fallbackCity = isStagingEnv ? 'New Delhi' : 'Delhi';
-
-    if (isPickupPincodeError && pickupPincode !== fallbackPincode) {
-      console.warn(`[Shadowfax] Pickup pincode ${pickupPincode} is not yet registered on your Shadowfax account. Retrying booking with authorized hub (${fallbackPincode} ${fallbackCity})...`);
-
-      const fallbackPickupDetails = {
-        name: pickupName,
-        contact: pickupPhone,
-        address_line_1: pickupAddress1,
-        address_line_2: pickupAddress2 || '',
-        city: pickupCity || fallbackCity,
-        state: pickupState || 'Delhi',
-        pincode: fallbackPincode,
-        unique_code: warehouseCode || 'WH_SFX_01'
-      };
-
-      orderPayload.pickup_details = fallbackPickupDetails;
-      orderPayload.rto_details = fallbackPickupDetails;
-      orderPayload.rts_details = fallbackPickupDetails;
-
-      try {
-        const retryRes = await fetch(targetUrl, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Token ${apiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(orderPayload)
-        });
-
-        const retryData = await retryRes.json();
-        const isRetrySuccess = retryRes.ok && retryData.message === 'Success' && retryData.data?.awb_number;
-        const retryAlreadyMatch = typeof retryData.errors === 'string' && retryData.errors.match(/already created with AWB\s*:\s*([A-Z0-9]+)/i);
-        const retryAwb = isRetrySuccess ? retryData.data.awb_number : (retryData.AWB || (retryAlreadyMatch ? retryAlreadyMatch[1] : null));
-
-        if (retryAwb) {
-          const etaDate = new Date();
-          etaDate.setDate(etaDate.getDate() + 3);
-          const etaString = etaDate.toISOString().split('T')[0];
-          const charge = 50 + weightInKg * 20 + (paymentMode === 'COD' ? 30 : 0);
-
-          return {
-            success: true,
-            awb: retryAwb,
-            eta: etaString,
-            courier: 'Shadowfax',
-            charge: parseFloat(charge.toFixed(2)),
-            requestPayload: orderPayload,
-            responsePayload: {
-              ...retryData,
-              _hubNotice: `Warehouse pincode ${pickupPincode} is not yet mapped to your Shadowfax client account. Dispatched via authorized hub ${fallbackPincode}. Please request your Shadowfax Account Manager to add ${pickupPincode} to your account's pickup master.`
-            }
-          };
-        }
-      } catch (retryErr) {
-        console.error('[Shadowfax] Retry error:', retryErr);
-      }
-    }
 
     return {
       success: false,
-      error: errorMsg,
+      error: isPickupPincodeError
+        ? `Shadowfax has not enabled pickup pincode ${pickupPincode} for warehouse ${warehouseCode}. Ask your Shadowfax account manager to add the exact pickup address. Booking was not created and no alternate pincode was used.`
+        : errorMsg,
       requestPayload: orderPayload,
       responsePayload: responseData
     };

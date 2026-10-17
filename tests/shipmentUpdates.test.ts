@@ -5,7 +5,7 @@ import { db } from '../src/lib/db';
 import { syncOrderStatus } from '../src/lib/courierSync';
 import { normalizeCourierEventTime } from '../src/lib/courierEventTime';
 import { parseXpressBeesServiceability, checkXpressBeesServiceability } from '../src/lib/xpressbees';
-import { checkShadowfaxServiceability } from '../src/lib/shadowfax';
+import { bookShadowfaxOrder, checkShadowfaxServiceability } from '../src/lib/shadowfax';
 import { triggerWhatsAppNotification } from '../src/lib/whatsapp';
 import { mockSettings } from '../src/lib/mockData';
 import { WalabzClient, type SendCampaignOptions } from '../src/lib/walabz';
@@ -84,6 +84,35 @@ it('reports Shadowfax transport failure as unknown and checks the applicable tie
   fetchMock.mock.mockImplementation(async () => Response.json([{ code: 800001, services: ['Regular'] }]));
   assert.equal((await checkShadowfaxServiceability('800001', { apiKey: 'unit', priority: 1 })).serviceable, true);
   assert.equal((await checkShadowfaxServiceability('800001', { apiKey: 'unit', priority: 1, serviceTier: 'Surface' })).serviceable, false);
+});
+it('never substitutes a different Shadowfax pickup pincode after rejection', async () => {
+  const requests: any[] = [];
+  const fetchMock = mock.method(globalThis, 'fetch', async (_url: unknown, init: RequestInit) => {
+    requests.push(JSON.parse(String(init.body)));
+    return Response.json({ errors: 'Pickup pincode is not serviceable' }, { status: 400 });
+  });
+  const result = await bookShadowfaxOrder(order, {
+    ...mockSettings,
+    shadowfaxConfig: {
+      apiKey: 'live-token',
+      priority: 1,
+      baseUrl: 'https://dale.shadowfax.in/api',
+      orderType: 'warehouse',
+      warehouseCode: 'WH_SFX_01',
+      contactName: 'Warehouse Manager',
+      phone: '8057023592',
+      address: 'J.K. NAGAR, NANDLALPUR HATHRAS ROAD KUBERPUR',
+      address2: 'Kuberpur',
+      city: 'Agra',
+      state: 'Uttar Pradesh',
+      pincode: '282006',
+    },
+  });
+
+  assert.equal(fetchMock.mock.callCount(), 1);
+  assert.equal(requests[0].pickup_details.pincode, 282006);
+  assert.equal(requests[0].rto_details.pincode, 282006);
+  assert.match(result.error || '', /no alternate pincode was used/i);
 });
 it('retries a failed dispatch and sends only to the customer WhatsApp number', async () => {
   order.phoneWhatsApp = '9876543210';

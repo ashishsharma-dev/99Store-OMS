@@ -1219,32 +1219,10 @@ export default function IntegrationsSettings() {
                     </div>
 
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                        <label style={{ fontSize: '11px', color: '#A1A1AA', textTransform: 'uppercase', fontWeight: 600 }}>Pincode</label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShadowfaxPincode(shadowfaxBaseUrl.includes('staging') ? '110001' : '110060');
-                            setShadowfaxCity(shadowfaxBaseUrl.includes('staging') ? 'New Delhi' : 'Delhi');
-                            setShadowfaxState('Delhi');
-                          }}
-                          style={{
-                            background: 'rgba(59, 130, 246, 0.15)',
-                            border: '1px solid rgba(59, 130, 246, 0.3)',
-                            color: '#60A5FA',
-                            fontSize: '10px',
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontWeight: 600
-                          }}
-                        >
-                          {shadowfaxBaseUrl.includes('staging') ? 'Use Staging Hub (110001)' : 'Use Account Hub (110060)'}
-                        </button>
-                      </div>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>Pincode</label>
                       <input type="text" className="premium-input" placeholder="Pincode" value={shadowfaxPincode} onChange={(e) => setShadowfaxPincode(e.target.value)} />
-                      <p style={{ fontSize: '11px', color: '#38BDF8', marginTop: '4px', lineHeight: '1.4' }}>
-                        ℹ️ <strong>Account Pickup Master:</strong> Shadowfax restricts pickups to pincodes whitelisted by your account manager. If your warehouse ({shadowfaxPincode || '282006'}) is not yet whitelisted on your account (&quot;CP-Shivay Ayurveda&quot;), ask your Shadowfax Account Manager to add {shadowfaxPincode || '282006'} (Agra) to your pickup locations. In the meantime, the system auto-routes via authorized hub 110060 so AWB generation is never blocked.
+                      <p style={{ fontSize: '11px', color: '#FBBF24', marginTop: '4px', lineHeight: '1.4' }}>
+                        <strong>Account Pickup Master:</strong> Enter the exact physical pickup pincode. Shadowfax must enable this pincode for your account before booking; the system will not substitute a different hub or alter the pickup/RTO address.
                       </p>
                     </div>
                   </div>
