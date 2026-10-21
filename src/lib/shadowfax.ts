@@ -29,19 +29,26 @@ export function getShadowfaxBaseUrl(config?: ShadowfaxConfig): string {
   return 'https://dale.shadowfax.in/api';
 }
 
-export async function checkShadowfaxServiceability(
-  pincode: string,
-  config?: ShadowfaxConfig
-): Promise<{ serviceable: boolean | null; services: string[]; message?: string }> {
-  try {
-    const apiKey = config?.apiKey || '';
-    if (!apiKey || apiKey.startsWith('MOCK')) {
-      // Missing credentials cannot establish coverage.
-      return { serviceable: null, services: [], message: 'Shadowfax credentials are not configured.' };
-    }
+type ShadowfaxServiceabilityResult = {
+  serviceable: boolean | null;
+  services: string[];
+  message?: string;
+};
 
+async function checkShadowfaxLeg(
+  pincode: string,
+  service: 'customer_delivery' | 'seller_pickup' | 'seller_delivery' | 'warehouse_pickup' | 'warehouse_return',
+  requiredTier: string,
+  config?: ShadowfaxConfig,
+): Promise<ShadowfaxServiceabilityResult> {
+  const apiKey = config?.apiKey || '';
+  if (!apiKey || apiKey.startsWith('MOCK')) {
+    return { serviceable: null, services: [], message: 'Shadowfax credentials are not configured.' };
+  }
+
+  try {
     const baseUrl = getShadowfaxBaseUrl(config);
-    const url = `${baseUrl}/v1/clients/serviceability/?service=customer_delivery&pincodes=${pincode}`;
+    const url = `${baseUrl}/v1/clients/serviceability/?service=${service}&pincodes=${pincode}`;
     const res = await fetch(url, {
       method: 'GET',
       cache: 'no-store',
@@ -53,58 +60,95 @@ export async function checkShadowfaxServiceability(
     });
 
     if (!res.ok) {
-      return { serviceable: null, services: [], message: `Serviceability check failed with HTTP ${res.status}` };
+      return { serviceable: null, services: [], message: `${service} check failed with HTTP ${res.status}.` };
     }
 
     const data = await res.json();
     const rows = Array.isArray(data) ? data : data?.data || data?.results;
-    if (!Array.isArray(rows)) return { serviceable: null, services: [], message: 'Unrecognized Shadowfax serviceability response.' };
-    const match = rows.find((item: any) => String(item.code ?? item.pincode) === pincode);
-    if (!match) return { serviceable: false, services: [] };
-    if (!Array.isArray(match.services)) return { serviceable: null, services: [], message: 'Missing serviceability details.' };
-    return { serviceable: match.services.includes(config?.serviceTier || 'Regular'), services: match.services };
+    if (!Array.isArray(rows)) {
+      return { serviceable: null, services: [], message: `Unrecognized ${service} response.` };
+    }
 
+    const match = rows.find((item: any) => String(item.code ?? item.pincode) === String(pincode));
+    if (!match) return { serviceable: false, services: [], message: `${service} is unavailable for ${pincode}.` };
+    if (!Array.isArray(match.services)) {
+      return { serviceable: null, services: [], message: `Missing ${service} tier details.` };
+    }
+
+    return {
+      serviceable: match.services.includes(requiredTier),
+      services: match.services,
+      message: match.services.includes(requiredTier)
+        ? undefined
+        : `${service} requires tier ${requiredTier} for ${pincode}.`,
+    };
   } catch (err: any) {
     return { serviceable: null, services: [], message: err.message };
   }
 }
 
+export async function checkShadowfaxServiceability(
+  pincode: string,
+  config?: ShadowfaxConfig
+): Promise<ShadowfaxServiceabilityResult> {
+  return checkShadowfaxLeg(
+    pincode,
+    'customer_delivery',
+    config?.serviceTier === 'Surface' ? 'Surface' : 'Regular',
+    config,
+  );
+}
+
 export async function checkShadowfaxPickupServiceability(
   pincode: string,
   config?: ShadowfaxConfig
-): Promise<{ serviceable: boolean; services: string[]; message?: string }> {
-  try {
-    const apiKey = config?.apiKey || '';
-    if (!apiKey || apiKey.startsWith('MOCK')) {
-      return { serviceable: true, services: ['Marketplace', 'Warehouse'] };
-    }
+): Promise<ShadowfaxServiceabilityResult> {
+  const surface = config?.serviceTier === 'Surface';
+  const marketplace = config?.orderType === 'marketplace';
+  const pickup = await checkShadowfaxLeg(
+    pincode,
+    marketplace ? 'seller_pickup' : 'warehouse_pickup',
+    marketplace ? (surface ? 'Surface_Mkt' : 'Marketplace') : (surface ? 'surface_dc_pickup' : 'dc_pickup'),
+    config,
+  );
+  const returnLeg = await checkShadowfaxLeg(
+    pincode,
+    marketplace ? 'seller_delivery' : 'warehouse_return',
+    marketplace ? (surface ? 'Surface_RTS' : 'RTS') : (surface ? 'surface_RTO' : 'RTO'),
+    config,
+  );
+  const services = [...new Set([...pickup.services, ...returnLeg.services])];
 
-    const baseUrl = getShadowfaxBaseUrl(config);
-    const url = `${baseUrl}/v1/clients/serviceability/?service=seller_pickup&pincodes=${pincode}`;
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Token ${apiKey}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!res.ok) {
-      return { serviceable: false, services: [], message: `Serviceability check failed with HTTP ${res.status}` };
-    }
-
-    const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) {
-      const match = data.find((item: any) => String(item.code) === String(pincode));
-      if (match && Array.isArray(match.services) && match.services.length > 0) {
-        return { serviceable: true, services: match.services };
-      }
-    }
-
-    return { serviceable: false, services: [] };
-  } catch (err: any) {
-    return { serviceable: false, services: [], message: err.message };
+  if (pickup.serviceable === false || returnLeg.serviceable === false) {
+    return { serviceable: false, services, message: pickup.message || returnLeg.message };
   }
+  if (pickup.serviceable === null || returnLeg.serviceable === null) {
+    return { serviceable: null, services, message: pickup.message || returnLeg.message };
+  }
+  return { serviceable: true, services };
+}
+
+export async function checkShadowfaxOrderServiceability(
+  destinationPincode: string,
+  config?: ShadowfaxConfig,
+): Promise<ShadowfaxServiceabilityResult> {
+  const pickupPincode = config?.pincode?.trim();
+  if (!pickupPincode || !/^\d{6}$/.test(pickupPincode)) {
+    return { serviceable: false, services: [], message: 'Shadowfax pickup pincode is not configured.' };
+  }
+
+  const [delivery, origin] = await Promise.all([
+    checkShadowfaxServiceability(destinationPincode, config),
+    checkShadowfaxPickupServiceability(pickupPincode, config),
+  ]);
+  const services = [...new Set([...delivery.services, ...origin.services])];
+  if (delivery.serviceable === false || origin.serviceable === false) {
+    return { serviceable: false, services, message: delivery.message || origin.message };
+  }
+  if (delivery.serviceable === null || origin.serviceable === null) {
+    return { serviceable: null, services, message: delivery.message || origin.message };
+  }
+  return { serviceable: true, services };
 }
 
 export async function generateShadowfaxAwbs(
@@ -310,7 +354,7 @@ export async function bookShadowfaxOrder(
     return {
       success: false,
       error: isPickupPincodeError
-        ? `Shadowfax has not enabled pickup pincode ${pickupPincode} for warehouse ${warehouseCode}. Ask your Shadowfax account manager to add the exact pickup address. Booking was not created and no alternate pincode was used.`
+        ? `Shadowfax has not enabled pickup pincode ${pickupPincode} for ${orderType === 'marketplace' ? 'seller' : 'warehouse'} ${warehouseCode}. Ask your Shadowfax account manager to add the exact pickup address. Booking was not created and no alternate pincode was used.`
         : errorMsg,
       requestPayload: orderPayload,
       responsePayload: responseData

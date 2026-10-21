@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { checkXpressBeesServiceability } from '@/lib/xpressbees';
-import { checkShadowfaxServiceability } from '@/lib/shadowfax';
+import { checkShadowfaxOrderServiceability } from '@/lib/shadowfax';
 
 // Static check function as fallback
 function checkCourierServiceabilityFallback(pincode: string, courier: string): boolean | null {
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
     // 1. Check Shadowfax live API if active
     if (normalizedCourier.includes('shadowfax') || normalizedCourier.includes('sfx')) {
       if (settings.shadowfaxActive) {
-        const res = await checkShadowfaxServiceability(pincode, settings.shadowfaxConfig);
+        const res = await checkShadowfaxOrderServiceability(pincode, settings.shadowfaxConfig);
         return NextResponse.json({ serviceable: res.serviceable, services: res.services, method: 'Shadowfax API' });
       }
       return NextResponse.json({ serviceable: checkCourierServiceabilityFallback(pincode, courier), method: 'Static Fallback' });
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
         try {
           if (normalizedCourier.includes('shadowfax') || normalizedCourier.includes('sfx')) {
             if (settings.shadowfaxActive) {
-              const res = await checkShadowfaxServiceability(pincode, settings.shadowfaxConfig);
+              const res = await checkShadowfaxOrderServiceability(pincode, settings.shadowfaxConfig);
               results[key] = res.serviceable;
               return;
             }

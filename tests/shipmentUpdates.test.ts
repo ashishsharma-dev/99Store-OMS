@@ -5,7 +5,7 @@ import { db } from '../src/lib/db';
 import { syncOrderStatus } from '../src/lib/courierSync';
 import { normalizeCourierEventTime } from '../src/lib/courierEventTime';
 import { parseXpressBeesServiceability, checkXpressBeesServiceability } from '../src/lib/xpressbees';
-import { bookShadowfaxOrder, checkShadowfaxServiceability } from '../src/lib/shadowfax';
+import { bookShadowfaxOrder, checkShadowfaxOrderServiceability, checkShadowfaxServiceability } from '../src/lib/shadowfax';
 import { triggerWhatsAppNotification } from '../src/lib/whatsapp';
 import { mockSettings } from '../src/lib/mockData';
 import { WalabzClient, type SendCampaignOptions } from '../src/lib/walabz';
@@ -84,6 +84,34 @@ it('reports Shadowfax transport failure as unknown and checks the applicable tie
   fetchMock.mock.mockImplementation(async () => Response.json([{ code: 800001, services: ['Regular'] }]));
   assert.equal((await checkShadowfaxServiceability('800001', { apiKey: 'unit', priority: 1 })).serviceable, true);
   assert.equal((await checkShadowfaxServiceability('800001', { apiKey: 'unit', priority: 1, serviceTier: 'Surface' })).serviceable, false);
+});
+it('checks every required Shadowfax leg for the selected order model', async () => {
+  const requestedServices: string[] = [];
+  mock.method(globalThis, 'fetch', async (url: unknown) => {
+    const parsed = new URL(String(url));
+    const service = parsed.searchParams.get('service') || '';
+    const pincode = parsed.searchParams.get('pincodes');
+    requestedServices.push(service);
+    const tiers: Record<string, string[]> = {
+      customer_delivery: ['Regular', 'Surface'],
+      warehouse_pickup: [],
+      warehouse_return: ['RTO'],
+      seller_pickup: ['Marketplace', 'Surface_Mkt'],
+      seller_delivery: ['RTS', 'Surface_RTS'],
+    };
+    return Response.json(tiers[service]?.length ? [{ code: Number(pincode), services: tiers[service] }] : []);
+  });
+
+  const baseConfig = { apiKey: 'live-token', priority: 1, pincode: '282006' };
+  assert.equal((await checkShadowfaxOrderServiceability('282001', { ...baseConfig, orderType: 'warehouse' })).serviceable, false);
+  assert.equal((await checkShadowfaxOrderServiceability('282001', { ...baseConfig, orderType: 'marketplace' })).serviceable, true);
+  assert.deepEqual(new Set(requestedServices), new Set([
+    'customer_delivery',
+    'warehouse_pickup',
+    'warehouse_return',
+    'seller_pickup',
+    'seller_delivery',
+  ]));
 });
 it('never substitutes a different Shadowfax pickup pincode after rejection', async () => {
   const requests: any[] = [];
