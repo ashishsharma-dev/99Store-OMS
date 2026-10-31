@@ -52,6 +52,7 @@ export function reconcileWhatsAppLogs(): Promise<ReconciliationResult> {
           const progress = await client.getCampaignProgress(log.campaignId!);
           const nextStatus = getWalabzLogStatus(progress);
           const previousStatus = log.status;
+          const previousErrorDetail = log.errorDetail;
           log.providerStatus = String(progress.status || 'unknown');
           log.lastProviderSyncAt = new Date().toISOString();
 
@@ -66,7 +67,7 @@ export function reconcileWhatsAppLogs(): Promise<ReconciliationResult> {
           }
 
           await db.saveWhatsAppLog(log);
-          if (log.status !== previousStatus) updated += 1;
+          if (log.status !== previousStatus || log.errorDetail !== previousErrorDetail) updated += 1;
         } catch (error) {
           failed += 1;
           console.warn(`[WhatsApp reconciliation] Campaign ${log.campaignId} could not be reconciled:`, error);

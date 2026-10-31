@@ -22,6 +22,11 @@ it('reconciles queued campaigns and stores message-level provider failure reason
       id: 'wa-no-campaign', timestamp: '2026-08-10T10:35:17.136Z', phone: '919000000003',
       type: 'Primary', message: 'test', status: 'Pending',
     },
+    {
+      id: 'wa-existing-failure', timestamp: '2026-10-30T18:57:58.726Z', phone: '919000000004',
+      type: 'Primary', message: 'test', status: 'Failed', campaignId: 'existing-failed-campaign',
+      errorDetail: 'Walabz failed to send the campaign. Check the provider delivery report.',
+    },
   ] as WhatsAppLog[];
   const saved: WhatsAppLog[] = [];
 
@@ -34,18 +39,19 @@ it('reconciles queued campaigns and stores message-level provider failure reason
       : { status: 'completed', sent: 0, delivered: 0, failed: 1 };
   });
   mock.method(WalabzClient.prototype, 'getCampaignMessages', async function (campaignId: string) {
-    return campaignId === 'failed-campaign'
+    return ['failed-campaign', 'existing-failed-campaign'].includes(campaignId)
       ? [{ status: 'failed', error_message: 'Known non-WhatsApp number' }]
       : [];
   });
 
   const result = await reconcileWhatsAppLogs();
 
-  assert.deepEqual(result, { checked: 3, updated: 3, failed: 0 });
+  assert.deepEqual(result, { checked: 4, updated: 4, failed: 0 });
   assert.equal(saved.find(log => log.id === 'wa-delivered')?.status, 'Delivered');
   assert.equal(saved.find(log => log.id === 'wa-failed')?.status, 'Failed');
   assert.equal(saved.find(log => log.id === 'wa-failed')?.errorDetail, 'Known non-WhatsApp number');
   assert.equal(saved.find(log => log.id === 'wa-no-campaign')?.status, 'Failed');
   assert.match(saved.find(log => log.id === 'wa-no-campaign')?.errorDetail || '', /no Walabz campaign ID/i);
+  assert.equal(saved.find(log => log.id === 'wa-existing-failure')?.errorDetail, 'Known non-WhatsApp number');
   assert.ok(saved.every(log => Boolean(log.lastProviderSyncAt)));
 });

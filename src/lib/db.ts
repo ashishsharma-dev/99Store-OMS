@@ -677,7 +677,10 @@ export const db = {
     if (database) {
       try {
         const withCampaign = await database.collection('whatsappLogs').find({
-          status: { $in: ['Pending', 'Queued'] },
+          $or: [
+            { status: { $in: ['Pending', 'Queued'] } },
+            { status: 'Failed', errorDetail: { $regex: 'Walabz failed', $options: 'i' } },
+          ],
           campaignId: { $type: 'string', $ne: '' },
         }).sort({ timestamp: 1 }).limit(safeLimit).toArray();
         const remaining = safeLimit - withCampaign.length;
@@ -697,7 +700,10 @@ export const db = {
       }
     }
     return memoryWhatsAppLogs
-      .filter(log => ['Pending', 'Queued'].includes(log.status))
+      .filter(log => (
+        ['Pending', 'Queued'].includes(log.status)
+        || (log.status === 'Failed' && /Walabz failed/i.test(log.errorDetail || '') && Boolean(log.campaignId))
+      ))
       .sort((left, right) => Number(Boolean(right.campaignId)) - Number(Boolean(left.campaignId)) || left.timestamp.localeCompare(right.timestamp))
       .slice(0, safeLimit);
   },
