@@ -156,6 +156,22 @@ it('does not mark a completed but failed campaign as sent', () => {
   assert.equal(summarizeOtpCampaignProgress({ status: 'completed', sent: 0, failed: 1 }), 'failed');
 });
 
+it('stores the Walabz message-level reason when dispatch fails', async () => {
+  order.phoneWhatsApp = '9876543210';
+  mock.method(WalabzClient.prototype, 'getTemplateById', async () => ({ header_type: 'none' }));
+  mock.method(WalabzClient.prototype, 'sendCampaign', async () => ({ success: true, campaignId: 'failed-campaign' }));
+  mock.method(WalabzClient.prototype, 'getCampaignProgress', async () => ({ status: 'completed', sent: 0, delivered: 0, failed: 1 }));
+  mock.method(WalabzClient.prototype, 'getCampaignMessages', async () => [{ error_message: 'Known non-WhatsApp number' }]);
+
+  const result = await triggerWhatsAppNotification({
+    orderId: 'test', customerName: 'Test', phonePrimary: '9000000000',
+    status: 'Dispatched', orderValue: 100, paymentType: 'Paid',
+  });
+
+  assert.equal(result[0].status, 'Failed');
+  assert.equal(result[0].errorDetail, 'Known non-WhatsApp number');
+});
+
 it('updates ETA for a replayed current event without duplicating its status', async () => {
   await syncOrderStatus('AWB-TEST', 'OFD', '', '', undefined, '2026-10-14T04:30:00Z');
   await syncOrderStatus('AWB-TEST', 'OFD', '', '', '2026-10-16', '2026-10-14T04:30:00Z');

@@ -671,6 +671,36 @@ export const db = {
     }
     return memoryWhatsAppLogs.slice(0, 100);
   },
+  getWhatsAppLogsForReconciliation: async (limit = 25): Promise<WhatsAppLog[]> => {
+    const safeLimit = Math.max(1, Math.min(100, Math.floor(limit)));
+    const database = await safeGetDb();
+    if (database) {
+      try {
+        const withCampaign = await database.collection('whatsappLogs').find({
+          status: { $in: ['Pending', 'Queued'] },
+          campaignId: { $type: 'string', $ne: '' },
+        }).sort({ timestamp: 1 }).limit(safeLimit).toArray();
+        const remaining = safeLimit - withCampaign.length;
+        const withoutCampaign = remaining > 0
+          ? await database.collection('whatsappLogs').find({
+              status: { $in: ['Pending', 'Queued'] },
+              $or: [{ campaignId: { $exists: false } }, { campaignId: null }, { campaignId: '' }],
+            }).sort({ timestamp: 1 }).limit(remaining).toArray()
+          : [];
+        const result = [...withCampaign, ...withoutCampaign];
+        return (result as any[]).map((log: any) => {
+          const { _id, ...rest } = log;
+          return rest as WhatsAppLog;
+        });
+      } catch (error) {
+        console.warn('[WhatsApp reconciliation] Failed to read pending logs from MongoDB:', error);
+      }
+    }
+    return memoryWhatsAppLogs
+      .filter(log => ['Pending', 'Queued'].includes(log.status))
+      .sort((left, right) => Number(Boolean(right.campaignId)) - Number(Boolean(left.campaignId)) || left.timestamp.localeCompare(right.timestamp))
+      .slice(0, safeLimit);
+  },
   addWhatsAppLog: async (log: WhatsAppLog): Promise<void> => {
     memoryWhatsAppLogs.unshift(log);
     if (memoryWhatsAppLogs.length > 500) memoryWhatsAppLogs.pop();

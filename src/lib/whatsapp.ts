@@ -9,6 +9,7 @@ import {
   waitForOtpCampaignStatus,
   type OtpDeliveryStatus,
 } from '@/lib/otpDispatch';
+import { getWalabzFailureReason } from '@/lib/whatsappDelivery';
 
 export interface TriggerWhatsAppParams {
   orderId: string;
@@ -400,10 +401,13 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
         if (!result.campaignId) throw new Error('Walabz accepted the request without a campaign ID.');
         const deliveryStatus = await waitForOtpCampaignStatus(() => walabzClient.getCampaignProgress(result.campaignId!));
         log.status = deliveryStatus === 'failed' ? 'Failed' : deliveryStatus === 'sent' ? 'Sent' : 'Queued';
-        if (deliveryStatus === 'failed') log.errorDetail = 'Walabz failed to send the campaign. Check the provider delivery report.';
+        if (deliveryStatus === 'failed') {
+          log.errorDetail = await getWalabzFailureReason(walabzClient, result.campaignId)
+            || 'Walabz failed to send the campaign. No message-level reason was returned.';
+        }
         log.campaignId = result.campaignId;
         log.message = `${messagePreview}\n\n🚀 Walabz Campaign ID: ${result.campaignId}`;
-        console.log(`[WhatsApp Dispatcher] Successfully queued Walabz campaign ${result.campaignId} for order ${orderId} (${cleanPhone})`);
+        console.log(`[WhatsApp Dispatcher] Walabz campaign ${result.campaignId} recorded as ${log.status} for order ${orderId} (${cleanPhone})`);
       } else {
         log.status = 'Failed';
         log.errorDetail = result.error;
@@ -481,7 +485,8 @@ export async function sendLoginOTP(
       log.status = deliveryStatus === 'failed' ? 'Failed' : deliveryStatus === 'sent' ? 'Sent' : 'Queued';
       log.campaignId = result.campaignId;
       if (deliveryStatus === 'failed') {
-        log.errorDetail = 'Walabz failed while preparing the OTP campaign.';
+        log.errorDetail = await getWalabzFailureReason(walabzClient, result.campaignId)
+          || 'Walabz failed while preparing the OTP campaign. No message-level reason was returned.';
       }
       log.message = `${messageText}\n\n🚀 Walabz Campaign: ${result.campaignId}`;
       await db.addWhatsAppLog(log);

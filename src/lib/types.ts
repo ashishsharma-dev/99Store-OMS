@@ -172,6 +172,8 @@ export interface WhatsAppLog {
   campaignId?: string;
   metaMessageId?: string;
   errorDetail?: string;
+  providerStatus?: string;
+  lastProviderSyncAt?: string;
   scheduledTime?: string;
   imageUrl?: string | null;
 }
