@@ -1,7 +1,13 @@
 import { createHmac } from 'node:crypto';
 import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { generateOtp, verifyOtp, verifyPassword, hashPassword } from '../src/lib/auth';
+import {
+  generateOtp,
+  hashPassword,
+  isSuperAdminBypassEnabled,
+  verifyOtp,
+  verifyPassword,
+} from '../src/lib/auth';
 import { consumeRateLimit, clearRateLimit, getClientIp } from '../src/lib/rateLimit';
 import {
   createSessionToken,
@@ -54,6 +60,23 @@ describe('authentication security', () => {
     assert.equal(verifyOtp(otp, '000000'), false);
     assert.equal(verifyPassword('correct horse', hashPassword('correct horse')), true);
     assert.equal(verifyPassword('wrong', hashPassword('correct horse')), false);
+  });
+
+  it('allows the Super Admin bypass only when explicitly enabled outside production', () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalBypass = process.env.ENABLE_SUPERADMIN_BYPASS;
+
+    process.env.ENABLE_SUPERADMIN_BYPASS = 'true';
+    Reflect.set(process.env, 'NODE_ENV', 'development');
+    assert.equal(isSuperAdminBypassEnabled(), true);
+
+    Reflect.set(process.env, 'NODE_ENV', 'production');
+    assert.equal(isSuperAdminBypassEnabled(), false);
+
+    if (originalNodeEnv === undefined) Reflect.deleteProperty(process.env, 'NODE_ENV');
+    else Reflect.set(process.env, 'NODE_ENV', originalNodeEnv);
+    if (originalBypass === undefined) delete process.env.ENABLE_SUPERADMIN_BYPASS;
+    else process.env.ENABLE_SUPERADMIN_BYPASS = originalBypass;
   });
 });
 

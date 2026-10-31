@@ -31,6 +31,8 @@ for (const key of [
   'ALLOW_UNSIGNED_WEBHOOKS',
   'ALLOW_COURIER_SIMULATION',
   'NEXT_PUBLIC_ENABLE_DEMO_TOOLS',
+  'ENABLE_SUPERADMIN_BYPASS',
+  'NEXT_PUBLIC_ENABLE_SUPERADMIN_BYPASS',
 ]) {
   if (process.env[key] === 'true') errors.push(`${key} must not be true in production`);
 }

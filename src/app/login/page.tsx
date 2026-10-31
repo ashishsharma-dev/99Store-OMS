@@ -21,6 +21,8 @@ export default function Login() {
   const [ipBlocked, setIpBlocked] = useState(false);
   const [clientIp, setClientIp] = useState('');
   const demoToolsEnabled = process.env.NODE_ENV !== 'production' && process.env.NEXT_PUBLIC_ENABLE_DEMO_TOOLS === 'true';
+  const superAdminBypassEnabled = process.env.NODE_ENV !== 'production'
+    && process.env.NEXT_PUBLIC_ENABLE_SUPERADMIN_BYPASS === 'true';
 
   useEffect(() => {
     let active = true;
@@ -182,6 +184,28 @@ export default function Login() {
     } catch (err: any) {
       setLoading(false);
       setError('Network connection failed. Please check your Next.js server.');
+    }
+  };
+
+  const handleSuperAdminBypass = async () => {
+    setLoading(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const response = await fetch('/api/auth/dev-superadmin', { method: 'POST' });
+      const data = await response.json();
+      if (!response.ok || !data?.user) {
+        setError(data?.error || 'The development Super Admin bypass is unavailable.');
+        return;
+      }
+
+      localStorage.setItem('99store_user', JSON.stringify(data.user));
+      router.push('/dashboard');
+    } catch {
+      setError('Could not start the development Super Admin session.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -508,6 +532,25 @@ export default function Login() {
                 🚚 Tracking Team
               </button>
             </div>
+          </div>}
+
+          {superAdminBypassEnabled && <div style={{
+            marginTop: '16px',
+            borderTop: '1px dashed #1E1E24',
+            paddingTop: '16px'
+          }}>
+            <button
+              type="button"
+              onClick={handleSuperAdminBypass}
+              className="premium-btn premium-btn-secondary"
+              style={{ width: '100%', padding: '10px', justifyContent: 'center', borderColor: '#F59E0B', color: '#F59E0B' }}
+              disabled={loading}
+            >
+              {loading ? 'Starting Super Admin Session...' : 'Development: Login as Super Admin'}
+            </button>
+            <p style={{ marginTop: '8px', fontSize: '10px', color: '#737373', textAlign: 'center' }}>
+              Local development only. Password, OTP, and IP whitelist checks are skipped.
+            </p>
           </div>}
         </div>
 

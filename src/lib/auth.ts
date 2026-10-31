@@ -25,6 +25,10 @@ export function isOtpBypassEnabled(): boolean {
   return process.env.NODE_ENV !== 'production' && process.env.DISABLE_OTP === 'true';
 }
 
+export function isSuperAdminBypassEnabled(): boolean {
+  return process.env.NODE_ENV !== 'production' && process.env.ENABLE_SUPERADMIN_BYPASS === 'true';
+}
+
 export function verifyOtp(actual: string, expected: string): boolean {
   const actualBuffer = Buffer.from(actual);
   const expectedBuffer = Buffer.from(expected);
