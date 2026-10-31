@@ -20,6 +20,12 @@ export function mapCourierStatusToInternal(courierStatus: any): OrderStatus | nu
   if (status === 'nc' || status === 'na' || status.includes('not contactable') || status.includes('not attempted')) return 'NDR';
   if (status === 'picked' || status === 'picked up' || status === 'received') return 'Dispatched';
   if (status === 'rts') return 'Return';
+  if (
+    status.includes('pickup awaited')
+    || status.includes('pickup requested')
+    || status.includes('pickup scheduled')
+    || status.includes('pickup rescheduled')
+  ) return 'Label Generated';
 
   if (
     status === 'delivered' || 
@@ -130,6 +136,15 @@ async function applyOrderStatus(
     }
 
     let mappedStatus = mapCourierStatusToInternal(courierStatus);
+
+    // DTDC can continue reporting pre-pickup scans after an operator has already
+    // advanced the order. Record the courier event without regressing fulfillment.
+    if (
+      mappedStatus === 'Label Generated'
+      && !['Created', 'Packing', 'Courier Selected', 'Label Generated'].includes(order.status)
+    ) {
+      mappedStatus = order.status;
+    }
 
     const now = new Date().toISOString();
     const locStr = scanLocation ? ` [Hub: ${scanLocation}]` : '';

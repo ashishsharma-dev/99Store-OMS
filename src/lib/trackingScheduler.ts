@@ -16,7 +16,12 @@ export function syncActiveShipments() {
           const previousStatus = order.status;
           const query = new URLSearchParams({ action: 'track', waybill: order.awb!, courier: order.courier || '' });
           const response = await handleCourierTracking(new Request(`http://localhost/api/integrations/courier?${query}`));
-          if (!response.ok) { failed++; return; }
+          if (!response.ok) {
+            failed++;
+            const body = await response.json().catch(() => null);
+            console.warn('[Tracking scheduler]', order.orderId, body?.error || `HTTP ${response.status}`);
+            return;
+          }
           const updated = await db.getOrderById(order.id);
           if (updated && updated.status !== previousStatus) totalUpdated++;
         } catch (error) { failed++; console.error('[Tracking scheduler]', order.orderId, error); }

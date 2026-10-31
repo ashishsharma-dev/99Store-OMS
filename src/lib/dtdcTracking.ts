@@ -149,6 +149,85 @@ export interface TrackDtdcShipmentResult {
   tokenRefreshed: boolean;
 }
 
+export interface NormalizedDtdcTrackingScan {
+  action: string;
+  location: string;
+  dateTime: string;
+  remarks: string;
+}
+
+export interface NormalizedDtdcTrackingPayload {
+  currentStatus: string;
+  currentLocation: string;
+  scans: NormalizedDtdcTrackingScan[];
+}
+
+function dtdcDateTime(dateValue: unknown, timeValue: unknown): string {
+  const date = String(dateValue || '').replace(/\D/g, '');
+  if (!/^\d{8}$/.test(date)) return '';
+
+  const time = String(timeValue || '').replace(/\D/g, '').padEnd(6, '0').slice(0, 6);
+  const day = date.slice(0, 2);
+  const month = date.slice(2, 4);
+  const year = date.slice(4, 8);
+  const hours = time.slice(0, 2);
+  const minutes = time.slice(2, 4);
+  const seconds = time.slice(4, 6);
+  const result = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+  return Number.isNaN(Date.parse(result)) ? '' : result;
+}
+
+/** Normalize DTDC's tracking envelope without mistaking transport SUCCESS for shipment status. */
+export function normalizeDtdcTrackingPayload(trackData: any): NormalizedDtdcTrackingPayload {
+  const rawScans = Array.isArray(trackData?.trackDetails)
+    ? trackData.trackDetails
+    : Array.isArray(trackData)
+      ? trackData
+      : Array.isArray(trackData?.scans)
+        ? trackData.scans
+        : Array.isArray(trackData?.data)
+          ? trackData.data
+          : Array.isArray(trackData?.history)
+            ? trackData.history
+            : [];
+
+  const scans: NormalizedDtdcTrackingScan[] = rawScans.map((scan: any): NormalizedDtdcTrackingScan => ({
+    action: String(scan?.strAction || scan?.activity || scan?.status || scan?.Scan || 'Scan Recorded'),
+    location: String(scan?.strOrigin || scan?.strDestination || scan?.activityLocation || scan?.location || 'Hub'),
+    dateTime: dtdcDateTime(scan?.strActionDate, scan?.strActionTime)
+      || String(scan?.statusDateTime || (scan?.statusDate ? `${scan.statusDate}T${scan.statusTime || '00:00:00'}` : '') || ''),
+    remarks: String(scan?.sTrRemarks || scan?.strRemarks || scan?.remarks || scan?.instructions || ''),
+  }));
+
+  const envelopeStatus = typeof trackData?.status === 'string' ? trackData.status.trim() : '';
+  const shipmentEnvelopeStatus = ['SUCCESS', 'OK'].includes(envelopeStatus.toUpperCase()) ? '' : envelopeStatus;
+  const latestScan = scans.reduce<NormalizedDtdcTrackingScan | undefined>((latest, scan) => {
+    if (!latest) return scan;
+    const latestTime = Date.parse(latest.dateTime);
+    const scanTime = Date.parse(scan.dateTime);
+    return !Number.isNaN(scanTime) && (Number.isNaN(latestTime) || scanTime > latestTime) ? scan : latest;
+  }, undefined);
+
+  const currentStatus = String(
+    trackData?.trackHeader?.strStatus
+    || trackData?.current_status
+    || trackData?.data?.status
+    || shipmentEnvelopeStatus
+    || latestScan?.action
+    || '',
+  );
+  const currentLocation = String(
+    latestScan?.location
+    || trackData?.trackHeader?.strDestination
+    || trackData?.trackHeader?.strOrigin
+    || trackData?.location
+    || trackData?.data?.location
+    || 'Origin Hub',
+  );
+
+  return { currentStatus, currentLocation, scans };
+}
+
 export async function trackDtdcShipment({
   waybill,
   username,

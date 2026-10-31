@@ -171,6 +171,14 @@ it('does not regress OFD on an undated transit response', async () => {
   await syncOrderStatus('AWB-TEST', 'In Transit');
   assert.equal(order.status, 'OFD');
 });
+it('maps DTDC pickup scans without regressing an already dispatched order', async () => {
+  order.status = 'Dispatched';
+  const result = await syncOrderStatus('AWB-TEST', 'Pickup scheduled', 'AGRA HUB', '', undefined, '2026-10-31T10:15:30');
+  assert.equal(result.error, undefined);
+  assert.equal(order.status, 'Dispatched');
+  assert.equal(order.lastCourierEventAt, '2026-10-31T04:45:30.000Z');
+  assert.equal(order.history.length, 0);
+});
 it('does not turn a failed Shadowfax tracking response into a shipment event', async () => {
   mock.method(db, 'getSettings', async () => ({ ...mockSettings, shadowfaxActive: true, shadowfaxConfig: { apiKey: 'unit', priority: 1 } }));
   mock.method(globalThis, 'fetch', async () => Response.json({ message: 'Unavailable' }, { status: 503 }));

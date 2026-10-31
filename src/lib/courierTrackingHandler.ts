@@ -7,7 +7,11 @@ import { isCourierSimulationEnabled } from '@/lib/courierReliability';
 import { trackShadowfaxOrder } from '@/lib/shadowfax';
 import { fetchWithRetry } from '@/lib/fetchWithRetry';
 import { getLatestDelhiveryScan } from '@/lib/delhiveryTracking';
-import { DtdcTrackingError, trackDtdcShipment } from '@/lib/dtdcTracking';
+import {
+  DtdcTrackingError,
+  normalizeDtdcTrackingPayload,
+  trackDtdcShipment,
+} from '@/lib/dtdcTracking';
 
 async function syncTrackedStatus(...args: Parameters<typeof syncOrderStatus>) {
   const result = await syncOrderStatus(...args);
@@ -355,21 +359,8 @@ export async function handleCourierTracking(request: Request) {
             status: 'Success'
           });
 
-          const rawScans = Array.isArray(trackData) 
-            ? trackData 
-            : Array.isArray(trackData.scans) 
-              ? trackData.scans 
-              : Array.isArray(trackData.data) 
-                ? trackData.data 
-                : (trackData.history || []);
-                
-          const currentStatus = (typeof trackData.status === 'string' ? trackData.status : null) || 
-                                (typeof trackData.current_status === 'string' ? trackData.current_status : null) || 
-                                (trackData.data && typeof trackData.data.status === 'string' ? trackData.data.status : null) || 
-                                '';
-          const currentLocation = (typeof trackData.location === 'string' ? trackData.location : null) || 
-                                  (trackData.data && typeof trackData.data.location === 'string' ? trackData.data.location : null) || 
-                                  'Origin Hub';
+          const normalizedTracking = normalizeDtdcTrackingPayload(trackData);
+          const { currentStatus, currentLocation } = normalizedTracking;
 
           const unifiedData = {
             ShipmentData: [
@@ -380,12 +371,12 @@ export async function handleCourierTracking(request: Request) {
                     Status: currentStatus,
                     StatusLocation: currentLocation
                   },
-                  Scans: rawScans.map((s: any) => ({
+                  Scans: normalizedTracking.scans.map(scan => ({
                     ScanDetail: {
-                      ScannedLocation: s.activityLocation || s.location || 'Hub',
-                      ScanDateTime: s.statusDate ? `${s.statusDate}T${s.statusTime || '00:00:00'}` : '',
-                      Scan: s.activity || s.status || 'Scan Recorded',
-                      Instructions: s.remarks || s.instructions || ''
+                      ScannedLocation: scan.location,
+                      ScanDateTime: scan.dateTime,
+                      Scan: scan.action,
+                      Instructions: scan.remarks
                     }
                   }))
                 }

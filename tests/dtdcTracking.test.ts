@@ -3,11 +3,32 @@ import assert from 'node:assert';
 import {
   DtdcTrackingError,
   extractDtdcTrackingToken,
+  normalizeDtdcTrackingPayload,
   trackDtdcShipment,
 } from '../src/lib/dtdcTracking';
 import { fetchWithRetry } from '../src/lib/fetchWithRetry';
 
 describe('DTDC tracking authentication', () => {
+  it('reads shipment state and scans from DTDC success envelopes', () => {
+    const normalized = normalizeDtdcTrackingPayload({
+      status: 'SUCCESS',
+      statusCode: 200,
+      trackHeader: {
+        strStatus: 'Pickup scheduled',
+        strOrigin: 'AGRA',
+      },
+      trackDetails: [
+        { strAction: 'Pickup Requested', strActionDate: '30102026', strActionTime: '0313', strOrigin: 'AGRA' },
+        { strAction: 'Pickup scheduled', strActionDate: '31102026', strActionTime: '101530', strOrigin: 'AGRA HUB', sTrRemarks: 'Ready' },
+      ],
+    });
+
+    assert.equal(normalized.currentStatus, 'Pickup scheduled');
+    assert.equal(normalized.currentLocation, 'AGRA HUB');
+    assert.equal(normalized.scans[1].dateTime, '2026-10-31T10:15:30');
+    assert.equal(normalized.scans[1].remarks, 'Ready');
+  });
+
   it('extracts tokens from headers, JSON, and plain-text responses', () => {
     assert.equal(
       extractDtdcTrackingToken('', new Headers({ 'X-Access-Token': 'header-token' })),
