@@ -17,12 +17,18 @@ export default function Login() {
   const [message, setMessage] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
   const [dispatchToken, setDispatchToken] = useState('');
+  const [recoveryMode, setRecoveryMode] = useState(false);
+  const [recoverySecret, setRecoverySecret] = useState('');
   
   const [ipBlocked, setIpBlocked] = useState(false);
   const [clientIp, setClientIp] = useState('');
   const demoToolsEnabled = process.env.NODE_ENV !== 'production' && process.env.NEXT_PUBLIC_ENABLE_DEMO_TOOLS === 'true';
   const superAdminBypassEnabled = process.env.NODE_ENV !== 'production'
     && process.env.NEXT_PUBLIC_ENABLE_SUPERADMIN_BYPASS === 'true';
+
+  useEffect(() => {
+    setRecoveryMode(new URLSearchParams(window.location.search).get('recovery') === '1');
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -209,6 +215,38 @@ export default function Login() {
     }
   };
 
+  const handleSuperAdminRecovery = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!recoverySecret) {
+      setError('Enter the recovery secret.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setMessage('');
+    try {
+      const response = await fetch('/api/auth/superadmin-recovery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recoverySecret }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data?.user) {
+        setError(data?.error || 'Super Admin recovery login failed.');
+        return;
+      }
+
+      localStorage.setItem('99store_user', JSON.stringify(data.user));
+      setRecoverySecret('');
+      router.push('/dashboard');
+    } catch {
+      setError('Could not start the Super Admin recovery session.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Demo shortcut handler
   const fillDemoCredentials = (userType: string) => {
     setUsername(userType);
@@ -324,7 +362,52 @@ export default function Login() {
             </div>
           )}
 
-          {step === 'username' ? (
+          {recoveryMode ? (
+            <form onSubmit={handleSuperAdminRecovery}>
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  color: '#A1A1AA',
+                  marginBottom: '8px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  Super Admin Recovery Secret
+                </label>
+                <input
+                  type="password"
+                  className="premium-input"
+                  autoComplete="off"
+                  value={recoverySecret}
+                  onChange={(event) => setRecoverySecret(event.target.value)}
+                  disabled={loading}
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                className="premium-btn premium-btn-primary"
+                style={{ width: '100%', padding: '12px' }}
+                disabled={loading}
+              >
+                {loading ? 'Verifying Recovery Access...' : 'Start Super Admin Session'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setRecoveryMode(false);
+                  setRecoverySecret('');
+                  setError('');
+                  window.history.replaceState({}, '', '/login');
+                }}
+                style={{ width: '100%', marginTop: '14px', background: 'none', border: 'none', color: '#737373', cursor: 'pointer' }}
+              >
+                Return to standard login
+              </button>
+            </form>
+          ) : step === 'username' ? (
             <form onSubmit={handleSendOtp}>
               <div style={{ marginBottom: '16px' }}>
                 <label style={{

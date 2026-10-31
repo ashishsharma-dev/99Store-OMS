@@ -26,6 +26,15 @@ if (process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.startsWi
   errors.push('NEXT_PUBLIC_APP_URL must use HTTPS in production');
 }
 
+if (process.env.ENABLE_SUPERADMIN_RECOVERY === 'true') {
+  if (!process.env.SUPERADMIN_RECOVERY_SECRET || process.env.SUPERADMIN_RECOVERY_SECRET.trim().length < 32) {
+    errors.push('SUPERADMIN_RECOVERY_SECRET must contain at least 32 characters when recovery login is enabled');
+  }
+  if (!process.env.SUPERADMIN_RECOVERY_USERNAME?.trim()) {
+    errors.push('SUPERADMIN_RECOVERY_USERNAME is required when recovery login is enabled');
+  }
+}
+
 for (const key of [
   'DISABLE_OTP',
   'ALLOW_UNSIGNED_WEBHOOKS',

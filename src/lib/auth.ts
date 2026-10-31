@@ -29,6 +29,18 @@ export function isSuperAdminBypassEnabled(): boolean {
   return process.env.NODE_ENV !== 'production' && process.env.ENABLE_SUPERADMIN_BYPASS === 'true';
 }
 
+export function isSuperAdminRecoveryEnabled(): boolean {
+  const secret = process.env.SUPERADMIN_RECOVERY_SECRET?.trim();
+  return process.env.ENABLE_SUPERADMIN_RECOVERY === 'true' && Boolean(secret && secret.length >= 32);
+}
+
+export function verifySuperAdminRecoverySecret(candidate: string): boolean {
+  if (!isSuperAdminRecoveryEnabled()) return false;
+  const configured = Buffer.from(process.env.SUPERADMIN_RECOVERY_SECRET!.trim());
+  const supplied = Buffer.from(candidate);
+  return supplied.length === configured.length && crypto.timingSafeEqual(supplied, configured);
+}
+
 export function verifyOtp(actual: string, expected: string): boolean {
   const actualBuffer = Buffer.from(actual);
   const expectedBuffer = Buffer.from(expected);

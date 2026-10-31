@@ -5,6 +5,8 @@ import {
   generateOtp,
   hashPassword,
   isSuperAdminBypassEnabled,
+  isSuperAdminRecoveryEnabled,
+  verifySuperAdminRecoverySecret,
   verifyOtp,
   verifyPassword,
 } from '../src/lib/auth';
@@ -77,6 +79,25 @@ describe('authentication security', () => {
     else Reflect.set(process.env, 'NODE_ENV', originalNodeEnv);
     if (originalBypass === undefined) delete process.env.ENABLE_SUPERADMIN_BYPASS;
     else process.env.ENABLE_SUPERADMIN_BYPASS = originalBypass;
+  });
+
+  it('requires an explicitly enabled, sufficiently long, constant-time recovery secret', () => {
+    const originalEnabled = process.env.ENABLE_SUPERADMIN_RECOVERY;
+    const originalSecret = process.env.SUPERADMIN_RECOVERY_SECRET;
+
+    process.env.ENABLE_SUPERADMIN_RECOVERY = 'true';
+    process.env.SUPERADMIN_RECOVERY_SECRET = 'recovery-secret-with-at-least-32-characters';
+    assert.equal(isSuperAdminRecoveryEnabled(), true);
+    assert.equal(verifySuperAdminRecoverySecret('recovery-secret-with-at-least-32-characters'), true);
+    assert.equal(verifySuperAdminRecoverySecret('incorrect-recovery-secret'), false);
+
+    process.env.SUPERADMIN_RECOVERY_SECRET = 'too-short';
+    assert.equal(isSuperAdminRecoveryEnabled(), false);
+
+    if (originalEnabled === undefined) delete process.env.ENABLE_SUPERADMIN_RECOVERY;
+    else process.env.ENABLE_SUPERADMIN_RECOVERY = originalEnabled;
+    if (originalSecret === undefined) delete process.env.SUPERADMIN_RECOVERY_SECRET;
+    else process.env.SUPERADMIN_RECOVERY_SECRET = originalSecret;
   });
 });
 
