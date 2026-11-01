@@ -17,6 +17,8 @@ async function ensureIndexes(database: any) {
       database.collection('whatsappLogs').createIndex({ timestamp: -1 }, { name: 'whatsapp_logs_timestamp_desc' }),
       database.collection('orders').createIndex({ createdAt: -1 }, { name: 'orders_created_desc' }),
       database.collection('orders').createIndex({ status: 1, createdAt: -1 }, { name: 'orders_status_created_desc' }),
+      database.collection('orders').createIndex({ updatedAt: -1 }, { name: 'orders_updated_desc' }),
+      database.collection('orders').createIndex({ status: 1, updatedAt: -1 }, { name: 'orders_status_updated_desc' }),
     ]).then(() => undefined).catch((error) => {
       indexesPromise = null;
       console.warn('MongoDB index initialization failed:', error);

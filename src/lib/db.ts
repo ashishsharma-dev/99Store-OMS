@@ -465,7 +465,7 @@ export const db = {
 
         const collection = database.collection('orders');
         const [rows, totalCount] = await Promise.all([
-          collection.find(filter).sort({ [sortField]: sortDirection, _id: sortDirection }).skip((page - 1) * limit).limit(limit).toArray(),
+          collection.find(filter).sort({ [sortField]: sortDirection }).skip((page - 1) * limit).limit(limit).toArray(),
           collection.countDocuments(filter),
         ]);
         return {
