@@ -25,6 +25,8 @@ import {
 } from 'lucide-react';
 import { User, UserRole, Message } from '@/lib/types';
 
+type StreamEvent = { id: string; title: string; message: string; timestamp: string; type: string; initial?: boolean };
+
 // Web Audio API Synthesized sound effects to avoid local file download and CORS issues
 const playAudioFeedback = (type: 'send' | 'receive') => {
   if (typeof window === 'undefined') return;
@@ -100,7 +102,9 @@ export default function DashboardLayout({
   const [toasts, setToasts] = useState<{ id: string; senderId: string; senderName: string; role: string; content: string }[]>([]);
 
   // Module 8: Real-Time SSE Notification Architecture states
-  const [streamEvents, setStreamEvents] = useState<{ id: string; title: string; message: string; timestamp: string; type: string }[]>([]);
+  const [streamEvents, setStreamEvents] = useState<StreamEvent[]>([]);
+  const [systemToasts, setSystemToasts] = useState<StreamEvent[]>([]);
+  const [notificationStreamStatus, setNotificationStreamStatus] = useState<'connecting' | 'live' | 'offline'>('connecting');
   const [isNotificationDrawerOpen, setIsNotificationDrawerOpen] = useState(false);
   const [streamUnreadCount, setStreamUnreadCount] = useState(0);
 
@@ -153,16 +157,26 @@ export default function DashboardLayout({
     if (typeof window === 'undefined') return;
     const eventSource = new EventSource('/api/notifications/stream');
 
+    eventSource.onopen = () => setNotificationStreamStatus('live');
+
     eventSource.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data);
+        const data = JSON.parse(event.data) as StreamEvent;
         setStreamEvents((prev) => [data, ...prev].slice(0, 50));
-        setStreamUnreadCount((prev) => prev + 1);
-        playAudioFeedback('receive');
+        if (data.type !== 'system' && !data.initial) {
+          setStreamUnreadCount((prev) => prev + 1);
+          setSystemToasts((prev) => [data, ...prev].slice(0, 4));
+          playAudioFeedback('receive');
+          window.setTimeout(() => {
+            setSystemToasts((prev) => prev.filter(item => item.id !== data.id));
+          }, 6500);
+        }
       } catch (err) {
         console.error('Failed to parse SSE notification message:', err);
       }
     };
+
+    eventSource.onerror = () => setNotificationStreamStatus('offline');
 
     return () => {
       eventSource.close();
@@ -1080,9 +1094,41 @@ export default function DashboardLayout({
           backgroundColor: '#0F0F11',
           zIndex: 900
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
             <span style={{ fontSize: '13px', color: '#737373' }}>Console /</span>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#FAFAFA' }}>{currentNav?.name || 'Overview'}</span>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#FAFAFA', whiteSpace: 'nowrap' }}>{currentNav?.name || 'Overview'}</span>
+            <div
+              title={streamEvents[0]?.message || 'Waiting for the first real-time event'}
+              style={{
+                marginLeft: '10px',
+                minWidth: 0,
+                maxWidth: '620px',
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '5px 10px',
+                borderRadius: '999px',
+                backgroundColor: 'rgba(255,255,255,0.035)',
+                border: '1px solid #24242A',
+                overflow: 'hidden'
+              }}
+            >
+              <span style={{
+                width: '7px',
+                height: '7px',
+                flex: '0 0 auto',
+                borderRadius: '50%',
+                backgroundColor: notificationStreamStatus === 'live' ? '#10B981' : notificationStreamStatus === 'connecting' ? '#F59E0B' : '#EF4444',
+                boxShadow: notificationStreamStatus === 'live' ? '0 0 8px rgba(16,185,129,0.8)' : 'none'
+              }} />
+              <span style={{ fontSize: '10px', fontWeight: 700, color: '#71717A', textTransform: 'uppercase', flex: '0 0 auto' }}>
+                {notificationStreamStatus}
+              </span>
+              <span style={{ fontSize: '11.5px', color: '#C4C4CC', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {streamEvents[0] ? `${streamEvents[0].title} — ${streamEvents[0].message}` : 'Listening for real-time order and NDR updates...'}
+              </span>
+            </div>
           </div>
 
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -1290,6 +1336,37 @@ export default function DashboardLayout({
               {t.content}
             </p>
             <span style={{ fontSize: '8px', color: '#737373', textAlign: 'right', marginTop: '2px' }}>Click to reply</span>
+          </div>
+        ))}
+        {systemToasts.map((evt) => (
+          <div
+            key={`system-${evt.id}`}
+            onClick={() => {
+              setIsNotificationDrawerOpen(true);
+              setSystemToasts(prev => prev.filter(item => item.id !== evt.id));
+            }}
+            style={{
+              backgroundColor: '#161619',
+              border: '1px solid #2A2A30',
+              borderLeft: `4px solid ${evt.type === 'ndr' ? '#EF4444' : evt.type === 'call_placed' ? '#10B981' : '#3B82F6'}`,
+              borderRadius: '6px',
+              padding: '12px 16px',
+              width: '330px',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
+              cursor: 'pointer',
+              animation: 'slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              pointerEvents: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+              <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#FAFAFA' }}>{evt.title}</span>
+              <span style={{ fontSize: '9px', textTransform: 'uppercase', color: '#60A5FA', fontWeight: 700 }}>LIVE</span>
+            </div>
+            <p style={{ fontSize: '11px', color: '#A1A1AA', margin: 0 }}>{evt.message}</p>
+            <span style={{ fontSize: '8px', color: '#737373', textAlign: 'right', marginTop: '2px' }}>Click to open notifications</span>
           </div>
         ))}
       </div>

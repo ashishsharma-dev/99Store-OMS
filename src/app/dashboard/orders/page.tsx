@@ -35,6 +35,43 @@ import { AddressRatingIndicator } from '@/components/AddressRatingIndicator';
 import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
 import { getUserDisplayName } from '@/lib/utils';
 
+const WHATSAPP_LIFECYCLE_TEMPLATES = [
+  { key: 'Created', name: 'Order Confirmation', desc: 'Sent when the order is first registered.' },
+  { key: 'Label Generated', name: 'Shipping Label', desc: 'Sent when the carrier AWB is generated.' },
+  { key: 'Dispatched', name: 'Order Dispatched', desc: 'Sent when parcel leaves the warehouse.' },
+  { key: 'RDC', name: 'Local Hub Arrival', desc: 'Sent when parcel reaches nearby RDC.' },
+  { key: 'OFD', name: 'Out for Delivery', desc: 'Sent when delivery boy is dispatched.' },
+  { key: 'Delivered', name: 'Delivered Confirmation', desc: 'Sent upon successful delivery.' },
+  { key: 'NDR', name: 'Delivery Failed Attempt', desc: 'Sent when a delivery attempt fails.' },
+  { key: 'Return', name: 'RTO Return Update', desc: 'Sent when parcel is returning to origin.' }
+];
+
+type ManualWhatsAppTemplate = {
+  _id?: string;
+  id?: string;
+  name?: string;
+  status?: string;
+  language?: string;
+  header_type?: string;
+  body?: string;
+};
+
+const TEMPLATE_KEY_ALIASES: Record<string, string[]> = {
+  Created: ['created', 'order_created', 'order_confirmation'],
+  'Label Generated': ['label generated', 'label_generated', 'shipping_label'],
+  Dispatched: ['dispatched', 'order_dispatched'],
+  RDC: ['rdc', 'order_rdc'],
+  OFD: ['ofd', 'out_for_delivery'],
+  Delivered: ['delivered', 'order_delivered'],
+  NDR: ['ndr', 'order_ndr'],
+  Return: ['return', 'order_return'],
+};
+
+function getConfiguredTemplateId(status: string, configured: Record<string, string>): string | undefined {
+  const aliases = TEMPLATE_KEY_ALIASES[status] || [status.toLowerCase()];
+  return Object.entries(configured).find(([key]) => aliases.includes(key.toLowerCase()))?.[1];
+}
+
 export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,17 +143,10 @@ export default function Orders() {
   });
 
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
-
-  const WHATSAPP_TEMPLATES = [
-    { key: 'Created', name: 'Order Confirmation', desc: 'Sent when the order is first registered.' },
-    { key: 'Label Generated', name: 'Shipping Label', desc: 'Sent when the carrier AWB is generated.' },
-    { key: 'Dispatched', name: 'Order Dispatched', desc: 'Sent when parcel leaves the warehouse.' },
-    { key: 'RDC', name: 'Local Hub Arrival', desc: 'Sent when parcel reaches nearby RDC.' },
-    { key: 'OFD', name: 'Out for Delivery', desc: 'Sent when delivery boy is dispatched.' },
-    { key: 'Delivered', name: 'Delivered Confirmation', desc: 'Sent upon successful delivery.' },
-    { key: 'NDR', name: 'Delivery Failed Attempt', desc: 'Sent when a delivery attempt fails.' },
-    { key: 'Return', name: 'RTO Return Update', desc: 'Sent when parcel is returning to origin.' }
-  ];
+  const [manualWhatsAppTemplates, setManualWhatsAppTemplates] = useState<ManualWhatsAppTemplate[]>([]);
+  const [configuredWhatsAppTemplates, setConfiguredWhatsAppTemplates] = useState<Record<string, string>>({});
+  const [manualTemplatesLoading, setManualTemplatesLoading] = useState(false);
+  const [manualTemplatesError, setManualTemplatesError] = useState('');
 
   useEffect(() => {
     if (!whatsAppSelectModal.show || !whatsAppSelectModal.logs || whatsAppSelectModal.logs.length === 0) {
@@ -199,10 +229,16 @@ export default function Orders() {
       logsLoading: true,
       logs: []
     });
+    setManualTemplatesLoading(true);
+    setManualTemplatesError('');
 
-    try {
-      const res = await fetch(`/api/orders/${order.id}`);
-      const data = await res.json();
+    const [logsResult, templatesResult] = await Promise.allSettled([
+      fetch(`/api/orders/${order.id}`).then(async res => ({ res, data: await res.json() })),
+      fetch('/api/integrations/whatsapp', { cache: 'no-store' }).then(async res => ({ res, data: await res.json() })),
+    ]);
+
+    if (logsResult.status === 'fulfilled') {
+      const { res, data } = logsResult.value;
       if (res.ok && data.success) {
         setWhatsAppSelectModal(prev => ({
           ...prev,
@@ -212,10 +248,24 @@ export default function Orders() {
       } else {
         setWhatsAppSelectModal(prev => ({ ...prev, logsLoading: false }));
       }
-    } catch (err) {
-      console.error('Failed to load order logs:', err);
+    } else {
+      console.error('Failed to load order logs:', logsResult.reason);
       setWhatsAppSelectModal(prev => ({ ...prev, logsLoading: false }));
     }
+
+    if (templatesResult.status === 'fulfilled') {
+      const { res, data } = templatesResult.value;
+      if (res.ok && data.success) {
+        setManualWhatsAppTemplates(Array.isArray(data.templates) ? data.templates : []);
+        setConfiguredWhatsAppTemplates(data.configuredTemplates || {});
+        if (!data.connected) setManualTemplatesError(data.error || 'Walabz template service is not connected.');
+      } else {
+        setManualTemplatesError(data.error || 'Could not load WhatsApp templates.');
+      }
+    } else {
+      setManualTemplatesError('Could not load WhatsApp templates.');
+    }
+    setManualTemplatesLoading(false);
   };
 
   const handleTriggerWhatsAppSend = async (templateKey: string) => {
@@ -1914,12 +1964,24 @@ export default function Orders() {
               </div>
 
               <p style={{ color: '#A3A3A3', fontSize: '13px', margin: '10px 0 0 0', lineHeight: '1.5' }}>
-                Available Templates:
+                Available Walabz Templates:
               </p>
+
+              {manualTemplatesLoading && (
+                <div style={{ color: '#A1A1AA', fontSize: '12px' }}>Loading mapped templates from Walabz...</div>
+              )}
+              {manualTemplatesError && (
+                <div style={{ color: '#F59E0B', fontSize: '11.5px', padding: '8px 10px', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '6px' }}>
+                  {manualTemplatesError}
+                </div>
+              )}
 
               {/* Templates List */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '250px', overflowY: 'auto', paddingRight: '4px' }}>
-                {WHATSAPP_TEMPLATES.map((tmpl) => {
+                {WHATSAPP_LIFECYCLE_TEMPLATES.map((tmpl) => {
+                  const configuredId = getConfiguredTemplateId(tmpl.key, configuredWhatsAppTemplates);
+                  const providerTemplate = manualWhatsAppTemplates.find(item => (item._id || item.id) === configuredId);
+                  const isMapped = Boolean(configuredId);
                   const isSent = (whatsAppSelectModal.logs || []).some(
                     log => log.templateName === tmpl.key && log.status === 'Sent'
                   );
@@ -1941,11 +2003,13 @@ export default function Orders() {
                     >
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '12.5px', color: '#FAFAFA', fontWeight: 600 }}>{tmpl.name}</span>
-                          <span style={{ fontSize: '9px', color: '#737373', backgroundColor: 'rgba(255,255,255,0.03)', padding: '1px 4px', borderRadius: '3px' }}>{tmpl.key}</span>
+                          <span style={{ fontSize: '12.5px', color: '#FAFAFA', fontWeight: 600 }}>{providerTemplate?.name || tmpl.name}</span>
+                          <span style={{ fontSize: '9px', color: isMapped ? '#10B981' : '#F59E0B', backgroundColor: 'rgba(255,255,255,0.03)', padding: '1px 4px', borderRadius: '3px' }}>
+                            {isMapped ? `${tmpl.key} · ${providerTemplate?.language || 'mapped'}` : `${tmpl.key} · not mapped`}
+                          </span>
                         </div>
                         <p style={{ fontSize: '11px', color: '#8A8A8A', margin: '2px 0 0 0', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                          {tmpl.desc}
+                          {providerTemplate?.body || tmpl.desc}
                         </p>
                       </div>
 
@@ -1984,18 +2048,18 @@ export default function Orders() {
 
                         <button
                           onClick={() => handleTriggerWhatsAppSend(tmpl.key)}
-                          disabled={whatsAppSelectModal.logsLoading || cooldownSeconds > 0 || whatsAppSelectModal.selectedNumbers.length === 0 || whatsAppSelectModal.loading}
+                          disabled={!isMapped || manualTemplatesLoading || whatsAppSelectModal.logsLoading || cooldownSeconds > 0 || whatsAppSelectModal.selectedNumbers.length === 0 || whatsAppSelectModal.loading}
                           className="premium-btn premium-btn-primary"
                           style={{
                             padding: '6px 12px',
                             fontSize: '11.5px',
                             minWidth: '85px',
                             justifyContent: 'center',
-                            backgroundColor: (whatsAppSelectModal.logsLoading || cooldownSeconds > 0) ? 'rgba(255,255,255,0.03)' : undefined,
-                            borderColor: (whatsAppSelectModal.logsLoading || cooldownSeconds > 0) ? 'var(--border)' : undefined,
-                            color: (whatsAppSelectModal.logsLoading || cooldownSeconds > 0) ? '#737373' : undefined
+                            backgroundColor: (!isMapped || whatsAppSelectModal.logsLoading || cooldownSeconds > 0) ? 'rgba(255,255,255,0.03)' : undefined,
+                            borderColor: (!isMapped || whatsAppSelectModal.logsLoading || cooldownSeconds > 0) ? 'var(--border)' : undefined,
+                            color: (!isMapped || whatsAppSelectModal.logsLoading || cooldownSeconds > 0) ? '#737373' : undefined
                           }}
-                          title={whatsAppSelectModal.logsLoading ? 'Loading status...' : cooldownSeconds > 0 ? `Please wait ${cooldownSeconds}s before sending another message.` : undefined}
+                          title={!isMapped ? 'Map this lifecycle event to a Walabz template in Settings first.' : whatsAppSelectModal.logsLoading ? 'Loading status...' : cooldownSeconds > 0 ? `Please wait ${cooldownSeconds}s before sending another message.` : undefined}
                         >
                           {isSendingThis ? (
                             <span className="spinner" style={{ width: '12px', height: '12px', borderWidth: '1.5px' }} />
@@ -2012,6 +2076,23 @@ export default function Orders() {
                   );
                 })}
               </div>
+
+              {manualWhatsAppTemplates.some(item => !Object.values(configuredWhatsAppTemplates).includes((item._id || item.id) || '')) && (
+                <div style={{ padding: '10px 12px', border: '1px dashed #2A2A30', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '10px', color: '#71717A', textTransform: 'uppercase', marginBottom: '6px' }}>
+                    Other Walabz templates (map in Settings to enable)
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {manualWhatsAppTemplates
+                      .filter(item => !Object.values(configuredWhatsAppTemplates).includes((item._id || item.id) || ''))
+                      .map(item => (
+                        <span key={(item._id || item.id || item.name)} style={{ fontSize: '10px', color: '#A1A1AA', backgroundColor: '#1A1A1E', padding: '3px 6px', borderRadius: '4px' }}>
+                          {item.name || item._id || item.id} {item.status ? `· ${item.status}` : ''}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+              )}
 
               <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '16px', justifyContent: 'flex-end' }}>
                 <button 

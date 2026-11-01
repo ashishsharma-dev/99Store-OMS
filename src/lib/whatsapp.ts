@@ -195,6 +195,9 @@ function resolveTemplateId(status: string, templates?: Record<string, string>): 
   if (['dispatched', 'dispatch', 'shipped'].includes(lower)) {
     return templates['Dispatched'] || templates['order_dispatched'];
   }
+  if (['label generated', 'label_generated', 'shipping label', 'shipping_label'].includes(lower)) {
+    return templates['Label Generated'] || templates['label_generated'] || templates['shipping_label'];
+  }
   if (['ofd', 'out for delivery'].includes(lower)) {
     return templates['OFD'] || templates['out_for_delivery'];
   }
@@ -381,9 +384,12 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
     try {
       const template = await walabzClient.getTemplateById(templateId);
       if (!template) throw new Error('Configured WhatsApp template was not found.');
-      if (template.header_type === 'image') {
+      // Once the label workflow has completed, include its image with every
+      // later dispatch. An AWB alone is not proof that a label was rendered.
+      const hasGeneratedLabel = Boolean(order?.label_generated);
+      if (hasGeneratedLabel || template.header_type === 'image') {
         imageUrl = await generatePackingSlipImage(orderId, resolvedBaseUrl);
-        if (!imageUrl) throw new Error('Packing slip image could not be generated for the image-header template. Retry after checking Chrome and the public application URL.');
+        if (!imageUrl) throw new Error('Shipping label image could not be generated. Retry after checking Chrome and the public application URL.');
         log.imageUrl = imageUrl;
       }
       const campaignName = `Ord-${orderId}-${status}-${Date.now()}`.slice(0, 50);

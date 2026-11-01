@@ -26,6 +26,16 @@ export async function GET(request: Request) {
           db.getNdrRecords()
         ]);
 
+        // Mark the full current snapshot as seen. The initial drawer snapshot is
+        // informational; only changes after connection should create live alerts.
+        ndrRecords.forEach(ndr => sentKeys.add(`ndr-${ndr.id}-${ndr.updatedAt || ndr.createdAt}`));
+        orders.forEach(order => {
+          sentKeys.add(`order-${order.id}-${order.status}-${order.updatedAt || order.createdAt}`);
+          if (order.status === 'Call Placed Notification') {
+            sentKeys.add(`call-${order.id}-${order.updatedAt || order.createdAt}`);
+          }
+        });
+
         // Send initial connection event
         const initMessage = `data: ${JSON.stringify({
           id: `evt-init-${Date.now()}`,
@@ -38,28 +48,26 @@ export async function GET(request: Request) {
 
         // Stream real active NDR exception alerts from DB
         ndrRecords.slice(0, 3).forEach((ndr) => {
-          const key = `ndr-${ndr.id}-${ndr.updatedAt || ndr.createdAt}`;
-          sentKeys.add(key);
           const ndrMsg = `data: ${JSON.stringify({
             id: `evt-ndr-${ndr.id}`,
             title: `NDR Alert: ${ndr.orderId}`,
             message: `Exception logged for ${ndr.customerName} (${ndr.courier}): ${ndr.reason}`,
             timestamp: ndr.createdAt,
             type: 'ndr',
+            initial: true,
           })}\n\n`;
           safeEnqueue(ndrMsg);
         });
 
         // Stream real active recent orders
         orders.slice(-2).reverse().forEach((order) => {
-          const key = `order-${order.id}-${order.status}-${order.updatedAt || order.createdAt}`;
-          sentKeys.add(key);
           const orderMsg = `data: ${JSON.stringify({
             id: `evt-ord-${order.id}`,
             title: `Order Status: ${order.orderId}`,
             message: `Customer ${order.customerName} - Status: ${order.status} (${order.paymentType})`,
             timestamp: order.createdAt,
             type: 'order',
+            initial: true,
           })}\n\n`;
           safeEnqueue(orderMsg);
         });

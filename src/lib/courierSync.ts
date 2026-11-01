@@ -18,7 +18,13 @@ export function mapCourierStatusToInternal(courierStatus: any): OrderStatus | nu
 
   if (status === 'rdc' || status.includes('returned to delivery center') || status.includes('returned to warehouse') || status.includes('returned to hub')) return 'RDC';
   if (status === 'nc' || status === 'na' || status.includes('not contactable') || status.includes('not attempted')) return 'NDR';
-  if (status === 'picked' || status === 'picked up' || status === 'received') return 'Dispatched';
+  if (
+    status === 'picked'
+    || status === 'picked up'
+    || status === 'received'
+    || status === 'bag received'
+    || status.includes('bag received at')
+  ) return 'Dispatched';
   if (status === 'rts') return 'Return';
   if (
     status.includes('pickup awaited')

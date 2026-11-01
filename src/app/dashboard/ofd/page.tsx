@@ -26,6 +26,7 @@ import { CourierLogo } from '@/components/CourierLogo';
 import { AddressRatingIndicator } from '@/components/AddressRatingIndicator';
 import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
 import { getUserDisplayName } from '@/lib/utils';
+import { countOfdAttempts } from '@/lib/ofdAttempts';
 
 export default function OfdManagement() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -544,7 +545,7 @@ export default function OfdManagement() {
                             {o.status}
                           </span>
                           <span className="premium-badge" style={{ fontSize: '9px', padding: '1px 4px', backgroundColor: '#3B82F6', color: '#FFFFFF', border: '1px solid #2563EB' }} title="Number of Delivery Attempts">
-                            Attempts: {o.history ? Math.max(1, o.history.filter(h => h.status === 'OFD').length) : 1}
+                            Attempts: {Math.max(1, countOfdAttempts(o.history))}
                           </span>
                           {o.current_status && (
                             <span className="premium-badge" style={{ fontSize: '9px', padding: '1px 4px', backgroundColor: '#1E1E24', color: '#E4E4E7', border: '1px solid var(--border)' }} title="Courier Tracking Status">

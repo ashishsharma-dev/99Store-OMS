@@ -4,6 +4,11 @@ import { mapCourierStatusToInternal } from '../src/lib/courierSync';
 import { getLatestDelhiveryScan } from '../src/lib/delhiveryTracking';
 
 describe('courier call placed tracking', () => {
+  it('maps Shadowfax bag receipt scans to dispatched', () => {
+    assert.equal(mapCourierStatusToInternal('Bag Received'), 'Dispatched');
+    assert.equal(mapCourierStatusToInternal('Bag Received At Hub'), 'Dispatched');
+  });
+
   it('maps the live Delhivery call instruction to the internal notification status', () => {
     assert.equal(
       mapCourierStatusToInternal('Call placed to consignee'),

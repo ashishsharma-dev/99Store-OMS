@@ -147,6 +147,7 @@ export async function PATCH(
 
         if (courierData.success) {
           order.awb = courierData.awb;
+          order.label_generated = true;
           order.eta = courierData.eta;
           order.courier = courierData.courier as any;
           if (selectedShipmentContact) {
@@ -175,6 +176,11 @@ export async function PATCH(
         order.courierBookingError = awbError || 'Courier integration API network error.';
         systemRemarks += ` (Warning: Courier integration API network error.)`;
       }
+    }
+
+    // Backfill the flag for bookings created before label tracking was added.
+    if (order.status === 'Label Generated' && order.awb) {
+      order.label_generated = true;
     }
 
     // B. Record updates in Order History & Audited Temporal Remarks System
