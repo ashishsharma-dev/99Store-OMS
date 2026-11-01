@@ -14,6 +14,7 @@ import {
   UserX
 } from 'lucide-react';
 import { User, UserRole } from '@/lib/types';
+import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 
 export default function UserAccounts() {
   const [users, setUsers] = useState<User[]>([]);
@@ -180,7 +181,7 @@ export default function UserAccounts() {
 
       {/* Main Users Table */}
       {loading ? (
-        <div style={{ color: '#737373', fontSize: '14px' }}>Loading system user grids...</div>
+        <DashboardSkeleton variant="table" rows={6} />
       ) : (
         <div className="premium-table-container">
           <table className="premium-table">

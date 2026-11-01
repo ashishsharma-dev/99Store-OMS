@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { SystemSettings, WhatsAppLog, CourierApiLog } from '@/lib/types';
 import { CourierLogo } from '@/components/CourierLogo';
+import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 
 export default function IntegrationsSettings() {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
@@ -527,6 +528,8 @@ export default function IntegrationsSettings() {
     log.phone.includes(logSearchQuery) ||
     log.message.toLowerCase().includes(logSearchQuery.toLowerCase())
   );
+
+  if (loading) return <DashboardSkeleton variant="settings" />;
 
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>

@@ -15,6 +15,7 @@ import {
   Volume2
 } from 'lucide-react';
 import { User, Message } from '@/lib/types';
+import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 
 // Web Audio API Synthesized sound effects to avoid local file download and CORS issues
 const playAudioFeedback = (type: 'send' | 'receive') => {
@@ -487,18 +488,7 @@ export default function MessagesPage() {
       </div>
 
       {loading ? (
-        <div style={{
-          minHeight: '400px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '12px',
-          color: 'var(--muted-foreground)'
-        }}>
-          <Loader2 className="animate-spin" size={32} />
-          <span>Restructuring chat threads...</span>
-        </div>
+        <DashboardSkeleton variant="chat" />
       ) : (
         <div style={{
           display: 'grid',

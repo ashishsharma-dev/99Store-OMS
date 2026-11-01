@@ -34,6 +34,7 @@ import { CourierLogo } from '@/components/CourierLogo';
 import { AddressRatingIndicator } from '@/components/AddressRatingIndicator';
 import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
 import { getUserDisplayName } from '@/lib/utils';
+import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 
 const WHATSAPP_LIFECYCLE_TEMPLATES = [
   { key: 'Created', name: 'Order Confirmation', desc: 'Sent when the order is first registered.' },
@@ -1100,10 +1101,7 @@ export default function Orders() {
 
       {/* Main Table Listing */}
       {loading ? (
-        <div className="premium-card loading-overlay" style={{ minHeight: '220px' }}>
-          <span className="spinner spinner-lg spinner-accent" />
-          <span>Retrieving order records...</span>
-        </div>
+        <DashboardSkeleton variant="table" rows={8} />
       ) : orders.length === 0 ? (
         <div className="premium-card" style={{ textAlign: 'center', padding: '48px', color: '#737373' }}>
           No records match the active query. Try broadening your filter selections or search terms.

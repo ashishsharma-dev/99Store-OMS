@@ -24,6 +24,7 @@ import { CourierLogo } from '@/components/CourierLogo';
 import { AddressRatingIndicator } from '@/components/AddressRatingIndicator';
 import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
 import { getUserDisplayName } from '@/lib/utils';
+import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 
 export default function Tracking() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -252,6 +253,8 @@ export default function Tracking() {
     printThermalLabel('printable-shipping-label');
   };
 
+  if (loading) return <DashboardSkeleton variant="tracking" />;
+
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
@@ -334,12 +337,7 @@ export default function Tracking() {
               Active Courier Shipments
             </h3>
 
-            {loading ? (
-              <div className="loading-overlay" style={{ padding: '20px 0' }}>
-                <span className="spinner spinner-accent" />
-                <span>Refreshing shipments feeds...</span>
-              </div>
-            ) : filteredOrders.length === 0 ? (
+            {filteredOrders.length === 0 ? (
               <span style={{ fontSize: '13px', color: '#737373' }}>No active dispatches found.</span>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

@@ -24,6 +24,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { User, UserRole, Message } from '@/lib/types';
+import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 
 type StreamEvent = { id: string; title: string; message: string; timestamp: string; type: string; initial?: boolean };
 
@@ -439,11 +440,9 @@ export default function DashboardLayout({
       <div style={{
         minHeight: '100vh',
         backgroundColor: '#0A0A0A',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
+        padding: '48px',
       }}>
-        <div style={{ color: '#737373', fontSize: '14px' }}>Loading session...</div>
+        <DashboardSkeleton variant="dashboard" />
       </div>
     );
   }

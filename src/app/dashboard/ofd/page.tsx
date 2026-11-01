@@ -27,6 +27,7 @@ import { AddressRatingIndicator } from '@/components/AddressRatingIndicator';
 import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
 import { getUserDisplayName } from '@/lib/utils';
 import { countOfdAttempts } from '@/lib/ofdAttempts';
+import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 
 export default function OfdManagement() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -454,7 +455,7 @@ export default function OfdManagement() {
 
       {/* Lists */}
       {loading ? (
-        <div style={{ color: '#737373', fontSize: '14px' }}>Loading OFD parcel logs...</div>
+        <DashboardSkeleton variant="table" rows={7} />
       ) : activeTab === 'all_ofd' ? (
         /* Tab 1: Unassigned OFD list */
         unassignedOfd.length === 0 ? (

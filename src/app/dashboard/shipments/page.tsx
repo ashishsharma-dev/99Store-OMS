@@ -26,6 +26,7 @@ import { CourierLogo } from '@/components/CourierLogo';
 import { AddressRatingIndicator } from '@/components/AddressRatingIndicator';
 import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
 import { getUserDisplayName } from '@/lib/utils';
+import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 
 export default function AllShipments() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -426,10 +427,7 @@ export default function AllShipments() {
 
       {/* Grid listing */}
       {loading ? (
-        <div className="premium-card loading-overlay" style={{ minHeight: '220px' }}>
-          <span className="spinner spinner-lg spinner-accent" />
-          <span>Querying shipments database...</span>
-        </div>
+        <DashboardSkeleton variant="table" rows={8} />
       ) : orders.length === 0 ? (
         <div className="premium-card" style={{ textAlign: 'center', padding: '48px', color: '#737373' }}>
           No shipments found matching search criteria.

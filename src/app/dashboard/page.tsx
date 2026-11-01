@@ -16,6 +16,7 @@ import {
 import { Order } from '@/lib/types';
 import { CourierLogo } from '@/components/CourierLogo';
 import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
+import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 
 export default function Dashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -131,11 +132,7 @@ export default function Dashboard() {
   };
 
   if (loading) {
-    return (
-      <div style={{ padding: '20px 0', color: '#737373', fontSize: '14px' }}>
-        Retrieving real-time analytics stream...
-      </div>
-    );
+    return <DashboardSkeleton variant="dashboard" />;
   }
 
   // Pure CSS bar chart data for Courier performance

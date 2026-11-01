@@ -24,6 +24,7 @@ import { CourierLogo } from '@/components/CourierLogo';
 import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
 import { checkCourierServiceability } from '@/lib/utils';
 import { getShipmentContactValue, resolveShipmentContact } from '@/lib/shipmentContact';
+import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 
 export default function Packing() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -1000,10 +1001,7 @@ export default function Packing() {
 
       {/* Main Packing Table */}
       {loading ? (
-        <div className="premium-card loading-overlay" style={{ minHeight: '200px' }}>
-          <span className="spinner spinner-lg spinner-accent" />
-          <span>Retrieving packaging queue...</span>
-        </div>
+        <DashboardSkeleton variant="table" rows={7} />
       ) : filteredOrders.length === 0 ? (
         <div className="premium-card" style={{ textAlign: 'center', padding: '48px', color: '#737373' }}>
           No packages pending in the packaging queue for this selection. Good job! All orders are dispatched.

@@ -22,6 +22,37 @@ interface OrderTrackingData {
   history: TrackingHistoryItem[];
 }
 
+function PublicTrackingSkeleton({ fullPage = false }: { fullPage?: boolean }) {
+  return (
+    <div role="status" aria-live="polite" aria-busy="true" style={{
+      width: '100%',
+      minHeight: fullPage ? '100vh' : undefined,
+      display: 'flex',
+      alignItems: fullPage ? 'center' : undefined,
+      justifyContent: 'center',
+      padding: fullPage ? '32px' : '20px 0',
+      backgroundColor: fullPage ? '#080808' : undefined,
+    }}>
+      <span className="visually-hidden">Loading shipment details</span>
+      <div style={{ width: '100%', maxWidth: '650px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ padding: '24px', border: '1px solid #252529', borderRadius: '14px', backgroundColor: '#111113', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <span className="skeleton-block" style={{ width: '36%', height: 12, borderRadius: 6 }} />
+          <span className="skeleton-block" style={{ width: '62%', height: 28, borderRadius: 7 }} />
+          <span className="skeleton-block" style={{ width: '48%', height: 10, borderRadius: 5 }} />
+        </div>
+        <div style={{ padding: '24px', border: '1px solid #252529', borderRadius: '14px', backgroundColor: '#111113', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          {[82, 68, 76, 58].map((width, index) => (
+            <div key={index} style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+              <span className="skeleton-block" style={{ width: 34, height: 34, borderRadius: 17 }} />
+              <span className="skeleton-block" style={{ width: `${width}%`, height: 12, borderRadius: 6 }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TrackingContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -196,23 +227,7 @@ function TrackingContent() {
 
       {/* Loading indicator */}
       {loading && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '40px' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            border: '3px solid rgba(255,255,255,0.1)',
-            borderTopColor: '#E53E3E',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite'
-          }}></div>
-          <span style={{ fontSize: '13px', color: '#888', marginTop: '12px' }}>Locating your shipment details...</span>
-          <style dangerouslySetInnerHTML={{__html: `
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-          `}} />
-        </div>
+        <PublicTrackingSkeleton />
       )}
 
       {/* Active Tracking Details */}
@@ -384,19 +399,7 @@ function TrackingContent() {
 
 export default function TrackingPage() {
   return (
-    <Suspense fallback={
-      <div style={{
-        minHeight: '100vh',
-        backgroundColor: '#080808',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: '#8A8A8A',
-        fontFamily: 'sans-serif'
-      }}>
-        Loading page content...
-      </div>
-    }>
+    <Suspense fallback={<PublicTrackingSkeleton fullPage />}>
       <TrackingContent />
     </Suspense>
   );

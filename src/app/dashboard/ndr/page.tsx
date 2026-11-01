@@ -28,6 +28,7 @@ import { InspectTooltipButton } from '@/components/InspectTooltipButton';
 import { AddressRatingIndicator } from '@/components/AddressRatingIndicator';
 import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
 import { getUserDisplayName } from '@/lib/utils';
+import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 
 export default function NdrManagement() {
   const [ndrRecords, setNdrRecords] = useState<NdrRecord[]>([]);
@@ -701,10 +702,7 @@ export default function NdrManagement() {
 
       {/* Main Table */}
       {loading ? (
-        <div className="premium-card loading-overlay" style={{ minHeight: '220px' }}>
-          <span className="spinner spinner-lg spinner-accent" />
-          <span>Retrieving NDR exception records...</span>
-        </div>
+        <DashboardSkeleton variant="table" rows={7} />
       ) : activeTab === 'ndr' ? (
         /* Tab 1: All NDR Tickets */
         activeNdrTickets.length === 0 ? (
