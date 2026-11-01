@@ -229,7 +229,6 @@ export default function NdrManagement() {
   const fetchData = async (isBackground: any = false) => {
     const isBg = isBackground === true;
     if (!isBg) {
-      setLoading(true);
       setSelectedNdrIds([]);
     }
     try {
@@ -257,7 +256,7 @@ export default function NdrManagement() {
       }
 
       // 2. Fetch Orders to determine which are in working sheet
-      let ordersUrl = '/api/orders?limit=10000';
+      let ordersUrl = '/api/orders?limit=1000&status=NDR,OFD,RDC,Delivered,Return&sortField=updatedAt&sortOrder=desc';
       if (dateRange.startDate) ordersUrl += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
       if (dateRange.endDate) ordersUrl += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
       const ordersRes = await fetch(ordersUrl);

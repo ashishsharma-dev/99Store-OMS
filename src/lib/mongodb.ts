@@ -6,8 +6,24 @@ try {
 } catch (e) {}
 
 let clientPromise: Promise<any> | null = null;
+let indexesPromise: Promise<void> | null = null;
 let lastFailureTime = 0;
 const FAILURE_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes cooldown on failure
+
+async function ensureIndexes(database: any) {
+  if (!indexesPromise) {
+    indexesPromise = Promise.all([
+      database.collection('courierLogs').createIndex({ timestamp: -1 }, { name: 'courier_logs_timestamp_desc' }),
+      database.collection('whatsappLogs').createIndex({ timestamp: -1 }, { name: 'whatsapp_logs_timestamp_desc' }),
+      database.collection('orders').createIndex({ createdAt: -1 }, { name: 'orders_created_desc' }),
+      database.collection('orders').createIndex({ status: 1, createdAt: -1 }, { name: 'orders_status_created_desc' }),
+    ]).then(() => undefined).catch((error) => {
+      indexesPromise = null;
+      console.warn('MongoDB index initialization failed:', error);
+    });
+  }
+  await indexesPromise;
+}
 
 export async function getDatabase() {
   const mongoUri = process.env.MONGODB_URI;
@@ -47,7 +63,9 @@ export async function getDatabase() {
   try {
     const client = await clientPromise;
     lastFailureTime = 0; // Reset on success
-    return client.db('99store-oms');
+    const database = client.db('99store-oms');
+    void ensureIndexes(database);
+    return database;
   } catch (err) {
     console.warn('MongoDB connection failed, falling back to local database:', err);
     lastFailureTime = Date.now(); // Record failure timestamp

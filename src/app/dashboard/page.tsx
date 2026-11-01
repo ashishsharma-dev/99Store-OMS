@@ -53,9 +53,8 @@ export default function Dashboard() {
   }, [dateRange]);
 
   const fetchOrders = async (start?: string, end?: string, isBackground = false) => {
-    if (!isBackground) setLoading(true);
     try {
-      let url = '/api/orders?limit=10000';
+      let url = '/api/orders?limit=1000&sortField=createdAt&sortOrder=desc';
       if (start) url += `&startDate=${encodeURIComponent(start)}`;
       if (end) url += `&endDate=${encodeURIComponent(end)}`;
       const res = await fetch(url);

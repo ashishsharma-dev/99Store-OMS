@@ -35,6 +35,10 @@ export default function IntegrationsSettings() {
   const [waLogs, setWaLogs] = useState<WhatsAppLog[]>([]);
   const [courierLogs, setCourierLogs] = useState<CourierApiLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logPage, setLogPage] = useState(1);
+  const [logTotalPages, setLogTotalPages] = useState(1);
+  const [logTotalCount, setLogTotalCount] = useState(0);
 
   // Tab states for organized clutter-free UX
   const [activeMainTab, setActiveMainTab] = useState<'couriers' | 'googlesheet' | 'security' | 'console' | 'contacts'>('couriers');
@@ -151,8 +155,36 @@ export default function IntegrationsSettings() {
     fetchSettingsAndLogs();
   }, []);
 
+  useEffect(() => {
+    if (activeMainTab !== 'console') return;
+    const timeout = window.setTimeout(() => {
+      void fetchConsoleLogs(activeConsoleTab, logPage, logSearchQuery);
+    }, logSearchQuery ? 300 : 0);
+    return () => window.clearTimeout(timeout);
+  }, [activeMainTab, activeConsoleTab, logPage, logSearchQuery]);
+
+  useEffect(() => {
+    setLogPage(1);
+  }, [activeConsoleTab, logSearchQuery]);
+
+  const fetchConsoleLogs = async (type: 'courier' | 'whatsapp', page: number, search: string) => {
+    setLogsLoading(true);
+    try {
+      const res = await fetch(`/api/settings/logs?type=${type}&page=${page}&limit=25&search=${encodeURIComponent(search)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load logs.');
+      if (type === 'courier') setCourierLogs(data.logs || []);
+      else setWaLogs(data.logs || []);
+      setLogTotalPages(Math.max(1, data.pagination?.totalPages || 1));
+      setLogTotalCount(data.pagination?.totalCount || 0);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
   const fetchSettingsAndLogs = async () => {
-    setLoading(true);
     try {
       const settingsRes = await fetch('/api/settings');
       const settingsData = await settingsRes.json();
@@ -239,26 +271,24 @@ export default function IntegrationsSettings() {
         setGoogleSheetSyncEnabled(s.googleSheetSyncEnabled !== false);
       }
 
-      if (settingsData.whatsappLogs) setWaLogs(settingsData.whatsappLogs);
-      if (settingsData.courierLogs) setCourierLogs(settingsData.courierLogs);
-
-      // Fetch active templates from Walabz in background
-      try {
-        const waRes = await fetch('/api/integrations/whatsapp');
-        const waData = await waRes.json();
-        if (waData.success && Array.isArray(waData.templates)) {
-          setAvailableWalabzTemplates(waData.templates);
-          if (waData.connected) {
-            setWalabzStatus({
-              connected: true,
-              message: `Connected (${waData.templates.length} templates available)`,
-              templatesCount: waData.templates.length
-            });
-          }
-        }
-      } catch (e) {}
-
       setLoading(false);
+
+      // External Walabz I/O must never hold up the settings form.
+      void fetch('/api/integrations/whatsapp')
+        .then(response => response.json())
+        .then(waData => {
+          if (waData.success && Array.isArray(waData.templates)) {
+            setAvailableWalabzTemplates(waData.templates);
+            if (waData.connected) {
+              setWalabzStatus({
+                connected: true,
+                message: `Connected (${waData.templates.length} templates available)`,
+                templatesCount: waData.templates.length
+              });
+            }
+          }
+        })
+        .catch(() => undefined);
     } catch (err) {
       console.error(err);
       setLoading(false);
@@ -515,19 +545,8 @@ export default function IntegrationsSettings() {
     }
   };
 
-  const filteredCourierLogs = courierLogs.filter(log =>
-    !logSearchQuery ||
-    log.courier.toLowerCase().includes(logSearchQuery.toLowerCase()) ||
-    log.action.toLowerCase().includes(logSearchQuery.toLowerCase()) ||
-    log.requestPayload.toLowerCase().includes(logSearchQuery.toLowerCase()) ||
-    log.responsePayload.toLowerCase().includes(logSearchQuery.toLowerCase())
-  );
-
-  const filteredWaLogs = waLogs.filter(log =>
-    !logSearchQuery ||
-    log.phone.includes(logSearchQuery) ||
-    log.message.toLowerCase().includes(logSearchQuery.toLowerCase())
-  );
+  const filteredCourierLogs = courierLogs;
+  const filteredWaLogs = waLogs;
 
   if (loading) return <DashboardSkeleton variant="settings" />;
 
@@ -692,7 +711,7 @@ export default function IntegrationsSettings() {
           <Terminal size={18} style={{ color: activeMainTab === 'console' ? '#F59E0B' : '#A1A1AA' }} />
           <span>Webhook Console Logs</span>
           <span style={{ fontSize: '11px', background: '#27272A', color: '#D4D4D8', padding: '2px 6px', borderRadius: '10px' }}>
-            {courierLogs.length + waLogs.length}
+            {activeMainTab === 'console' ? logTotalCount : 0}
           </span>
         </button>
       </div>
@@ -1966,7 +1985,7 @@ export default function IntegrationsSettings() {
                 }}
               >
                 <Truck size={15} />
-                <span>Courier API Feeds ({courierLogs.length})</span>
+                <span>Courier API Feeds{activeConsoleTab === 'courier' ? ` (${logTotalCount})` : ''}</span>
               </button>
 
               <button
@@ -1979,7 +1998,7 @@ export default function IntegrationsSettings() {
                 }}
               >
                 <MessageSquare size={15} />
-                <span>WhatsApp Feeds ({waLogs.length})</span>
+                <span>WhatsApp Feeds{activeConsoleTab === 'whatsapp' ? ` (${logTotalCount})` : ''}</span>
               </button>
             </div>
 
@@ -1998,7 +2017,7 @@ export default function IntegrationsSettings() {
 
           {/* Render Log Items */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '650px', overflowY: 'auto', paddingRight: '4px' }}>
-            {loading ? (
+            {logsLoading ? (
               <div style={{ padding: '40px 0', textAlign: 'center', color: '#A1A1AA', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                 <span className="spinner spinner-lg" />
                 <span>Loading payload telemetry...</span>
@@ -2115,6 +2134,14 @@ export default function IntegrationsSettings() {
                 ))
               )
             )}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '12px', color: '#71717A' }}>Page {logPage} of {logTotalPages}</span>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="premium-btn premium-btn-secondary" disabled={logsLoading || logPage <= 1} onClick={() => setLogPage(page => Math.max(1, page - 1))}>Previous</button>
+              <button className="premium-btn premium-btn-secondary" disabled={logsLoading || logPage >= logTotalPages} onClick={() => setLogPage(page => Math.min(logTotalPages, page + 1))}>Next</button>
+            </div>
           </div>
 
         </div>

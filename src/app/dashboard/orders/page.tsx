@@ -521,7 +521,6 @@ export default function Orders() {
   };
 
   const fetchOrdersList = async (isBackground = false) => {
-    if (!isBackground) setLoading(true);
     try {
       let url = `/api/orders?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}&status=${statusFilter}&payment=${paymentFilter}&vip=${vipFilter}&courier=${encodeURIComponent(courierFilter)}&sortField=${sortField}&sortOrder=${sortOrder}`;
       if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;

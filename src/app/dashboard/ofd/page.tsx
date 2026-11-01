@@ -202,11 +202,10 @@ export default function OfdManagement() {
   const fetchOfdOrders = async (isBackground: any = false) => {
     const isBg = isBackground === true;
     if (!isBg) {
-      setLoading(true);
       setSelectedOrderIds([]);
     }
     try {
-      let url = '/api/orders?limit=10000';
+      let url = '/api/orders?limit=500&status=OFD&sortField=updatedAt&sortOrder=desc';
       if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
       if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
       const res = await fetch(url);

@@ -7,6 +7,12 @@ import { hasAllowedRole } from '@/lib/session';
 import { getActiveSession } from '@/lib/authorization';
 import { normalizeCustomerWhatsAppNumber } from '@/lib/customerPhone';
 
+function normalizeDateParam(value: string | null, endOfDay = false) {
+  if (!value) return undefined;
+  const date = new Date(`${value}${value.length === 10 ? (endOfDay ? 'T23:59:59.999Z' : 'T00:00:00.000Z') : ''}`);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+}
+
 export async function GET(request: Request) {
   try {
     const session = await getActiveSession(request);
@@ -14,105 +20,49 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     
     // Parse query options
-    const search = searchParams.get('search')?.toLowerCase() || '';
+    const search = searchParams.get('search')?.trim() || '';
     const status = searchParams.get('status') as OrderStatus | null;
     const vip = searchParams.get('vip');
     const payment = searchParams.get('payment');
     
-    const sortField = searchParams.get('sortField') || 'createdAt';
-    const sortOrder = searchParams.get('sortOrder') || 'desc';
+    const allowedSortFields = new Set(['createdAt', 'updatedAt', 'orderId', 'customerName', 'status', 'orderValue']);
+    const requestedSortField = searchParams.get('sortField') || 'createdAt';
+    const sortField = allowedSortFields.has(requestedSortField) ? requestedSortField : 'createdAt';
+    const sortOrder = searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc';
     
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1') || 1);
+    const limit = Math.max(1, parseInt(searchParams.get('limit') || '50') || 50);
 
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    let orders = await db.getOrders();
-    orders = orders.filter(o => !o.isDeleted);
-
-    // Apply Date Range Filter
-    if (startDate) {
-      const start = new Date(startDate).getTime();
-      orders = orders.filter(o => new Date(o.createdAt).getTime() >= start);
-    }
-    if (endDate) {
-      const end = new Date(endDate);
-      if (endDate.length === 10) {
-        end.setHours(23, 59, 59, 999);
-      }
-      const endTime = end.getTime();
-      orders = orders.filter(o => new Date(o.createdAt).getTime() <= endTime);
-    }
-
-    // 1. Global search by Name, Phone, Order ID, AWB, Address, Pincode
-    if (search) {
-      orders = orders.filter(o => 
-        o.customerName.toLowerCase().includes(search) ||
-        o.orderId.toLowerCase().includes(search) ||
-        o.phonePrimary.includes(search) ||
-        (o.phoneSecondary && o.phoneSecondary.includes(search)) ||
-        (o.phoneTertiary && o.phoneTertiary.includes(search)) ||
-        (o.pincode && o.pincode.includes(search)) ||
-        (o.awb && o.awb.toLowerCase().includes(search)) ||
-        o.address.toLowerCase().includes(search)
-      );
-    }
-
-    // 2. Status filtering
-    if (status && status !== 'all' as any) {
-      orders = orders.filter(o => o.status === status);
-    }
-
-    // 3. VIP filtering
-    if (vip && vip !== 'all') {
-      const isVip = vip === 'true';
-      orders = orders.filter(o => o.isVip === isVip);
-    }
-
-    // 4. Payment filtering
-    if (payment && payment !== 'all') {
-      orders = orders.filter(o => o.paymentType === payment);
-    }
-
-    // 4b. Courier filtering
     const courier = searchParams.get('courier');
-    if (courier && courier !== 'all') {
-      orders = orders.filter(o => o.courier && o.courier.toLowerCase().includes(courier.toLowerCase()));
-    }
-
-    // 5. Sorting
-    orders.sort((a: any, b: any) => {
-      let valA = a[sortField];
-      let valB = b[sortField];
-
-      // Handle string dates comparison
-      if (sortField === 'createdAt' || sortField === 'updatedAt') {
-        valA = new Date(valA).getTime();
-        valB = new Date(valB).getTime();
-      }
-
-      if (valA === undefined) return 1;
-      if (valB === undefined) return -1;
-
-      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
-      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
-      return 0;
+    const statuses = status && status !== 'all' as any
+      ? status.split(',').map(value => value.trim()).filter(Boolean)
+      : undefined;
+    const normalizedStartDate = normalizeDateParam(startDate);
+    const normalizedEndDate = normalizeDateParam(endDate, true);
+    const result = await db.queryOrders({
+      search,
+      statuses,
+      vip: vip && vip !== 'all' ? vip === 'true' : undefined,
+      payment: payment && payment !== 'all' ? payment : undefined,
+      courier: courier && courier !== 'all' ? courier : undefined,
+      startDate: normalizedStartDate,
+      endDate: normalizedEndDate,
+      sortField,
+      sortOrder,
+      page,
+      limit,
     });
 
-    // 6. Pagination
-    const totalCount = orders.length;
-    const totalPages = Math.ceil(totalCount / limit);
-    const startIndex = (page - 1) * limit;
-    const paginatedOrders = orders.slice(startIndex, startIndex + limit);
-
     return NextResponse.json({
-      orders: paginatedOrders,
+      orders: result.items,
       pagination: {
-        totalCount,
-        totalPages,
-        currentPage: page,
-        limit
+        totalCount: result.totalCount,
+        totalPages: result.totalPages,
+        currentPage: result.currentPage,
+        limit: result.limit
       }
     });
 

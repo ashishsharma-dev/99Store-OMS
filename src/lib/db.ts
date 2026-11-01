@@ -15,6 +15,28 @@ function escapeRegExp(string: string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+export interface OrderQueryOptions {
+  search?: string;
+  statuses?: string[];
+  vip?: boolean;
+  payment?: string;
+  courier?: string;
+  startDate?: string;
+  endDate?: string;
+  sortField?: string;
+  sortOrder?: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
+}
+
+export interface PaginatedResult<T> {
+  items: T[];
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
+  limit: number;
+}
+
 const DB_FILE_PATH = path.join(process.cwd(), 'data', 'db.json');
 
 function mergeSettings(overrides?: Partial<SystemSettings>): SystemSettings {
@@ -416,6 +438,74 @@ export const db = {
     }
     return memoryOrders;
   },
+  queryOrders: async (options: OrderQueryOptions = {}): Promise<PaginatedResult<Order>> => {
+    const page = Math.max(1, Math.floor(options.page || 1));
+    const limit = Math.max(1, Math.min(1000, Math.floor(options.limit || 50)));
+    const sortField = options.sortField || 'createdAt';
+    const sortDirection = options.sortOrder === 'asc' ? 1 : -1;
+    const database = await safeGetDb();
+
+    if (database) {
+      try {
+        const filter: any = { isDeleted: { $ne: true } };
+        if (options.startDate || options.endDate) {
+          filter.createdAt = {};
+          if (options.startDate) filter.createdAt.$gte = options.startDate;
+          if (options.endDate) filter.createdAt.$lte = options.endDate;
+        }
+        if (options.statuses?.length) filter.status = { $in: options.statuses };
+        if (typeof options.vip === 'boolean') filter.isVip = options.vip;
+        if (options.payment) filter.paymentType = options.payment;
+        if (options.courier) filter.courier = { $regex: escapeRegExp(options.courier), $options: 'i' };
+        if (options.search) {
+          const query = escapeRegExp(options.search);
+          filter.$or = ['customerName', 'orderId', 'phonePrimary', 'phoneSecondary', 'phoneTertiary', 'pincode', 'awb', 'address']
+            .map(field => ({ [field]: { $regex: query, $options: 'i' } }));
+        }
+
+        const collection = database.collection('orders');
+        const [rows, totalCount] = await Promise.all([
+          collection.find(filter).sort({ [sortField]: sortDirection, _id: sortDirection }).skip((page - 1) * limit).limit(limit).toArray(),
+          collection.countDocuments(filter),
+        ]);
+        return {
+          items: rows.map((order: any) => { const { _id, ...rest } = order; return rest as Order; }),
+          totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+          currentPage: page,
+          limit,
+        };
+      } catch (error) {
+        console.warn('[DB Engine] MongoDB order query failed; using local fallback:', error);
+      }
+    }
+
+    let rows = memoryOrders.filter(order => !order.isDeleted);
+    if (options.startDate) rows = rows.filter(order => order.createdAt >= options.startDate!);
+    if (options.endDate) rows = rows.filter(order => order.createdAt <= options.endDate!);
+    if (options.statuses?.length) rows = rows.filter(order => options.statuses!.includes(order.status));
+    if (typeof options.vip === 'boolean') rows = rows.filter(order => Boolean(order.isVip) === options.vip);
+    if (options.payment) rows = rows.filter(order => order.paymentType === options.payment);
+    if (options.courier) rows = rows.filter(order => order.courier?.toLowerCase().includes(options.courier!.toLowerCase()));
+    if (options.search) {
+      const query = options.search.toLowerCase();
+      rows = rows.filter(order => [order.customerName, order.orderId, order.phonePrimary, order.phoneSecondary, order.phoneTertiary, order.pincode, order.awb, order.address]
+        .some(value => String(value || '').toLowerCase().includes(query)));
+    }
+    rows = [...rows].sort((left: any, right: any) => {
+      const a = left[sortField] ?? '';
+      const b = right[sortField] ?? '';
+      return (a < b ? -1 : a > b ? 1 : 0) * sortDirection;
+    });
+    const totalCount = rows.length;
+    return {
+      items: rows.slice((page - 1) * limit, page * limit),
+      totalCount,
+      totalPages: Math.ceil(totalCount / limit),
+      currentPage: page,
+      limit,
+    };
+  },
   getOrderById: async (id: string): Promise<Order | undefined> => {
     const database = await safeGetDb();
     if (database) {
@@ -666,10 +756,28 @@ export const db = {
     if (database) {
       try {
         const result = await database.collection('whatsappLogs').find({}).sort({ timestamp: -1 }).limit(100).toArray();
-        if (result) return (result as any[]).map((l: any) => { const { _id, ...rest } = l; return rest as WhatsAppLog; });
+        return result.map((l: any) => { const { _id, ...rest } = l; return rest as WhatsAppLog; });
       } catch (e) {}
     }
     return memoryWhatsAppLogs.slice(0, 100);
+  },
+  queryWhatsAppLogs: async (page = 1, limit = 100, search = ''): Promise<PaginatedResult<WhatsAppLog>> => {
+    const safePage = Math.max(1, Math.floor(page));
+    const safeLimit = Math.max(1, Math.min(100, Math.floor(limit)));
+    const database = await safeGetDb();
+    if (database) {
+      try {
+        const filter = search ? { $or: ['phone', 'message', 'templateName', 'campaignId'].map(field => ({ [field]: { $regex: escapeRegExp(search), $options: 'i' } })) } : {};
+        const collection = database.collection('whatsappLogs');
+        const [result, totalCount] = await Promise.all([
+          collection.find(filter).sort({ timestamp: -1 }).skip((safePage - 1) * safeLimit).limit(safeLimit).toArray(),
+          collection.countDocuments(filter),
+        ]);
+        return { items: result.map((l: any) => { const { _id, ...rest } = l; return rest as WhatsAppLog; }), totalCount, totalPages: Math.ceil(totalCount / safeLimit), currentPage: safePage, limit: safeLimit };
+      } catch (e) {}
+    }
+    const filtered = search ? memoryWhatsAppLogs.filter(log => `${log.phone} ${log.message} ${log.templateName || ''} ${log.campaignId || ''}`.toLowerCase().includes(search.toLowerCase())) : memoryWhatsAppLogs;
+    return { items: filtered.slice((safePage - 1) * safeLimit, safePage * safeLimit), totalCount: filtered.length, totalPages: Math.ceil(filtered.length / safeLimit), currentPage: safePage, limit: safeLimit };
   },
   getWhatsAppLogsForReconciliation: async (limit = 25): Promise<WhatsAppLog[]> => {
     const safeLimit = Math.max(1, Math.min(100, Math.floor(limit)));
@@ -739,10 +847,28 @@ export const db = {
     if (database) {
       try {
         const result = await database.collection('courierLogs').find({}).sort({ timestamp: -1 }).limit(100).toArray();
-        if (result) return (result as any[]).map((l: any) => { const { _id, ...rest } = l; return rest as CourierApiLog; });
+        return result.map((l: any) => { const { _id, ...rest } = l; return rest as CourierApiLog; });
       } catch (e) {}
     }
     return memoryCourierLogs.slice(0, 100);
+  },
+  queryCourierLogs: async (page = 1, limit = 100, search = ''): Promise<PaginatedResult<CourierApiLog>> => {
+    const safePage = Math.max(1, Math.floor(page));
+    const safeLimit = Math.max(1, Math.min(100, Math.floor(limit)));
+    const database = await safeGetDb();
+    if (database) {
+      try {
+        const filter = search ? { $or: ['courier', 'action', 'requestPayload', 'responsePayload'].map(field => ({ [field]: { $regex: escapeRegExp(search), $options: 'i' } })) } : {};
+        const collection = database.collection('courierLogs');
+        const [result, totalCount] = await Promise.all([
+          collection.find(filter).sort({ timestamp: -1 }).skip((safePage - 1) * safeLimit).limit(safeLimit).toArray(),
+          collection.countDocuments(filter),
+        ]);
+        return { items: result.map((l: any) => { const { _id, ...rest } = l; return rest as CourierApiLog; }), totalCount, totalPages: Math.ceil(totalCount / safeLimit), currentPage: safePage, limit: safeLimit };
+      } catch (e) {}
+    }
+    const filtered = search ? memoryCourierLogs.filter(log => `${log.courier} ${log.action} ${log.requestPayload} ${log.responsePayload}`.toLowerCase().includes(search.toLowerCase())) : memoryCourierLogs;
+    return { items: filtered.slice((safePage - 1) * safeLimit, safePage * safeLimit), totalCount: filtered.length, totalPages: Math.ceil(filtered.length / safeLimit), currentPage: safePage, limit: safeLimit };
   },
   addCourierLog: async (log: CourierApiLog): Promise<void> => {
     memoryCourierLogs.unshift(log);

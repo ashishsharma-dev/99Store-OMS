@@ -11,17 +11,13 @@ export async function GET(request: Request) {
   try {
     if (!await isSuperAdmin(request)) return NextResponse.json({ error: 'Super Admin access required.' }, { status: 403 });
     const settings = await db.getSettings();
-    const whatsappLogs = await db.getWhatsAppLogs();
-    const courierLogs = await db.getCourierLogs();
 
     return NextResponse.json({ 
       success: true, 
-      settings,
-      whatsappLogs,
-      courierLogs
+      settings
     });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch settings and logs' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
   }
 }
 

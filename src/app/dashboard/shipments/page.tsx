@@ -193,23 +193,18 @@ export default function AllShipments() {
   }, [search, statusFilter, courierFilter, sortField, sortOrder, dateRange]);
 
   const fetchShipmentsList = async (isBackground = false) => {
-    if (!isBackground) setLoading(true);
     try {
-      let url = `/api/orders?limit=100000&search=${encodeURIComponent(search)}&status=${statusFilter}&sortField=${sortField}&sortOrder=${sortOrder}`;
+      const shipmentStatuses = statusFilter === 'all'
+        ? 'Label%20Generated,Dispatched,OFD,Delivered,Undelivered,Return,RDC,NDR'
+        : encodeURIComponent(statusFilter);
+      let url = `/api/orders?limit=500&search=${encodeURIComponent(search)}&status=${shipmentStatuses}&courier=${encodeURIComponent(courierFilter)}&sortField=${sortField}&sortOrder=${sortOrder}`;
       if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
       if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
       const res = await fetch(url);
       const data = await res.json();
       
       if (res.ok && data.orders) {
-        let filtered = data.orders as Order[];
-        
-        // Filter by courier if requested
-        if (courierFilter !== 'all') {
-          filtered = filtered.filter(o => o.courier === courierFilter);
-        }
-
-        setOrders(filtered);
+        setOrders(data.orders as Order[]);
       }
       setLoading(false);
     } catch (err) {

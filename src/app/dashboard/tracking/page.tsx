@@ -107,9 +107,8 @@ export default function Tracking() {
   }, [dateRange]);
 
   const fetchActiveShipments = async (isBackground = false) => {
-    if (!isBackground) setLoading(true);
     try {
-      let url = '/api/orders?limit=10000';
+      let url = '/api/orders?limit=500&status=Label%20Generated,Dispatched,OFD,Delivered,Undelivered,Return,RDC,NDR&sortField=updatedAt&sortOrder=desc';
       if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
       if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
       const res = await fetch(url);

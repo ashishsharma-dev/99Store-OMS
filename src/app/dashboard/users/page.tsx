@@ -40,7 +40,6 @@ export default function UserAccounts() {
   }, []);
 
   const fetchUsers = async () => {
-    setLoading(true);
     try {
       const res = await fetch('/api/users');
       const data = await res.json();

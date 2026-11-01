@@ -169,10 +169,9 @@ export default function Packing() {
   }, [dateRange]);
 
   const fetchPackingQueue = async () => {
-    setLoading(true);
     setSelectedIds([]);
     try {
-      let url = '/api/orders?limit=100000';
+      let url = '/api/orders?limit=500&status=Created,Packing,Label%20Generated,Dispatched&sortField=createdAt&sortOrder=desc';
       if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
       if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
       const res = await fetch(url);
