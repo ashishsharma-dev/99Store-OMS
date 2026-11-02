@@ -22,6 +22,8 @@ if hasattr(sys.stderr, "reconfigure"):
 
 PUBLIC_HEALTH_URL = "https://oms.ayurvedacare.store/api/health"
 ROLLBACK_ROOT = "/home/ayurvedacare/99store-rollbacks"
+RUNTIME_MEDIA_DIR = "public/packing-slips"
+ALLOWED_RUNTIME_CHANGES = r" data/db\.json$| public/packing-slips/"
 
 
 def connect() -> paramiko.SSHClient:
@@ -80,7 +82,7 @@ def preflight(client: paramiko.SSHClient) -> str:
             "printf 'backup_service=%s\n' \"$(systemctl list-unit-files 99store-mongodb-backup.service --no-legend 2>/dev/null | awk '{print $2}' || true)\"; "
             "test -f .env.local; test -f ecosystem.config.js; "
             "test -f scripts/backup-mongodb.sh || systemctl cat 99store-mongodb-backup.service >/dev/null; "
-            "test -z \"$(git status --porcelain --untracked-files=no | grep -v ' data/db.json$' || true)\"; "
+            f"test -z \"$(git status --porcelain --untracked-files=no | grep -Ev {shlex.quote(ALLOWED_RUNTIME_CHANGES)} || true)\"; "
             "pm2 describe 99store-oms >/dev/null; " + health_command()
         ),
         timeout=120,
@@ -93,13 +95,18 @@ set -Eeuo pipefail
 APP_DIR={shlex.quote(APP_DIR)}
 TARGET_COMMIT={shlex.quote(previous_commit)}
 cd "$APP_DIR"
-test -z "$(git status --porcelain --untracked-files=no | grep -v ' data/db.json$' || true)"
+test -z "$(git status --porcelain --untracked-files=no | grep -Ev {shlex.quote(ALLOWED_RUNTIME_CHANGES)} || true)"
 RUNTIME_DATA="$(mktemp)"
+RUNTIME_MEDIA="$(mktemp -d)"
 cp data/db.json "$RUNTIME_DATA"
-git checkout -- data/db.json
+if test -d {RUNTIME_MEDIA_DIR}; then cp -a {RUNTIME_MEDIA_DIR}/. "$RUNTIME_MEDIA"/; fi
+git checkout -- data/db.json {RUNTIME_MEDIA_DIR} 2>/dev/null || git checkout -- data/db.json
 git reset --hard "$TARGET_COMMIT"
 cp "$RUNTIME_DATA" data/db.json
+install -d {RUNTIME_MEDIA_DIR}
+cp -a "$RUNTIME_MEDIA"/. {RUNTIME_MEDIA_DIR}/
 rm -f "$RUNTIME_DATA"
+rm -rf "$RUNTIME_MEDIA"
 npm ci --include=dev
 if npm run | grep -q 'verify:env'; then npm run verify:env; fi
 npm run test
@@ -117,8 +124,12 @@ def rollback(client: paramiko.SSHClient, previous_commit: str) -> None:
         client,
         f"Rolling back to {previous_commit}",
         app_command(
-            "RUNTIME_DATA=$(mktemp); cp data/db.json \"$RUNTIME_DATA\"; git checkout -- data/db.json; "
-            f"git reset --hard {shlex.quote(previous_commit)}; cp \"$RUNTIME_DATA\" data/db.json; rm -f \"$RUNTIME_DATA\"; "
+            "RUNTIME_DATA=$(mktemp); RUNTIME_MEDIA=$(mktemp -d); cp data/db.json \"$RUNTIME_DATA\"; "
+            f"if test -d {shlex.quote(RUNTIME_MEDIA_DIR)}; then cp -a {shlex.quote(RUNTIME_MEDIA_DIR)}/. \"$RUNTIME_MEDIA\"/; fi; "
+            f"git checkout -- data/db.json {shlex.quote(RUNTIME_MEDIA_DIR)} 2>/dev/null || git checkout -- data/db.json; "
+            f"git reset --hard {shlex.quote(previous_commit)}; cp \"$RUNTIME_DATA\" data/db.json; "
+            f"install -d {shlex.quote(RUNTIME_MEDIA_DIR)}; cp -a \"$RUNTIME_MEDIA\"/. {shlex.quote(RUNTIME_MEDIA_DIR)}/; "
+            "rm -f \"$RUNTIME_DATA\"; rm -rf \"$RUNTIME_MEDIA\"; "
             "npm ci --include=dev; if npm run | grep -q 'verify:env'; then npm run verify:env; fi; npm run test; "
             "npm run lint -- --quiet; npm run build; "
             "pm2 startOrReload ecosystem.config.js --update-env; pm2 save; " + health_command()
@@ -142,6 +153,8 @@ def deploy(client: paramiko.SSHClient, target_commit: str) -> None:
             f"install -d -m 700 {shlex.quote(release_dir)}; "
             f"cp .env.local {shlex.quote(release_dir)}/env.local; chmod 600 {shlex.quote(release_dir)}/env.local; "
             f"cp data/db.json {shlex.quote(release_dir)}/db.json; chmod 600 {shlex.quote(release_dir)}/db.json; "
+            f"install -d -m 700 {shlex.quote(release_dir)}/packing-slips; "
+            f"if test -d {shlex.quote(RUNTIME_MEDIA_DIR)}; then cp -a {shlex.quote(RUNTIME_MEDIA_DIR)}/. {shlex.quote(release_dir)}/packing-slips/; fi; "
             f"if test -f scripts/backup-mongodb.sh; then bash scripts/backup-mongodb.sh; "
             "else systemctl start 99store-mongodb-backup.service; journalctl -u 99store-mongodb-backup.service -n 20 --no-pager; fi "
             f"| tee {shlex.quote(release_dir)}/mongodb-backup.log; "
@@ -167,10 +180,12 @@ def deploy(client: paramiko.SSHClient, target_commit: str) -> None:
             "Fetching and checking out the release",
             app_command(
                 "git fetch origin master; "
-                f"cp data/db.json {shlex.quote(release_dir)}/db.json; git checkout -- data/db.json; "
+                f"cp data/db.json {shlex.quote(release_dir)}/db.json; "
+                f"git checkout -- data/db.json {shlex.quote(RUNTIME_MEDIA_DIR)} 2>/dev/null || git checkout -- data/db.json; "
                 f"git merge --ff-only {shlex.quote(target_commit)}; "
                 f"test \"$(git rev-parse HEAD)\" = \"$(git rev-parse {shlex.quote(target_commit)}^{{commit}})\"; "
-                f"cp {shlex.quote(release_dir)}/db.json data/db.json; "
+                f"cp {shlex.quote(release_dir)}/db.json data/db.json; install -d {shlex.quote(RUNTIME_MEDIA_DIR)}; "
+                f"cp -a {shlex.quote(release_dir)}/packing-slips/. {shlex.quote(RUNTIME_MEDIA_DIR)}/; "
                 "if ! grep -q '^AUTH_SESSION_SECRET=' .env.local; then "
                 "printf '\nAUTH_SESSION_SECRET=%s\n' \"$(openssl rand -hex 32)\" >> .env.local; fi"
             ),
