@@ -1,6 +1,21 @@
 import { db } from '@/lib/db';
+import type { NdrRecord, Order } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
+
+export async function loadNotificationSnapshot(): Promise<{ orders: Order[]; ndrRecords: NdrRecord[] }> {
+  const [orderResult, ndrRecords] = await Promise.all([
+    db.queryOrders({ page: 1, limit: 50, sortField: 'updatedAt', sortOrder: 'desc' }),
+    db.getNdrRecords(),
+  ]);
+
+  return {
+    orders: orderResult.items,
+    ndrRecords: [...ndrRecords].sort((left, right) =>
+      String(right.updatedAt || right.createdAt).localeCompare(String(left.updatedAt || left.createdAt))
+    ),
+  };
+}
 
 export async function GET(request: Request) {
   const encoder = new TextEncoder();
@@ -21,10 +36,7 @@ export async function GET(request: Request) {
 
       try {
         // Fetch real database records for authentic notification telemetry
-        const [orders, ndrRecords] = await Promise.all([
-          db.getOrders(),
-          db.getNdrRecords()
-        ]);
+        const { orders, ndrRecords } = await loadNotificationSnapshot();
 
         // Mark the full current snapshot as seen. The initial drawer snapshot is
         // informational; only changes after connection should create live alerts.
@@ -60,7 +72,7 @@ export async function GET(request: Request) {
         });
 
         // Stream real active recent orders
-        orders.slice(-2).reverse().forEach((order) => {
+        orders.slice(0, 2).forEach((order) => {
           const orderMsg = `data: ${JSON.stringify({
             id: `evt-ord-${order.id}`,
             title: `Order Status: ${order.orderId}`,
@@ -77,16 +89,16 @@ export async function GET(request: Request) {
       }
 
       // 5-second polling interval for real-time order/NDR updates & Delhivery Call Placed alerts
+      let pollInFlight = false;
       const pollInterval = setInterval(async () => {
         if (isClosed) {
           clearInterval(pollInterval);
           return;
         }
+        if (pollInFlight) return;
+        pollInFlight = true;
         try {
-          const [orders, ndrRecords] = await Promise.all([
-            db.getOrders(),
-            db.getNdrRecords()
-          ]);
+          const { orders, ndrRecords } = await loadNotificationSnapshot();
 
           if (isClosed) return;
 
@@ -123,7 +135,7 @@ export async function GET(request: Request) {
           });
 
           // 3. Recent order updates
-          orders.slice(-5).forEach(order => {
+          orders.forEach(order => {
             const key = `order-${order.id}-${order.status}-${order.updatedAt || order.createdAt}`;
             if (!sentKeys.has(key)) {
               sentKeys.add(key);
@@ -140,6 +152,8 @@ export async function GET(request: Request) {
 
         } catch (err) {
           console.error('Error in SSE notification stream poll loop:', err);
+        } finally {
+          pollInFlight = false;
         }
       }, 5000);
 
@@ -173,8 +187,9 @@ export async function GET(request: Request) {
   return new Response(stream, {
     headers: {
       'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
+      'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
     },
   });
 }
