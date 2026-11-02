@@ -3,6 +3,7 @@ import { createSessionToken, SESSION_COOKIE_NAME } from './session';
 import puppeteer from 'puppeteer-core';
 import fs from 'fs';
 import path from 'path';
+import { createPackingSlipMediaUrl } from './packingSlipMedia';
 
 /**
  * Automatically detects the Google Chrome or Chromium executable path
@@ -106,38 +107,20 @@ export async function generatePackingSlipImage(orderId: string, baseUrl?: string
     fs.writeFileSync(/* turbopackIgnore: true */ filePath, imageBuffer);
     console.log(`[Screenshot] Saved packing slip image locally at "${filePath}"`);
 
-    // Construct public accessibility URL
-    const resolvedBase = baseUrl || process.env.NEXT_PUBLIC_APP_URL || `http://localhost:${port}`;
-    let fileUrl = `${resolvedBase.replace(/\/$/, '')}/packing-slips/${orderId}.png`;
-    
-    // Upload to catbox.moe if the URL is local OR if it is NOT a secure public HTTPS domain (to support raw VPS IP/port test setups)
-    const lowerUrl = fileUrl.toLowerCase();
-    const isLocalOrInsecure = !lowerUrl.startsWith('https://') || lowerUrl.includes('localhost') || lowerUrl.includes('127.0.0.1') || lowerUrl.includes('192.168.') || lowerUrl.includes('10.') || lowerUrl.includes('::1');
-    if (isLocalOrInsecure) {
-      console.log(`[Screenshot] Local/Insecure URL detected ("${fileUrl}"). Uploading to catbox.moe for reliable delivery bypass...`);
-      try {
-        const blob = new Blob([new Uint8Array(imageBuffer)], { type: 'image/png' });
-        const formData = new FormData();
-        formData.append('reqtype', 'fileupload');
-        formData.append('fileToUpload', blob, `${orderId}-slip.png`);
-
-        const uploadRes = await fetch('https://catbox.moe/user/api.php', {
-          method: 'POST',
-          body: formData
-        });
-
-        const directUrl = await uploadRes.text();
-        if (directUrl && directUrl.startsWith('https://files.catbox.moe/')) {
-          console.log(`[Screenshot] Uploaded to catbox for local fallback: ${directUrl}`);
-          fileUrl = directUrl;
-        } else {
-          console.error('[Screenshot] Failed to upload local fallback to catbox:', directUrl);
-        }
-      } catch (uploadErr) {
-        console.error('[Screenshot] Failed to upload local fallback to catbox:', uploadErr);
-      }
+    // Serve generated files through a runtime route. Next.js does not reliably
+    // expose files added to /public after a production build, and Meta cannot
+    // fetch localhost/private URLs.
+    const fileUrl = createPackingSlipMediaUrl(orderId, baseUrl);
+    const mediaCheck = await fetch(fileUrl, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(10000),
+      headers: { 'User-Agent': '99Store-Media-Preflight/1.0' },
+    });
+    const mediaType = mediaCheck.headers.get('content-type') || '';
+    if (!mediaCheck.ok || !mediaType.toLowerCase().startsWith('image/')) {
+      throw new Error(`Generated packing slip is not publicly downloadable (HTTP ${mediaCheck.status}, type ${mediaType || 'unknown'}).`);
     }
-    
+
     console.log(`[Screenshot] Successfully generated locally and resolved URL: ${fileUrl}`);
     return fileUrl;
 

@@ -5,6 +5,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/auth/',
   '/api/health',
   '/api/track',
+  '/api/media/',
   '/api/webhooks/',
   '/api/integrations/courier/webhook',
   '/api/integrations/courier/shadowfax/webhook',

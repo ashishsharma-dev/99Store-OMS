@@ -781,12 +781,14 @@ export const db = {
   },
   getWhatsAppLogsForReconciliation: async (limit = 25): Promise<WhatsAppLog[]> => {
     const safeLimit = Math.max(1, Math.min(100, Math.floor(limit)));
+    const recentSentCutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const database = await safeGetDb();
     if (database) {
       try {
         const withCampaign = await database.collection('whatsappLogs').find({
           $or: [
             { status: { $in: ['Pending', 'Queued'] } },
+            { status: 'Sent', timestamp: { $gte: recentSentCutoff } },
             { status: 'Failed', errorDetail: { $regex: 'Walabz failed', $options: 'i' } },
           ],
           campaignId: { $type: 'string', $ne: '' },
@@ -810,6 +812,7 @@ export const db = {
     return memoryWhatsAppLogs
       .filter(log => (
         ['Pending', 'Queued'].includes(log.status)
+        || (log.status === 'Sent' && log.timestamp >= recentSentCutoff)
         || (log.status === 'Failed' && /Walabz failed/i.test(log.errorDetail || '') && Boolean(log.campaignId))
       ))
       .sort((left, right) => Number(Boolean(right.campaignId)) - Number(Boolean(left.campaignId)) || left.timestamp.localeCompare(right.timestamp))

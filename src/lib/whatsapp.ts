@@ -437,7 +437,14 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
       if (result.success) {
         if (!result.campaignId) throw new Error('Walabz accepted the request without a campaign ID.');
         const deliveryStatus = await waitForOtpCampaignStatus(() => walabzClient.getCampaignProgress(result.campaignId!));
-        log.status = deliveryStatus === 'failed' ? 'Failed' : deliveryStatus === 'sent' ? 'Sent' : 'Queued';
+        // Meta may accept the campaign before it downloads an image header.
+        // Keep media messages queued until reconciliation observes the final
+        // delivered/read state or a late media-download failure.
+        log.status = deliveryStatus === 'failed'
+          ? 'Failed'
+          : deliveryStatus === 'sent' && !imageUrl
+            ? 'Sent'
+            : 'Queued';
         if (deliveryStatus === 'failed') {
           log.errorDetail = await getWalabzFailureReason(walabzClient, result.campaignId)
             || 'Walabz failed to send the campaign. No message-level reason was returned.';

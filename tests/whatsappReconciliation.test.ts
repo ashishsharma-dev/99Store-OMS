@@ -27,6 +27,11 @@ it('reconciles queued campaigns and stores message-level provider failure reason
       type: 'Primary', message: 'test', status: 'Failed', campaignId: 'existing-failed-campaign',
       errorDetail: 'Walabz failed to send the campaign. Check the provider delivery report.',
     },
+    {
+      id: 'wa-late-media-failure', timestamp: '2026-11-02T07:13:26.016Z', phone: '919000000005',
+      type: 'Primary', message: 'test', status: 'Sent', campaignId: 'late-media-failure-campaign',
+      imageUrl: 'https://localhost:3000/packing-slips/99S-1208.png',
+    },
   ] as WhatsAppLog[];
   const saved: WhatsAppLog[] = [];
 
@@ -39,19 +44,21 @@ it('reconciles queued campaigns and stores message-level provider failure reason
       : { status: 'completed', sent: 0, delivered: 0, failed: 1 };
   });
   mock.method(WalabzClient.prototype, 'getCampaignMessages', async function (campaignId: string) {
-    return ['failed-campaign', 'existing-failed-campaign'].includes(campaignId)
-      ? [{ status: 'failed', error_message: 'Known non-WhatsApp number' }]
+    return ['failed-campaign', 'existing-failed-campaign', 'late-media-failure-campaign'].includes(campaignId)
+      ? [{ status: 'failed', error_message: campaignId === 'late-media-failure-campaign' ? 'Media upload error: HTTP 403' : 'Known non-WhatsApp number' }]
       : [];
   });
 
   const result = await reconcileWhatsAppLogs();
 
-  assert.deepEqual(result, { checked: 4, updated: 4, failed: 0 });
+  assert.deepEqual(result, { checked: 5, updated: 5, failed: 0 });
   assert.equal(saved.find(log => log.id === 'wa-delivered')?.status, 'Delivered');
   assert.equal(saved.find(log => log.id === 'wa-failed')?.status, 'Failed');
   assert.equal(saved.find(log => log.id === 'wa-failed')?.errorDetail, 'Known non-WhatsApp number');
   assert.equal(saved.find(log => log.id === 'wa-no-campaign')?.status, 'Failed');
   assert.match(saved.find(log => log.id === 'wa-no-campaign')?.errorDetail || '', /no Walabz campaign ID/i);
   assert.equal(saved.find(log => log.id === 'wa-existing-failure')?.errorDetail, 'Known non-WhatsApp number');
+  assert.equal(saved.find(log => log.id === 'wa-late-media-failure')?.status, 'Failed');
+  assert.equal(saved.find(log => log.id === 'wa-late-media-failure')?.errorDetail, 'Media upload error: HTTP 403');
   assert.ok(saved.every(log => Boolean(log.lastProviderSyncAt)));
 });
