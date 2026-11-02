@@ -23,6 +23,10 @@ export interface WalabzTemplate {
   template_type: 'simple' | 'dynamic';
   header_type?: 'none' | 'text' | 'image' | 'video' | 'document';
   header_content?: string;
+  header?: {
+    type?: 'none' | 'text' | 'image' | 'video' | 'document';
+    content?: string;
+  };
   body: string;
   footer?: string;
   buttons?: Array<{ type: string; text: string; value?: string }>;
@@ -37,6 +41,14 @@ export interface WalabzTemplate {
   };
   created_at?: string;
   updated_at?: string;
+}
+
+export function normalizeWalabzTemplate(template: WalabzTemplate): WalabzTemplate {
+  return {
+    ...template,
+    header_type: template.header_type || template.header?.type || 'none',
+    header_content: template.header_content || template.header?.content,
+  };
 }
 
 export interface SendCampaignOptions {
@@ -264,13 +276,13 @@ export class WalabzClient {
     }
 
     if (Array.isArray(data)) {
-      return data;
+      return data.map(normalizeWalabzTemplate);
     }
     if (Array.isArray(data.templates)) {
-      return data.templates;
+      return data.templates.map(normalizeWalabzTemplate);
     }
     if (data.data && Array.isArray(data.data)) {
-      return data.data;
+      return data.data.map(normalizeWalabzTemplate);
     }
 
     return [];
@@ -291,7 +303,7 @@ export class WalabzClient {
     }
 
     const data = await res.json();
-    return data.template || data;
+    return normalizeWalabzTemplate(data.template || data.data || data);
   }
 
   /**

@@ -108,7 +108,7 @@ export function buildTemplateVariables(data: {
     courier_support_number: courierSupportNumber,
     brand_name: brandName,
 
-    // Positional variables (Sequential 1..10)
+    // Positional variables (Sequential 1..11)
     // For 'Created' / order confirmation (matches approved template orderconfirmation):
     // {{1}} = customer_name, {{2}} = product_name, {{3}} = order_id, {{4}} = amount, {{5}} = support_name, {{6}} = support_phone
     '1': customerName,
@@ -121,15 +121,41 @@ export function buildTemplateVariables(data: {
     '8': trackingUrl || packingSlipUrl || 'https://99store.in',
     '9': supportNumber,
     '10': brandName,
+    '11': courierSupportNumber,
   };
 
-  // If status is shipping / logistics event, adapt positional variables 5 & 6 to AWB & Courier
+  // Shipping templates use the approved logistics variable order.
   if (['Dispatched', 'RDC', 'OFD', 'Delivered', 'Label Generated', 'NDR', 'Return'].includes(status)) {
     mappings['5'] = awb && awb !== 'PENDING' ? awb : 'N/A';
     mappings['6'] = courier && courier !== 'PENDING' ? courier : 'N/A';
+    mappings['7'] = eta;
+    mappings['8'] = supportName;
+    mappings['9'] = supportNumber;
+    mappings['10'] = courierSupportName;
+    mappings['11'] = courierSupportNumber;
   }
 
   return mappings;
+}
+
+export function hasGeneratedShippingLabel(order: { label_generated?: boolean; history?: Array<{ status?: string }> } | null | undefined): boolean {
+  return Boolean(
+    order?.label_generated
+      || order?.history?.some(entry => entry.status?.trim().toLowerCase() === 'label generated')
+  );
+}
+
+function selectTemplateVariables(
+  mappings: Record<string, string>,
+  templateVariables?: string[]
+): Record<string, string> {
+  if (!templateVariables?.length) return mappings;
+
+  return Object.fromEntries(
+    templateVariables
+      .filter(variable => Object.hasOwn(mappings, variable))
+      .map(variable => [variable, mappings[variable]])
+  );
 }
 
 /**
@@ -386,7 +412,12 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
       if (!template) throw new Error('Configured WhatsApp template was not found.');
       // Once the label workflow has completed, include its image with every
       // later dispatch. An AWB alone is not proof that a label was rendered.
-      const hasGeneratedLabel = Boolean(order?.label_generated);
+      const hasGeneratedLabel = hasGeneratedShippingLabel(order);
+      if (hasGeneratedLabel && template.header_type !== 'image') {
+        throw new Error(
+          `WhatsApp template '${template.name || templateId}' is text-only. Map an approved image-header template before sending this label dispatch.`
+        );
+      }
       if (hasGeneratedLabel || template.header_type === 'image') {
         imageUrl = await generatePackingSlipImage(orderId, resolvedBaseUrl);
         if (!imageUrl) throw new Error('Shipping label image could not be generated. Retry after checking Chrome and the public application URL.');
@@ -397,7 +428,7 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
         campaignName,
         templateId,
         recipients: [cleanPhone],
-        variableMappings,
+        variableMappings: selectTemplateVariables(variableMappings, template.variables),
         mediaUrl: imageUrl || undefined,
         mediaType: imageUrl ? 'image' : undefined,
         action: 'send'

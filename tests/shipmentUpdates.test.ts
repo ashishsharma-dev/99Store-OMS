@@ -6,9 +6,9 @@ import { syncOrderStatus } from '../src/lib/courierSync';
 import { normalizeCourierEventTime } from '../src/lib/courierEventTime';
 import { parseXpressBeesServiceability, checkXpressBeesServiceability } from '../src/lib/xpressbees';
 import { bookShadowfaxOrder, checkShadowfaxOrderServiceability, checkShadowfaxServiceability } from '../src/lib/shadowfax';
-import { triggerWhatsAppNotification } from '../src/lib/whatsapp';
+import { buildTemplateVariables, hasGeneratedShippingLabel, triggerWhatsAppNotification } from '../src/lib/whatsapp';
 import { mockSettings } from '../src/lib/mockData';
-import { WalabzClient, type SendCampaignOptions } from '../src/lib/walabz';
+import { normalizeWalabzTemplate, WalabzClient, type SendCampaignOptions } from '../src/lib/walabz';
 import { summarizeOtpCampaignProgress } from '../src/lib/otpDispatch';
 import type { Order, SystemSettings, WhatsAppLog } from '../src/lib/types';
 
@@ -151,6 +151,55 @@ it('retries a failed dispatch and sends only to the customer WhatsApp number', a
   const result = await triggerWhatsAppNotification({ orderId: 'test', customerName: 'Test', phonePrimary: '9000000000', status: 'Dispatched', orderValue: 100, paymentType: 'Paid' });
   assert.equal(result[0].status, 'Sent');
   assert.deepEqual(send.mock.calls[0].arguments[0].recipients, ['919876543210']);
+});
+it('maps every approved dispatch template variable in the required order', () => {
+  const variables = buildTemplateVariables({
+    customerName: 'Test Customer', orderId: '99S-TEST', productName: 'Test Product', orderValue: 999,
+    awb: 'AWB-TEST', courier: 'DTDC', eta: '3 days', supportName: 'Order Support',
+    supportNumber: '1111111111', courierSupportName: 'Courier Support', courierSupportNumber: '2222222222',
+    status: 'Dispatched',
+  });
+
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(variables).filter(([key]) => /^\d+$/.test(key))),
+    {
+      '1': 'Test Customer', '2': 'Test Product', '3': '99S-TEST', '4': '999',
+      '5': 'AWB-TEST', '6': 'DTDC', '7': '3 days', '8': 'Order Support',
+      '9': '1111111111', '10': 'Courier Support', '11': '2222222222',
+    }
+  );
+});
+it('recognizes legacy generated labels from order history', () => {
+  assert.equal(hasGeneratedShippingLabel({ history: [{ status: 'Label Generated' }] }), true);
+  assert.equal(hasGeneratedShippingLabel({ history: [{ status: 'Dispatched' }] }), false);
+});
+it('normalizes the nested Walabz media header returned by the live API', () => {
+  const template = normalizeWalabzTemplate({
+    _id: 'template', name: 'orderdispatch_label_v1', category: 'utility', status: 'approved',
+    language: 'hi', template_type: 'dynamic', body: 'test',
+    header: { type: 'image', content: 'https://example.test/label.png' },
+  });
+
+  assert.equal(template.header_type, 'image');
+  assert.equal(template.header_content, 'https://example.test/label.png');
+});
+it('fails clearly instead of silently dropping a generated label from a text-only template', async () => {
+  order.phoneWhatsApp = '9876543210';
+  order.history.push({ status: 'Label Generated', timestamp: new Date().toISOString(), updatedBy: 'test', remarks: '' });
+  mock.method(WalabzClient.prototype, 'getTemplateById', async () => ({
+    _id: 'template', name: 'orderdispatch', category: 'utility', status: 'approved', language: 'hi',
+    template_type: 'dynamic', header_type: 'none', body: 'test',
+  }));
+  const send = mock.method(WalabzClient.prototype, 'sendCampaign', async () => ({ success: true, campaignId: 'should-not-send' }));
+
+  const result = await triggerWhatsAppNotification({
+    orderId: 'test', customerName: 'Test', phonePrimary: '9000000000',
+    status: 'Dispatched', orderValue: 100, paymentType: 'Paid',
+  });
+
+  assert.equal(result[0].status, 'Failed');
+  assert.match(result[0].errorDetail || '', /text-only/i);
+  assert.equal(send.mock.callCount(), 0);
 });
 it('does not mark a completed but failed campaign as sent', () => {
   assert.equal(summarizeOtpCampaignProgress({ status: 'completed', sent: 0, failed: 1 }), 'failed');
