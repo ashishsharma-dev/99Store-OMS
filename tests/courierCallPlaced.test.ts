@@ -16,6 +16,12 @@ describe('courier call placed tracking', () => {
     );
   });
 
+  it('maps DTDC pre-delivery and processing milestones without failing tracking', () => {
+    assert.equal(mapCourierStatusToInternal('Scheduled for Delivery'), 'Dispatched');
+    assert.equal(mapCourierStatusToInternal('At Processing Center'), 'Dispatched');
+    assert.equal(mapCourierStatusToInternal('shipment_booked'), 'Label Generated');
+  });
+
   it('selects the newest Delhivery scan from an oldest-first response', () => {
     const latest = getLatestDelhiveryScan([
       {

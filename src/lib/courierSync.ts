@@ -14,7 +14,10 @@ export function mapCourierStatusToInternal(courierStatus: any): OrderStatus | nu
       ? JSON.stringify(courierStatus) 
       : String(courierStatus);
       
-  const status = statusStr.toLowerCase().trim();
+  // Courier feeds vary punctuation/casing for the same milestone. Normalize
+  // separators before matching so `out_for_delivery`, `out-for-delivery`, and
+  // `Out For Delivery` are treated identically.
+  const status = statusStr.toLowerCase().trim().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ');
 
   if (status === 'rdc' || status.includes('returned to delivery center') || status.includes('returned to warehouse') || status.includes('returned to hub')) return 'RDC';
   if (status === 'nc' || status === 'na' || status.includes('not contactable') || status.includes('not attempted')) return 'NDR';
@@ -31,6 +34,8 @@ export function mapCourierStatusToInternal(courierStatus: any): OrderStatus | nu
     || status.includes('pickup requested')
     || status.includes('pickup scheduled')
     || status.includes('pickup rescheduled')
+    || status.includes('shipment booked')
+    || status === 'booked'
   ) return 'Label Generated';
 
   if (
@@ -45,10 +50,9 @@ export function mapCourierStatusToInternal(courierStatus: any): OrderStatus | nu
   if (
     status === 'out for delivery' || 
     status === 'ofd' || 
-    status.includes('out_for_delivery') || 
+    status.includes('out for delivery') ||
     status.includes('pending delivery') || 
     status.includes('out with courier') ||
-    status.includes('out_with_courier') ||
     status.includes('with courier')
   ) {
     return 'OFD';
@@ -56,14 +60,12 @@ export function mapCourierStatusToInternal(courierStatus: any): OrderStatus | nu
 
   if (
     status.includes('call placed') ||
-    status.includes('call_placed') ||
     status.includes('consignee contacted') ||
     status.includes('customer contacted') ||
     status.includes('pre-delivery call') ||
-    status.includes('pre_delivery_call') ||
     status.includes('call to customer') ||
     status.includes('customer called') ||
-    status === 'call_placed_notification'
+    status === 'call placed notification'
   ) {
     return 'Call Placed Notification';
   }
@@ -76,9 +78,17 @@ export function mapCourierStatusToInternal(courierStatus: any): OrderStatus | nu
     status.includes('manifest uploaded') ||
     status === 'manifested' ||
     status.includes('data received') ||
-    status.includes('in_transit') ||
+    status.includes('processing center') ||
+    status.includes('processing centre') ||
+    status.includes('scheduled for delivery') ||
+    status.includes('prepared for delivery') ||
+    status.includes('ready for delivery') ||
+    status.includes('arrived at') ||
+    status.includes('received at') ||
+    status.includes('further connected') ||
+    status.includes('shipment connected') ||
     status.includes('departed') ||
-    status === 'in-transit'
+    status === 'in transit'
   ) {
     return 'Dispatched';
   }
@@ -88,15 +98,13 @@ export function mapCourierStatusToInternal(courierStatus: any): OrderStatus | nu
     status.includes('failed') || 
     status.includes('exception') || 
     status.includes('undelivered') || 
-    status.includes('non-delivered') || 
-    status.includes('non_delivered') || 
+    status.includes('non delivered') ||
     status.includes('refused') || 
     status.includes('rejected') || 
     status.includes('unreachable') || 
     status.includes('delayed') ||
     status.includes('awaiting instruction') ||
     status.includes('attempts reached') ||
-    status.includes('attempts_reached') ||
     status.includes('not available') ||
     status.includes('unavailable') ||
     status.includes('denied')
@@ -128,7 +136,7 @@ async function applyOrderStatus(
   customRemarks?: string,
   eta?: string,
   eventTimestamp?: string
-): Promise<{ updated: boolean; order?: Order; error?: string }> {
+): Promise<{ updated: boolean; order?: Order; error?: string; warning?: string }> {
   try {
     const orders = await db.getOrders();
     const order = orders.find(
@@ -184,9 +192,13 @@ async function applyOrderStatus(
       }
     }
 
-    if (!mappedStatus) {
-      return { updated: false, error: `Unable to map courier status: "${courierStatus}"` };
-    }
+    // A courier adding a new display phrase must never make tracking itself
+    // unavailable. Preserve the raw milestone and current internal state; the
+    // raw scans remain visible while the vocabulary can be expanded later.
+    const mappingWarning = !mappedStatus
+      ? `Unmapped courier status preserved without changing order state: "${courierStatus}"`
+      : undefined;
+    if (!mappedStatus) mappedStatus = order.status;
 
     const eventTime = normalizeCourierEventTime(eventTimestamp);
     const previousTime = order.lastCourierEventAt;
@@ -207,6 +219,13 @@ async function applyOrderStatus(
       hasChanges = true;
     }
     order.last_tracking_update = now;
+    const rawCourierStatus = typeof courierStatus === 'string'
+      ? courierStatus.trim()
+      : JSON.stringify(courierStatus);
+    if (rawCourierStatus && order.current_status !== rawCourierStatus) {
+      order.current_status = rawCourierStatus;
+      hasChanges = true;
+    }
 
 
     // Parse Field Executive (FE) number if it's OFD or Call Placed
@@ -248,7 +267,7 @@ async function applyOrderStatus(
     if (hasChanges) {
       await db.saveOrder(order);
     } else {
-      return { updated: false, order };
+      return { updated: false, order, warning: mappingWarning };
     }
 
     // 4. NDR Side Effect Trigger
@@ -299,7 +318,7 @@ async function applyOrderStatus(
       }).catch(err => console.error('Failed to trigger background direct WhatsApp from sync helper:', err));
     }
 
-    return { updated: true, order };
+    return { updated: true, order, warning: mappingWarning };
   } catch (error: any) {
     console.error('Error synchronizing courier status:', error);
     return { updated: false, error: error.message || 'Courier sync failed.' };

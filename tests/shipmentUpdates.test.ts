@@ -46,6 +46,23 @@ it('does not add OFD history for an ETA-only update', async () => {
   assert.equal(order.history.length, 0);
   assert.equal(logs.length, 0);
 });
+it('preserves an unknown courier milestone without breaking tracking or changing order status', async () => {
+  const result = await syncOrderStatus(
+    'AWB-TEST',
+    'Partner Custom Milestone',
+    'Test Hub',
+    'A newly introduced courier event.',
+    undefined,
+    '2026-10-14T04:30:00Z',
+  );
+
+  assert.equal(result.error, undefined);
+  assert.match(result.warning || '', /unmapped courier status preserved/i);
+  assert.equal(order.status, 'Dispatched');
+  assert.equal(order.current_status, 'Partner Custom Milestone');
+  assert.equal(order.lastCourierEventAt, '2026-10-14T04:30:00.000Z');
+  assert.equal(order.history.length, 0);
+});
 it('ignores older events and never reopens delivered shipments', async () => {
   order.status = 'OFD';
   order.lastCourierEventAt = '2026-10-14T04:30:00Z';
