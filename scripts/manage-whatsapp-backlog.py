@@ -60,6 +60,9 @@ if (statusOnly) {
     { $group: { _id: '$errorDetail', count: { $sum: 1 }, orders: { $addToSet: '$orderId' } } },
     { $sort: { count: -1 } },
   ]).toArray();
+  const providerFailures = await collection.find({
+    timestamp: { $gte: cutoff }, status: 'Failed', campaignId: { $type: 'string' },
+  }).project({ _id: 0, orderId: 1, templateName: 1, campaignId: 1, errorDetail: 1, providerStatus: 1 }).toArray();
   const replayKeys = new Set(replayRows.map(row => `${row.orderId}|${row.templateName}`.toLowerCase()));
   const missing = [];
   for (const row of retiredRows) {
@@ -68,7 +71,7 @@ if (statusOnly) {
     const order = row.orderId ? await database.collection('orders').findOne({ orderId: row.orderId }, { projection: { phoneWhatsApp: 1 } }) : null;
     missing.push({ orderId: row.orderId, templateName: row.templateName, orderExists: Boolean(order), hasWhatsAppNumber: Boolean(order?.phoneWhatsApp) });
   }
-  console.log(JSON.stringify({ mode: 'status', retired, expiredOtps, localOutbox, submittedReplays, replayStates, preSubmitFailures, missing }));
+  console.log(JSON.stringify({ mode: 'status', retired, expiredOtps, localOutbox, submittedReplays, replayStates, preSubmitFailures, providerFailures, missing }));
   process.exit(0);
 }
 const client = await getWalabzClient();
