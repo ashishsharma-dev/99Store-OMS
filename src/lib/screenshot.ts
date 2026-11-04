@@ -75,7 +75,10 @@ export async function generatePackingSlipImage(orderId: string, baseUrl?: string
     const user = (await db.getUsers()).find(user => user.isActive && user.role === 'Super Admin');
     if (!user) throw new Error('No active admin account is available to render the packing slip.');
     await browser.setCookie({ name: SESSION_COOKIE_NAME, value: createSessionToken(user), domain: 'localhost', path: '/', httpOnly: true });
-    await page.goto(targetUrl, { waitUntil: 'networkidle0', timeout: 15000 });
+    // The OMS keeps live/background connections open, so `networkidle0` can
+    // time out even after the label is fully rendered. DOM readiness followed
+    // by the label selector is the reliable completion signal for this page.
+    await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
     
     // Inject CSS to hide Next.js development overlays/dialogs/badges
     await page.addStyleTag({
@@ -83,7 +86,7 @@ export async function generatePackingSlipImage(orderId: string, baseUrl?: string
     });
     
     // Wait for the label element to load
-    await page.waitForSelector('.healvita-label', { timeout: 5000 });
+    await page.waitForSelector('.healvita-label', { timeout: 15000, visible: true });
 
     const element = await page.$('.healvita-label');
     if (!element) {

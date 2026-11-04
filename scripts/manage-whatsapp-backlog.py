@@ -21,13 +21,99 @@ loadEnvConfig(process.cwd());
 const { getDatabase } = await import('./src/lib/mongodb');
 const { getWalabzClient, triggerWhatsAppNotification } = await import('./src/lib/whatsapp');
 const { reconcileWhatsAppLogs } = await import('./src/lib/whatsappReconciliation');
+const { generatePackingSlipImage } = await import('./src/lib/screenshot');
 
 const execute = __EXECUTE__;
+const forceReplay = __FORCE_REPLAY__;
+const statusOnly = __STATUS_ONLY__;
+const retryMediaFailures = __RETRY_MEDIA_FAILURES__;
+const probeMediaOrder = __PROBE_MEDIA_ORDER__;
 const cutoff = __CUTOFF__;
 const database = await getDatabase();
 if (!database) throw new Error('MongoDB is unavailable.');
 const collection = database.collection('whatsappLogs');
+
+if (probeMediaOrder) {
+  const mediaUrl = await generatePackingSlipImage(probeMediaOrder, 'https://oms.ayurvedacare.store');
+  console.log(JSON.stringify({ mode: 'probe-media', orderId: probeMediaOrder, success: Boolean(mediaUrl) }));
+  process.exit(mediaUrl ? 0 : 3);
+}
+
+if (statusOnly) {
+  const [retired, expiredOtps, localOutbox, submittedReplays] = await Promise.all([
+    collection.countDocuments({ timestamp: { $gte: cutoff }, providerStatus: { $in: ['cleared_for_replay', 'provider_delete_refused_replayed'] } }),
+    collection.countDocuments({ timestamp: { $gte: cutoff }, providerStatus: 'expired_not_replayed' }),
+    collection.countDocuments({ timestamp: { $gte: cutoff }, status: 'Pending', campaignId: { $exists: false }, outboxPayload: { $exists: true } }),
+    collection.countDocuments({ timestamp: { $gte: cutoff }, campaignId: { $type: 'string' }, outboxPayload: { $exists: true } }),
+  ]);
+  const [retiredRows, replayRows] = await Promise.all([
+    collection.find({ timestamp: { $gte: cutoff }, providerStatus: { $in: ['cleared_for_replay', 'provider_delete_refused_replayed'] } }).project({ orderId: 1, templateName: 1 }).toArray(),
+    collection.find({ timestamp: { $gte: cutoff }, outboxPayload: { $exists: true } }).project({ orderId: 1, templateName: 1 }).toArray(),
+  ]);
+  const replayStates = await collection.aggregate([
+    { $match: { timestamp: { $gte: cutoff }, outboxPayload: { $exists: true } } },
+    { $group: { _id: { status: '$status', providerStatus: '$providerStatus' }, count: { $sum: 1 } } },
+    { $sort: { count: -1 } },
+  ]).toArray();
+  const preSubmitFailures = await collection.aggregate([
+    { $match: { timestamp: { $gte: cutoff }, outboxPayload: { $exists: true }, status: 'Failed', campaignId: { $exists: false } } },
+    { $group: { _id: '$errorDetail', count: { $sum: 1 }, orders: { $addToSet: '$orderId' } } },
+    { $sort: { count: -1 } },
+  ]).toArray();
+  const replayKeys = new Set(replayRows.map(row => `${row.orderId}|${row.templateName}`.toLowerCase()));
+  const missing = [];
+  for (const row of retiredRows) {
+    const key = `${row.orderId}|${row.templateName}`.toLowerCase();
+    if (replayKeys.has(key) || missing.some(item => item.orderId === row.orderId && item.templateName === row.templateName)) continue;
+    const order = row.orderId ? await database.collection('orders').findOne({ orderId: row.orderId }, { projection: { phoneWhatsApp: 1 } }) : null;
+    missing.push({ orderId: row.orderId, templateName: row.templateName, orderExists: Boolean(order), hasWhatsAppNumber: Boolean(order?.phoneWhatsApp) });
+  }
+  console.log(JSON.stringify({ mode: 'status', retired, expiredOtps, localOutbox, submittedReplays, replayStates, preSubmitFailures, missing }));
+  process.exit(0);
+}
 const client = await getWalabzClient();
+
+if (retryMediaFailures) {
+  const rawFailedLogs = await collection.find({
+    timestamp: { $gte: cutoff }, status: 'Failed', campaignId: { $exists: false },
+    providerStatus: { $ne: 'media_retry_superseded' },
+    errorDetail: { $regex: 'Shipping label image could not be generated', $options: 'i' },
+  }).sort({ timestamp: -1 }).toArray();
+  const failedLogs = [];
+  const failedKeys = new Set();
+  for (const failedLog of rawFailedLogs) {
+    const key = `${failedLog.orderId}|${failedLog.templateName}|${failedLog.phone}`.toLowerCase();
+    if (failedKeys.has(key)) continue;
+    failedKeys.add(key);
+    failedLogs.push(failedLog);
+  }
+  const results = [];
+  for (const failedLog of failedLogs) {
+    const order = failedLog.orderId ? await database.collection('orders').findOne({ orderId: failedLog.orderId }) : null;
+    if (!order) {
+      results.push({ orderId: failedLog.orderId, templateName: failedLog.templateName, status: 'skipped_missing_order' });
+      continue;
+    }
+    const logs = await triggerWhatsAppNotification({
+      orderId: order.orderId, customerName: order.customerName, phonePrimary: order.phonePrimary || '',
+      phoneSecondary: order.phoneSecondary, phoneTertiary: order.phoneTertiary, phoneWhatsApp: order.phoneWhatsApp,
+      status: failedLog.templateName, awb: order.awb, courier: order.courier, eta: order.eta,
+      orderValue: order.orderValue, paymentType: order.paymentType, productName: order.productDetails,
+      baseUrl: 'https://oms.ayurvedacare.store', isOnDemand: true,
+    });
+    results.push({ orderId: order.orderId, templateName: failedLog.templateName, status: logs[0]?.status || 'not_created', campaignId: logs[0]?.campaignId });
+    if (logs[0]?.campaignId) {
+      await collection.updateMany({
+        orderId: failedLog.orderId, templateName: failedLog.templateName, phone: failedLog.phone,
+        status: 'Failed', campaignId: { $exists: false },
+        errorDetail: { $regex: 'Shipping label image could not be generated', $options: 'i' },
+      }, { $set: { providerStatus: 'media_retry_superseded', lastProviderSyncAt: new Date().toISOString() } });
+    }
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  console.log(JSON.stringify({ mode: 'retry-media', attempted: failedLogs.length, results }));
+  process.exit(0);
+}
 
 const rows = await collection.find({
   timestamp: { $gte: cutoff },
@@ -101,6 +187,10 @@ for (const item of candidates) {
     try {
       const response = await client.deleteCampaign(item.log.campaignId);
       if (!response.success) {
+        if (forceReplay && /only draft or failed campaigns can be deleted/i.test(response.error || '')) {
+          cleared.push(item);
+          continue;
+        }
         clearFailures.push({ campaignId: item.log.campaignId, error: response.error });
         continue;
       }
@@ -137,7 +227,7 @@ for (const item of cleared) {
   if (sentinel && item.log.id === sentinel.id) continue;
   await collection.updateOne({ id: item.log.id }, { $set: {
     status: 'Failed',
-    providerStatus: String(item.log.templateName || '').toLowerCase() === 'login_otp' ? 'expired_not_replayed' : 'cleared_for_replay',
+    providerStatus: String(item.log.templateName || '').toLowerCase() === 'login_otp' ? 'expired_not_replayed' : (forceReplay ? 'provider_delete_refused_replayed' : 'cleared_for_replay'),
     lastProviderSyncAt: new Date().toISOString(),
     errorDetail: 'Stalled provider campaign cleared after confirmed non-delivery.',
   }});
@@ -184,7 +274,7 @@ for (const item of replayable.reverse()) {
 if (sentinel) {
   await collection.updateOne({ id: sentinel.id }, { $set: {
     status: 'Failed',
-    providerStatus: String(sentinel.templateName || '').toLowerCase() === 'login_otp' ? 'expired_not_replayed' : 'cleared_for_replay',
+    providerStatus: String(sentinel.templateName || '').toLowerCase() === 'login_otp' ? 'expired_not_replayed' : (forceReplay ? 'provider_delete_refused_replayed' : 'cleared_for_replay'),
     lastProviderSyncAt: new Date().toISOString(),
     errorDetail: 'Stalled provider campaign cleared after confirmed non-delivery.',
   }});
@@ -199,11 +289,16 @@ console.log(JSON.stringify({
   replayResults,
   reconciliation,
 }));
+process.exit(0);
 """
 
 
-def run_remote(execute: bool, cutoff: str) -> dict:
+def run_remote(execute: bool, force_replay: bool, status_only: bool, retry_media_failures: bool, probe_media_order: str, cutoff: str) -> dict:
     remote_ts = REMOTE_TS.replace('__EXECUTE__', 'true' if execute else 'false')
+    remote_ts = remote_ts.replace('__FORCE_REPLAY__', 'true' if force_replay else 'false')
+    remote_ts = remote_ts.replace('__STATUS_ONLY__', 'true' if status_only else 'false')
+    remote_ts = remote_ts.replace('__RETRY_MEDIA_FAILURES__', 'true' if retry_media_failures else 'false')
+    remote_ts = remote_ts.replace('__PROBE_MEDIA_ORDER__', json.dumps(probe_media_order))
     remote_ts = remote_ts.replace('__CUTOFF__', json.dumps(cutoff))
     encoded = base64.b64encode(remote_ts.encode()).decode()
     command = f"cd {APP_DIR} && printf %s {encoded} | base64 -d | npx tsx"
@@ -220,7 +315,9 @@ def run_remote(execute: bool, cutoff: str) -> dict:
       if not output:
           raise RuntimeError(error or f'remote operation failed with status {status}')
       payload = json.loads(output.splitlines()[-1])
-      if status not in (0, 2):
+      if error:
+          payload['stderrTail'] = error[-5000:]
+      if status not in (0, 2, 3):
           raise RuntimeError(error or f'remote operation failed with status {status}')
       return payload
     finally:
@@ -230,9 +327,15 @@ def run_remote(execute: bool, cutoff: str) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('--execute', action='store_true', help='Delete stalled provider campaigns and queue safe replays.')
+    parser.add_argument('--force-replay', action='store_true', help='Replay after the provider refuses to delete confirmed-undelivered preparing campaigns.')
+    parser.add_argument('--status', action='store_true', help='Read replay/retirement counters without contacting Labzwaba.')
+    parser.add_argument('--retry-media-failures', action='store_true', help='Retry replay rows that failed before submission while generating label media.')
+    parser.add_argument('--probe-media', default='', metavar='ORDER_ID', help='Generate one label image and report the underlying VPS error.')
     parser.add_argument('--cutoff', default='2026-11-03T14:00:00.000Z')
     args = parser.parse_args()
-    result = run_remote(args.execute, args.cutoff)
+    if args.force_replay and not args.execute:
+        parser.error('--force-replay requires --execute')
+    result = run_remote(args.execute, args.force_replay, args.status, args.retry_media_failures, args.probe_media, args.cutoff)
     print(json.dumps(result, indent=2))
     if result.get('clearFailures'):
         raise SystemExit(2)
