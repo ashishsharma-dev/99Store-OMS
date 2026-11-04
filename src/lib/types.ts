@@ -176,6 +176,16 @@ export interface WhatsAppLog {
   lastProviderSyncAt?: string;
   scheduledTime?: string;
   imageUrl?: string | null;
+  outboxPayload?: {
+    campaignName: string;
+    templateId: string;
+    variableMappings: Record<string, string>;
+    requiresLabelImage?: boolean;
+    baseUrl?: string;
+  };
+  retryCount?: number;
+  nextRetryAt?: string;
+  dispatchedAt?: string;
 }
 
 export interface SystemSettings {

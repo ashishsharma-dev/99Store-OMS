@@ -1,7 +1,8 @@
 import { db } from './db';
 import type { WhatsAppLog } from './types';
-import { getWalabzClient } from './whatsapp';
+import { dispatchWhatsAppOutboxLog, getWalabzClient } from './whatsapp';
 import { getWalabzFailureReason, getWalabzLogStatus, getWalabzQueueTimeoutReason } from './whatsappDelivery';
+import { isWalabzQueueBlocked } from './whatsappQueue';
 
 type ReconciliationResult = { checked: number; updated: number; failed: number };
 const shared = globalThis as typeof globalThis & {
@@ -22,7 +23,9 @@ export function reconcileWhatsAppLogs(): Promise<ReconciliationResult> {
     const logs = await db.getWhatsAppLogsForReconciliation(batchSize);
     if (logs.length === 0) return { checked: 0, updated: 0, failed: 0 };
 
-    const client = logs.some(log => Boolean(log.campaignId)) ? await getWalabzClient() : null;
+    const recentLogs = await db.getWhatsAppLogs();
+    const queueBlocked = isWalabzQueueBlocked(recentLogs);
+    const client = logs.some(log => Boolean(log.campaignId || log.outboxPayload)) ? await getWalabzClient() : null;
     let updated = 0;
     let failed = 0;
     const concurrency = 5;
@@ -32,11 +35,21 @@ export function reconcileWhatsAppLogs(): Promise<ReconciliationResult> {
       15 * 60 * 1000,
       7 * 24 * 60 * 60 * 1000,
     );
+    let outboxDispatches = 0;
 
     for (let index = 0; index < logs.length; index += concurrency) {
       await Promise.all(logs.slice(index, index + concurrency).map(async (log: WhatsAppLog) => {
         try {
           if (!log.campaignId) {
+            if (log.outboxPayload) {
+              if (queueBlocked || outboxDispatches >= 5) return;
+              if (log.nextRetryAt && Date.parse(log.nextRetryAt) > Date.now()) return;
+              if (!client) throw new Error('Walabz client was not initialized.');
+              outboxDispatches += 1;
+              await dispatchWhatsAppOutboxLog(log, client);
+              updated += 1;
+              return;
+            }
             const ageMs = Date.now() - Date.parse(log.timestamp);
             if (Number.isFinite(ageMs) && ageMs >= unreconcilableAgeMs) {
               log.status = 'Failed';

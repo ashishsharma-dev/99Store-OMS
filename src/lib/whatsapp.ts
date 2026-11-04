@@ -10,6 +10,7 @@ import {
   type OtpDeliveryStatus,
 } from '@/lib/otpDispatch';
 import { getWalabzFailureReason, getWalabzQueueTimeoutReason } from '@/lib/whatsappDelivery';
+import { assertExpectedTemplateCategory, getOutboxRetryAt, isWalabzQueueBlocked } from '@/lib/whatsappQueue';
 
 export interface TriggerWhatsAppParams {
   orderId: string;
@@ -156,6 +157,54 @@ function selectTemplateVariables(
       .filter(variable => Object.hasOwn(mappings, variable))
       .map(variable => [variable, mappings[variable]])
   );
+}
+
+export async function dispatchWhatsAppOutboxLog(
+  log: WhatsAppLog,
+  walabzClient: WalabzClient,
+): Promise<void> {
+  const payload = log.outboxPayload;
+  if (!payload) throw new Error('WhatsApp outbox payload is missing.');
+
+  try {
+    let mediaUrl: string | undefined;
+    if (payload.requiresLabelImage) {
+      if (!log.orderId) throw new Error('Cannot regenerate a label image without an order ID.');
+      const generatedMediaUrl = await generatePackingSlipImage(log.orderId, payload.baseUrl);
+      if (!generatedMediaUrl) throw new Error('Shipping label image could not be generated for outbox delivery.');
+      mediaUrl = generatedMediaUrl;
+      log.imageUrl = mediaUrl;
+    }
+
+    const result = await walabzClient.sendCampaign({
+      campaignName: payload.campaignName,
+      templateId: payload.templateId,
+      recipients: [log.phone],
+      variableMappings: payload.variableMappings,
+      mediaUrl,
+      mediaType: mediaUrl ? 'image' : undefined,
+      action: 'send',
+    });
+    if (!result.success || !result.campaignId) {
+      throw new Error(result.error || 'Walabz accepted the outbox request without a campaign ID.');
+    }
+
+    log.campaignId = result.campaignId;
+    log.status = 'Queued';
+    log.dispatchedAt = new Date().toISOString();
+    log.lastProviderSyncAt = log.dispatchedAt;
+    delete log.errorDetail;
+    delete log.nextRetryAt;
+  } catch (error) {
+    const retryCount = (log.retryCount || 0) + 1;
+    log.retryCount = retryCount;
+    log.status = 'Pending';
+    log.errorDetail = `Outbox delivery deferred: ${error instanceof Error ? error.message : String(error)}`;
+    log.nextRetryAt = getOutboxRetryAt(retryCount);
+    throw error;
+  } finally {
+    await db.saveWhatsAppLog(log);
+  }
 }
 
 /**
@@ -410,6 +459,10 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
     try {
       const template = await walabzClient.getTemplateById(templateId);
       if (!template) throw new Error('Configured WhatsApp template was not found.');
+      assertExpectedTemplateCategory(template.category, 'utility', template.name || templateId);
+      if (template.status && template.status !== 'approved') {
+        throw new Error(`WhatsApp template '${template.name || templateId}' is not approved.`);
+      }
       // Once the label workflow has completed, include its image with every
       // later dispatch. An AWB alone is not proof that a label was rendered.
       const hasGeneratedLabel = hasGeneratedShippingLabel(order);
@@ -418,17 +471,36 @@ export async function triggerWhatsAppNotification(params: TriggerWhatsAppParams)
           `WhatsApp template '${template.name || templateId}' is text-only. Map an approved image-header template before sending this label dispatch.`
         );
       }
-      if (hasGeneratedLabel || template.header_type === 'image') {
+      const requiresLabelImage = hasGeneratedLabel || template.header_type === 'image';
+      const selectedVariables = selectTemplateVariables(variableMappings, template.variables);
+      const campaignName = `Ord-${orderId}-${status}-${Date.now()}`.slice(0, 50);
+      log.outboxPayload = {
+        campaignName,
+        templateId,
+        variableMappings: selectedVariables,
+        requiresLabelImage,
+        baseUrl: resolvedBaseUrl,
+      };
+
+      const recentLogs = await db.getWhatsAppLogs();
+      if (isWalabzQueueBlocked(recentLogs)) {
+        log.status = 'Pending';
+        log.errorDetail = 'Deferred locally: Labzwaba campaign processing is stalled. This message has not been submitted to the provider and will be retried safely after recovery.';
+        await db.addWhatsAppLog(log);
+        logsSent.push(log);
+        continue;
+      }
+
+      if (requiresLabelImage) {
         imageUrl = await generatePackingSlipImage(orderId, resolvedBaseUrl);
         if (!imageUrl) throw new Error('Shipping label image could not be generated. Retry after checking Chrome and the public application URL.');
         log.imageUrl = imageUrl;
       }
-      const campaignName = `Ord-${orderId}-${status}-${Date.now()}`.slice(0, 50);
       const result = await walabzClient.sendCampaign({
         campaignName,
         templateId,
         recipients: [cleanPhone],
-        variableMappings: selectTemplateVariables(variableMappings, template.variables),
+        variableMappings: selectedVariables,
         mediaUrl: imageUrl || undefined,
         mediaType: imageUrl ? 'image' : undefined,
         action: 'send'
@@ -507,6 +579,21 @@ export async function sendLoginOTP(
   };
 
   try {
+    const recentLogs = await db.getWhatsAppLogs();
+    if (isWalabzQueueBlocked(recentLogs)) {
+      log.status = 'Failed';
+      log.errorDetail = 'WhatsApp OTP is temporarily unavailable because Labzwaba campaign processing is stalled. No provider campaign was created; request a new OTP after recovery.';
+      await db.addWhatsAppLog(log);
+      return { success: false, error: log.errorDetail, deliveryStatus: 'failed' };
+    }
+
+    const template = await walabzClient.getTemplateById(otpTemplateId);
+    if (!template) throw new Error('Configured WhatsApp OTP template was not found.');
+    assertExpectedTemplateCategory(template.category, 'authentication', template.name || otpTemplateId);
+    if (template.status && template.status !== 'approved') {
+      throw new Error(`WhatsApp OTP template '${template.name || otpTemplateId}' is not approved.`);
+    }
+
     const result = await walabzClient.sendCampaign({
       campaignName: `OTP-${Date.now()}`,
       templateId: otpTemplateId,

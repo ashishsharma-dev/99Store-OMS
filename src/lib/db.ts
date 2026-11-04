@@ -821,6 +821,7 @@ export const db = {
             { status: { $in: ['Pending', 'Queued'] } },
             { status: 'Sent', timestamp: { $gte: recentSentCutoff } },
             { status: 'Failed', errorDetail: { $regex: 'Walabz failed', $options: 'i' } },
+            { status: 'Failed', campaignId: { $exists: true }, providerStatus: { $in: ['preparing', 'queued'] } },
           ],
         };
         const collection = database.collection('whatsappLogs');
@@ -847,6 +848,7 @@ export const db = {
         ['Pending', 'Queued'].includes(log.status)
         || (log.status === 'Sent' && log.timestamp >= recentSentCutoff)
         || (log.status === 'Failed' && /Walabz failed/i.test(log.errorDetail || '') && Boolean(log.campaignId))
+        || (log.status === 'Failed' && Boolean(log.campaignId) && ['preparing', 'queued'].includes(String(log.providerStatus || '').toLowerCase()))
       )), safeLimit);
   },
   addWhatsAppLog: async (log: WhatsAppLog): Promise<void> => {
