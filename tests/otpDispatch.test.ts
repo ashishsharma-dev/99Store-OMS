@@ -25,11 +25,11 @@ describe('login OTP dispatch safeguards', () => {
     assert.deepEqual(buildLoginOtpVariableMappings('482913'), { '1': '482913' });
   });
 
-  it('enforces a 30-second resend cooldown', () => {
+  it('enforces a 60-second resend cooldown', () => {
     const issuedAt = new Date(10_000).toISOString();
-    assert.equal(getOtpResendCooldownSeconds(issuedAt, 10_000), 30);
-    assert.equal(getOtpResendCooldownSeconds(issuedAt, 25_001), 15);
-    assert.equal(getOtpResendCooldownSeconds(issuedAt, 40_000), 0);
+    assert.equal(getOtpResendCooldownSeconds(issuedAt, 10_000), 60);
+    assert.equal(getOtpResendCooldownSeconds(issuedAt, 25_001), 45);
+    assert.equal(getOtpResendCooldownSeconds(issuedAt, 70_000), 0);
   });
 
   it('signs short-lived campaign status tokens and rejects tampering', () => {

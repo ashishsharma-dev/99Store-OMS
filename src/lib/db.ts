@@ -37,6 +37,37 @@ export interface PaginatedResult<T> {
   limit: number;
 }
 
+export function selectWhatsAppReconciliationBatch(
+  candidates: WhatsAppLog[],
+  limit: number,
+): WhatsAppLog[] {
+  const safeLimit = Math.max(1, Math.floor(limit));
+  const unique = new Map<string, WhatsAppLog>();
+  for (const log of candidates) {
+    const key = log.id || log.campaignId || `${log.timestamp}:${log.phone}`;
+    if (!unique.has(key)) unique.set(key, log);
+  }
+
+  const rows = [...unique.values()];
+  const newestFirst = (left: WhatsAppLog, right: WhatsAppLog) => right.timestamp.localeCompare(left.timestamp);
+  const otp = rows
+    .filter(log => String(log.templateName || '').toLowerCase() === 'login_otp')
+    .sort(newestFirst);
+  const remaining = rows
+    .filter(log => String(log.templateName || '').toLowerCase() !== 'login_otp')
+    .sort((left, right) => left.timestamp.localeCompare(right.timestamp));
+
+  const selected = otp.slice(0, safeLimit);
+  let oldest = 0;
+  let newest = remaining.length - 1;
+  let takeNewest = true;
+  while (selected.length < safeLimit && oldest <= newest) {
+    selected.push(remaining[takeNewest ? newest-- : oldest++]);
+    takeNewest = !takeNewest;
+  }
+  return selected;
+}
+
 const DB_FILE_PATH = path.join(process.cwd(), 'data', 'db.json');
 
 function mergeSettings(overrides?: Partial<SystemSettings>): SystemSettings {
@@ -779,28 +810,30 @@ export const db = {
     const filtered = search ? memoryWhatsAppLogs.filter(log => `${log.phone} ${log.message} ${log.templateName || ''} ${log.campaignId || ''}`.toLowerCase().includes(search.toLowerCase())) : memoryWhatsAppLogs;
     return { items: filtered.slice((safePage - 1) * safeLimit, safePage * safeLimit), totalCount: filtered.length, totalPages: Math.ceil(filtered.length / safeLimit), currentPage: safePage, limit: safeLimit };
   },
-  getWhatsAppLogsForReconciliation: async (limit = 25): Promise<WhatsAppLog[]> => {
+  getWhatsAppLogsForReconciliation: async (limit = 50): Promise<WhatsAppLog[]> => {
     const safeLimit = Math.max(1, Math.min(100, Math.floor(limit)));
     const recentSentCutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const database = await safeGetDb();
     if (database) {
       try {
-        const withCampaign = await database.collection('whatsappLogs').find({
+        const filter = {
           $or: [
             { status: { $in: ['Pending', 'Queued'] } },
             { status: 'Sent', timestamp: { $gte: recentSentCutoff } },
             { status: 'Failed', errorDetail: { $regex: 'Walabz failed', $options: 'i' } },
           ],
-          campaignId: { $type: 'string', $ne: '' },
-        }).sort({ timestamp: 1 }).limit(safeLimit).toArray();
-        const remaining = safeLimit - withCampaign.length;
-        const withoutCampaign = remaining > 0
-          ? await database.collection('whatsappLogs').find({
-              status: { $in: ['Pending', 'Queued'] },
-              $or: [{ campaignId: { $exists: false } }, { campaignId: null }, { campaignId: '' }],
-            }).sort({ timestamp: 1 }).limit(remaining).toArray()
-          : [];
-        const result = [...withCampaign, ...withoutCampaign];
+        };
+        const collection = database.collection('whatsappLogs');
+        // Read from both ends of the queue. A provider outage can otherwise
+        // leave the same oldest `preparing` rows occupying every batch forever.
+        const [oldest, newest] = await Promise.all([
+          collection.find(filter).sort({ timestamp: 1 }).limit(safeLimit).toArray(),
+          collection.find(filter).sort({ timestamp: -1 }).limit(safeLimit).toArray(),
+        ]);
+        const result = selectWhatsAppReconciliationBatch(
+          [...oldest, ...newest] as unknown as WhatsAppLog[],
+          safeLimit,
+        );
         return (result as any[]).map((log: any) => {
           const { _id, ...rest } = log;
           return rest as WhatsAppLog;
@@ -809,14 +842,12 @@ export const db = {
         console.warn('[WhatsApp reconciliation] Failed to read pending logs from MongoDB:', error);
       }
     }
-    return memoryWhatsAppLogs
+    return selectWhatsAppReconciliationBatch(memoryWhatsAppLogs
       .filter(log => (
         ['Pending', 'Queued'].includes(log.status)
         || (log.status === 'Sent' && log.timestamp >= recentSentCutoff)
         || (log.status === 'Failed' && /Walabz failed/i.test(log.errorDetail || '') && Boolean(log.campaignId))
-      ))
-      .sort((left, right) => Number(Boolean(right.campaignId)) - Number(Boolean(left.campaignId)) || left.timestamp.localeCompare(right.timestamp))
-      .slice(0, safeLimit);
+      )), safeLimit);
   },
   addWhatsAppLog: async (log: WhatsAppLog): Promise<void> => {
     memoryWhatsAppLogs.unshift(log);

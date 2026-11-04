@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import type { CampaignProgress } from './walabz';
 
-export const OTP_RESEND_COOLDOWN_SECONDS = 30;
+export const OTP_RESEND_COOLDOWN_SECONDS = 60;
 export const OTP_DISPATCH_TOKEN_MAX_AGE_SECONDS = 2 * 60;
 
 export type OtpDeliveryStatus = 'queued' | 'sent' | 'failed';

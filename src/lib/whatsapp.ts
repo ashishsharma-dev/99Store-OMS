@@ -9,7 +9,7 @@ import {
   waitForOtpCampaignStatus,
   type OtpDeliveryStatus,
 } from '@/lib/otpDispatch';
-import { getWalabzFailureReason } from '@/lib/whatsappDelivery';
+import { getWalabzFailureReason, getWalabzQueueTimeoutReason } from '@/lib/whatsappDelivery';
 
 export interface TriggerWhatsAppParams {
   orderId: string;
@@ -554,7 +554,17 @@ export async function sendLoginOTP(
   }
 }
 
-export async function getLoginOtpCampaignStatus(campaignId: string): Promise<OtpDeliveryStatus> {
+export async function getLoginOtpCampaignStatus(
+  campaignId: string,
+  campaignCreatedAt?: string,
+): Promise<OtpDeliveryStatus> {
   const walabzClient = await getWalabzClient();
-  return summarizeOtpCampaignProgress(await walabzClient.getCampaignProgress(campaignId));
+  const progress = await walabzClient.getCampaignProgress(campaignId);
+  if (campaignCreatedAt && getWalabzQueueTimeoutReason(
+    { timestamp: campaignCreatedAt, templateName: 'login_otp' },
+    progress,
+  )) {
+    return 'failed';
+  }
+  return summarizeOtpCampaignProgress(progress);
 }

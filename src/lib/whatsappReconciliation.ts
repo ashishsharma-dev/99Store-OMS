@@ -1,7 +1,7 @@
 import { db } from './db';
 import type { WhatsAppLog } from './types';
 import { getWalabzClient } from './whatsapp';
-import { getWalabzFailureReason, getWalabzLogStatus } from './whatsappDelivery';
+import { getWalabzFailureReason, getWalabzLogStatus, getWalabzQueueTimeoutReason } from './whatsappDelivery';
 
 type ReconciliationResult = { checked: number; updated: number; failed: number };
 const shared = globalThis as typeof globalThis & {
@@ -18,7 +18,7 @@ export function reconcileWhatsAppLogs(): Promise<ReconciliationResult> {
   if (shared.whatsappReconciliationRun) return shared.whatsappReconciliationRun;
 
   shared.whatsappReconciliationRun = (async () => {
-    const batchSize = boundedNumber(process.env.WHATSAPP_RECONCILIATION_BATCH_SIZE, 25, 1, 100);
+    const batchSize = boundedNumber(process.env.WHATSAPP_RECONCILIATION_BATCH_SIZE, 50, 1, 100);
     const logs = await db.getWhatsAppLogsForReconciliation(batchSize);
     if (logs.length === 0) return { checked: 0, updated: 0, failed: 0 };
 
@@ -51,12 +51,16 @@ export function reconcileWhatsAppLogs(): Promise<ReconciliationResult> {
           if (!client) throw new Error('Walabz client was not initialized.');
           const progress = await client.getCampaignProgress(log.campaignId!);
           const nextStatus = getWalabzLogStatus(progress);
+          const queueTimeoutReason = getWalabzQueueTimeoutReason(log, progress);
           const previousStatus = log.status;
           const previousErrorDetail = log.errorDetail;
           log.providerStatus = String(progress.status || 'unknown');
           log.lastProviderSyncAt = new Date().toISOString();
 
-          if (nextStatus) {
+          if (queueTimeoutReason) {
+            log.status = 'Failed';
+            log.errorDetail = queueTimeoutReason;
+          } else if (nextStatus) {
             log.status = nextStatus;
             if (nextStatus === 'Failed') {
               log.errorDetail = await getWalabzFailureReason(client, log.campaignId!)

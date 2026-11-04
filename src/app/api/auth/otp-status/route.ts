@@ -26,13 +26,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const deliveryStatus = await getLoginOtpCampaignStatus(dispatch.campaignId);
-    const logs = await db.getWhatsAppLogs();
-    const log = logs.find(item => item.campaignId === dispatch.campaignId);
+    const result = await db.queryWhatsAppLogs(1, 10, dispatch.campaignId);
+    const log = result.items.find(item => item.campaignId === dispatch.campaignId);
+    const deliveryStatus = await getLoginOtpCampaignStatus(dispatch.campaignId, log?.timestamp);
     if (log && deliveryStatus !== 'queued') {
       log.status = deliveryStatus === 'sent' ? 'Sent' : 'Failed';
       if (deliveryStatus === 'failed') {
-        log.errorDetail = 'Walabz failed while preparing the OTP campaign.';
+        log.errorDetail = 'Provider queue timed out while preparing the OTP campaign with zero recipients.';
       }
       await db.saveWhatsAppLog(log);
     }
