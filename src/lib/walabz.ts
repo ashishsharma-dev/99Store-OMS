@@ -72,6 +72,11 @@ export interface CampaignResult {
   rawResponse?: any;
 }
 
+export interface DeleteCampaignResult {
+  success: boolean;
+  error?: string;
+}
+
 export interface CampaignProgress {
   status: 'queued' | 'preparing' | 'processing' | 'completed' | 'failed' | string;
   total?: number;
@@ -405,6 +410,23 @@ export class WalabzClient {
         error: err.message || 'Network failure when contacting Walabz API'
       };
     }
+  }
+
+  /** Deletes a campaign shell so an undelivered stalled campaign cannot send later. */
+  public async deleteCampaign(campaignId: string): Promise<DeleteCampaignResult> {
+    if (!campaignId?.trim()) return { success: false, error: 'Missing campaign ID' };
+    const res = await this.authenticatedFetch(`/api/campaigns/${encodeURIComponent(campaignId)}`, {
+      method: 'DELETE',
+      signal: AbortSignal.timeout(15000),
+    });
+    if (res.ok || res.status === 404) return { success: true };
+    const text = await res.text();
+    let message = text.slice(0, 300);
+    try {
+      const data = JSON.parse(text);
+      message = data.detail || data.error || data.message || message;
+    } catch {}
+    return { success: false, error: message || `Walabz campaign delete failed (HTTP ${res.status})` };
   }
 
   /**
