@@ -3,6 +3,8 @@ import type { Order, ShipmentContactType } from './types';
 const shipmentContactTypes: ShipmentContactType[] = [
   'Primary',
   'Secondary',
+  'Additional 1',
+  'Additional 2',
   'Customer',
   'WhatsApp',
   'Custom',
@@ -13,7 +15,7 @@ export function isShipmentContactType(value: unknown): value is ShipmentContactT
 }
 
 export function getShipmentContactValue(
-  order: Pick<Order, 'phonePrimary' | 'phoneSecondary' | 'phoneTertiary' | 'phoneWhatsApp'>,
+  order: Pick<Order, 'phonePrimary' | 'phoneSecondary' | 'phoneAdditional1' | 'phoneAdditional2' | 'phoneTertiary' | 'phoneWhatsApp'>,
   type: ShipmentContactType,
   customPhone?: string,
 ): string | undefined {
@@ -22,6 +24,10 @@ export function getShipmentContactValue(
       return order.phonePrimary;
     case 'Secondary':
       return order.phoneSecondary;
+    case 'Additional 1':
+      return order.phoneAdditional1;
+    case 'Additional 2':
+      return order.phoneAdditional2;
     case 'Customer':
       return order.phoneTertiary;
     case 'WhatsApp':
@@ -48,7 +54,7 @@ export function normalizeShipmentContactPhone(value: string): string {
 }
 
 export function resolveShipmentContact(
-  order: Pick<Order, 'phonePrimary' | 'phoneSecondary' | 'phoneTertiary' | 'phoneWhatsApp'>,
+  order: Pick<Order, 'phonePrimary' | 'phoneSecondary' | 'phoneAdditional1' | 'phoneAdditional2' | 'phoneTertiary' | 'phoneWhatsApp'>,
   type: ShipmentContactType,
   customPhone?: string,
 ): { type: ShipmentContactType; phone: string } {

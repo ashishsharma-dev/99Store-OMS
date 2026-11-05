@@ -82,6 +82,8 @@ export async function POST(request: Request) {
       customerName,
       phonePrimary,
       phoneSecondary,
+      phoneAdditional1,
+      phoneAdditional2,
       phoneTertiary,
       phoneWhatsApp,
       address,
@@ -175,6 +177,8 @@ export async function POST(request: Request) {
       customerName,
       phonePrimary,
       phoneSecondary: phoneSecondary || undefined,
+      phoneAdditional1: phoneAdditional1 || settings.additionalContactNumbers1?.[0] || undefined,
+      phoneAdditional2: phoneAdditional2 || settings.additionalContactNumbers2?.[0] || undefined,
       phoneTertiary: phoneTertiary || phonePrimary, // Default to primary if not distinct
       phoneWhatsApp: normalizedWhatsApp,
       address,

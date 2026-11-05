@@ -20,18 +20,17 @@ export async function GET(request: Request) {
     // Fetch system settings to identify and skip system default numbers
     const settings = await db.getSettings();
     const systemPhones = new Set<string>();
-    if (settings.primaryContactNumbers) {
-      settings.primaryContactNumbers.forEach((p: string) => {
+    [
+      settings.primaryContactNumbers,
+      settings.secondaryContactNumbers,
+      settings.additionalContactNumbers1,
+      settings.additionalContactNumbers2,
+    ].forEach(numbers => {
+      numbers?.forEach((p: string) => {
         const cleaned = p.replace(/\D/g, '').slice(-10);
         if (cleaned) systemPhones.add(cleaned);
       });
-    }
-    if (settings.secondaryContactNumbers) {
-      settings.secondaryContactNumbers.forEach((p: string) => {
-        const cleaned = p.replace(/\D/g, '').slice(-10);
-        if (cleaned) systemPhones.add(cleaned);
-      });
-    }
+    });
 
     const matches: any[] = [];
 

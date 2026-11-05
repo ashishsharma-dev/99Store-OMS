@@ -10,12 +10,14 @@ import {
 const contacts = {
   phonePrimary: '+91 98765 43210',
   phoneSecondary: '09876543211',
+  phoneAdditional1: '9876543214',
+  phoneAdditional2: '9876543215',
   phoneTertiary: '9876543212',
   phoneWhatsApp: '9876543213',
 };
 
 describe('shipment contact selection', () => {
-  it('resolves each of the four saved order contacts', () => {
+  it('resolves each saved order contact', () => {
     assert.deepEqual(resolveShipmentContact(contacts, 'Primary'), {
       type: 'Primary',
       phone: '9876543210',
@@ -23,6 +25,14 @@ describe('shipment contact selection', () => {
     assert.deepEqual(resolveShipmentContact(contacts, 'Secondary'), {
       type: 'Secondary',
       phone: '9876543211',
+    });
+    assert.deepEqual(resolveShipmentContact(contacts, 'Additional 1'), {
+      type: 'Additional 1',
+      phone: '9876543214',
+    });
+    assert.deepEqual(resolveShipmentContact(contacts, 'Additional 2'), {
+      type: 'Additional 2',
+      phone: '9876543215',
     });
     assert.deepEqual(resolveShipmentContact(contacts, 'Customer'), {
       type: 'Customer',
@@ -53,6 +63,7 @@ describe('shipment contact selection', () => {
 
   it('only accepts supported contact types', () => {
     assert.equal(isShipmentContactType('Customer'), true);
+    assert.equal(isShipmentContactType('Additional 1'), true);
     assert.equal(isShipmentContactType('Tertiary'), false);
     assert.equal(getShipmentContactValue(contacts, 'WhatsApp'), contacts.phoneWhatsApp);
   });

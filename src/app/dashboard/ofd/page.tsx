@@ -537,6 +537,9 @@ export default function OfdManagement() {
                           <span style={{ color: '#FAFAFA' }}>📞 {o.phonePrimary} (Primary)</span>
                           {o.phoneSecondary && <span style={{ color: '#A3A3A3' }}>📞 {o.phoneSecondary} (Secondary)</span>}
                           {o.phoneTertiary && <span style={{ color: '#A3A3A3' }}>📞 {o.phoneTertiary} (Tertiary)</span>}
+                          <span style={{ color: o.shipmentContactPhone ? '#A78BFA' : '#737373', fontWeight: 600 }}>
+                            AWB contact: {o.shipmentContactPhone || 'Not recorded (legacy)'}{o.shipmentContactType ? ` (${o.shipmentContactType})` : ''}
+                          </span>
                         </div>
                       </td>
                       <td>
@@ -684,6 +687,9 @@ export default function OfdManagement() {
                           <span style={{ color: '#FAFAFA' }}>📞 {o.phonePrimary} (Primary)</span>
                           {o.phoneSecondary && <span style={{ color: '#A3A3A3' }}>📞 {o.phoneSecondary} (Secondary)</span>}
                           {o.phoneTertiary && <span style={{ color: '#A3A3A3' }}>📞 {o.phoneTertiary} (Tertiary)</span>}
+                          <span style={{ color: o.shipmentContactPhone ? '#A78BFA' : '#737373', fontWeight: 600 }}>
+                            AWB contact: {o.shipmentContactPhone || 'Not recorded (legacy)'}{o.shipmentContactType ? ` (${o.shipmentContactType})` : ''}
+                          </span>
                         </div>
                       </td>
                       <td>

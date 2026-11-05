@@ -947,6 +947,8 @@ export default function Packing() {
           >
             <option value="Primary">Primary Contact (Settings)</option>
             <option value="Secondary">Secondary Contact (Settings)</option>
+            <option value="Additional 1">Additional Dispatch Number 1 (Settings)</option>
+            <option value="Additional 2">Additional Dispatch Number 2 (Settings)</option>
             <option value="Customer">Customer Number</option>
             <option value="WhatsApp">WhatsApp / Additional Number</option>
           </select>
@@ -1030,7 +1032,7 @@ export default function Packing() {
               {filteredOrders.slice(0, displayLimit).map((o) => {
                 const isProcessing = processingOrderId === o.id || bulkProcessing;
                 const activeCourier = courierOverrides[o.id] || o.courier || 'DTDC';
-                const hasMultiplePhones = Boolean(o.phoneSecondary || o.phoneTertiary || o.phoneWhatsApp);
+                const hasMultiplePhones = Boolean(o.phoneSecondary || o.phoneAdditional1 || o.phoneAdditional2 || o.phoneTertiary || o.phoneWhatsApp);
                 const activePhoneType = phoneSelections[o.id] || o.shipmentContactType || 'Primary';
                 const activePhone = getShipmentContactValue(o, activePhoneType) || o.shipmentContactPhone || o.phonePrimary;
 
@@ -1131,6 +1133,8 @@ export default function Packing() {
                             >
                               <option value="Primary">{o.phonePrimary} (Primary / Settings)</option>
                               {o.phoneSecondary && <option value="Secondary">{o.phoneSecondary} (Secondary / Settings)</option>}
+                              {o.phoneAdditional1 && <option value="Additional 1">{o.phoneAdditional1} (Additional 1 / Settings)</option>}
+                              {o.phoneAdditional2 && <option value="Additional 2">{o.phoneAdditional2} (Additional 2 / Settings)</option>}
                               {o.phoneTertiary && <option value="Customer">{o.phoneTertiary} (Customer)</option>}
                               {o.phoneWhatsApp && <option value="WhatsApp">{o.phoneWhatsApp} (WhatsApp / Additional)</option>}
                             </select>
@@ -1741,6 +1745,12 @@ export default function Packing() {
                   {singleDispatchOrder.phoneSecondary && (
                     <option value="Secondary">Secondary Contact (Settings): {singleDispatchOrder.phoneSecondary}</option>
                   )}
+                  {singleDispatchOrder.phoneAdditional1 && (
+                    <option value="Additional 1">Additional Dispatch Number 1: {singleDispatchOrder.phoneAdditional1}</option>
+                  )}
+                  {singleDispatchOrder.phoneAdditional2 && (
+                    <option value="Additional 2">Additional Dispatch Number 2: {singleDispatchOrder.phoneAdditional2}</option>
+                  )}
                   {singleDispatchOrder.phoneTertiary && (
                     <option value="Customer">Customer Number: {singleDispatchOrder.phoneTertiary}</option>
                   )}
@@ -1826,6 +1836,8 @@ export default function Packing() {
                 >
                   <option value="Primary">Primary Contact (Settings)</option>
                   <option value="Secondary">Secondary Contact (Settings)</option>
+                  <option value="Additional 1">Additional Dispatch Number 1 (Settings)</option>
+                  <option value="Additional 2">Additional Dispatch Number 2 (Settings)</option>
                   <option value="Customer">Customer Number</option>
                   <option value="WhatsApp">WhatsApp / Additional Number</option>
                 </select>

@@ -37,6 +37,8 @@ export type OrderStatus =
 export type ShipmentContactType =
   | 'Primary'
   | 'Secondary'
+  | 'Additional 1'
+  | 'Additional 2'
   | 'Customer'
   | 'WhatsApp'
   | 'Custom';
@@ -66,6 +68,8 @@ export interface Order {
   customerName: string;
   phonePrimary: string;
   phoneSecondary?: string;
+  phoneAdditional1?: string;
+  phoneAdditional2?: string;
   phoneTertiary?: string;
   phoneWhatsApp?: string;
   address: string;
@@ -130,6 +134,8 @@ export interface NdrRecord {
   orderId: string;
   customerName: string;
   phonePrimary: string;
+  shipmentContactPhone?: string;
+  shipmentContactType?: ShipmentContactType;
   courier: string;
   awb: string;
   reason: string;
@@ -191,6 +197,8 @@ export interface WhatsAppLog {
 export interface SystemSettings {
   primaryContactNumbers?: string[];
   secondaryContactNumbers?: string[];
+  additionalContactNumbers1?: string[];
+  additionalContactNumbers2?: string[];
   otpWhatsappNumber?: string;
   whatsappBrandName?: string;
   whatsappSupportName?: string;
@@ -300,6 +308,24 @@ export interface SystemSettings {
     pincode?: string;
   };
   xpressbeesAwbPool?: string[];
+}
+
+export type ActivityLogType = 'order' | 'ndr' | 'ofd' | 'call_placed';
+
+export interface ActivityLogEntry {
+  id: string;
+  timestamp: string;
+  type: ActivityLogType;
+  source: 'order' | 'ndr';
+  title: string;
+  message: string;
+  orderId: string;
+  customerName?: string;
+  status?: string;
+  courier?: string;
+  updatedBy?: string;
+  shipmentContactPhone?: string;
+  shipmentContactType?: ShipmentContactType;
 }
 
 export interface Message {

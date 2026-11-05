@@ -99,6 +99,8 @@ export default function Orders() {
   const [customerName, setCustomerName] = useState('');
   const [phonePrimary, setPhonePrimary] = useState('');
   const [phoneSecondary, setPhoneSecondary] = useState('');
+  const [phoneAdditional1, setPhoneAdditional1] = useState('');
+  const [phoneAdditional2, setPhoneAdditional2] = useState('');
   const [phoneTertiary, setPhoneTertiary] = useState('');
   const [phoneWhatsApp, setPhoneWhatsApp] = useState('');
   const [address, setAddress] = useState('');
@@ -197,6 +199,8 @@ export default function Orders() {
             setCustomerName(o.customerName);
             setPhonePrimary(o.phonePrimary);
             setPhoneSecondary(o.phoneSecondary || '');
+            setPhoneAdditional1(o.phoneAdditional1 || defaultAdditionalPhone1);
+            setPhoneAdditional2(o.phoneAdditional2 || defaultAdditionalPhone2);
             setPhoneTertiary(o.phoneTertiary || '');
             setAddress(o.address);
             setPincode(o.pincode);
@@ -456,6 +460,8 @@ export default function Orders() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [defaultPrimaryPhone, setDefaultPrimaryPhone] = useState('+91 9876543210');
   const [defaultSecondaryPhone, setDefaultSecondaryPhone] = useState('+91 9123456789');
+  const [defaultAdditionalPhone1, setDefaultAdditionalPhone1] = useState('');
+  const [defaultAdditionalPhone2, setDefaultAdditionalPhone2] = useState('');
 
   useEffect(() => {
     const session = localStorage.getItem('99store_user');
@@ -471,10 +477,16 @@ export default function Orders() {
         if (res.ok && data.settings) {
           const prim = data.settings.primaryContactNumbers?.[0] || '+91 9876543210';
           const sec = data.settings.secondaryContactNumbers?.[0] || '+91 9123456789';
+          const additional1 = data.settings.additionalContactNumbers1?.[0] || '';
+          const additional2 = data.settings.additionalContactNumbers2?.[0] || '';
           setDefaultPrimaryPhone(prim);
           setDefaultSecondaryPhone(sec);
           setPhonePrimary(prim);
           setPhoneSecondary(sec);
+          setDefaultAdditionalPhone1(additional1);
+          setDefaultAdditionalPhone2(additional2);
+          setPhoneAdditional1(additional1);
+          setPhoneAdditional2(additional2);
         }
       } catch (err) {
         console.error('Failed to fetch settings contact variables:', err);
@@ -550,6 +562,8 @@ export default function Orders() {
           customerName,
           phonePrimary,
           phoneSecondary,
+          phoneAdditional1,
+          phoneAdditional2,
           phoneTertiary,
           phoneWhatsApp,
           address,
@@ -597,6 +611,8 @@ export default function Orders() {
           customerName,
           phonePrimary,
           phoneSecondary,
+          phoneAdditional1,
+          phoneAdditional2,
           phoneTertiary,
           phoneWhatsApp,
           address,
@@ -700,6 +716,8 @@ export default function Orders() {
     setCustomerName('');
     setPhonePrimary(defaultPrimaryPhone);
     setPhoneSecondary(defaultSecondaryPhone);
+    setPhoneAdditional1(defaultAdditionalPhone1);
+    setPhoneAdditional2(defaultAdditionalPhone2);
     setPhoneTertiary('');
     setPhoneWhatsApp('');
     setAddress('');
@@ -745,6 +763,8 @@ export default function Orders() {
     setCustomerName(order.customerName);
     setPhonePrimary(order.phonePrimary);
     setPhoneSecondary(order.phoneSecondary || '');
+    setPhoneAdditional1(order.phoneAdditional1 || '');
+    setPhoneAdditional2(order.phoneAdditional2 || '');
     setPhoneTertiary(order.phoneTertiary || '');
     setAddress(order.address);
     setPincode(order.pincode);
@@ -767,6 +787,8 @@ export default function Orders() {
     setCustomerName(order.customerName);
     setPhonePrimary(order.phonePrimary);
     setPhoneSecondary(order.phoneSecondary || '');
+    setPhoneAdditional1(order.phoneAdditional1 || '');
+    setPhoneAdditional2(order.phoneAdditional2 || '');
     setPhoneTertiary(order.phoneTertiary || '');
     setPhoneWhatsApp(order.phoneWhatsApp || '');
     setAddress(order.address);
@@ -1436,6 +1458,23 @@ export default function Orders() {
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '4px', textTransform: 'uppercase' }}>Customer Number</label>
                     <input type="tel" className="premium-input" placeholder="9876543212" value={phoneTertiary} onChange={(e) => setPhoneTertiary(e.target.value.replace(/\D/g, ''))} />
+                  </div>
+                </div>
+
+                <div className="premium-grid-2" style={{ marginBottom: '12px' }}>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <label style={{ fontSize: '11px', color: '#737373', textTransform: 'uppercase' }}>Additional Dispatch Number 1</label>
+                      <span style={{ fontSize: '10px', color: '#A78BFA', fontWeight: 600 }}>Prefilled (Admin Variable)</span>
+                    </div>
+                    <input type="tel" className="premium-input" placeholder="9000000001" value={phoneAdditional1} onChange={(e) => setPhoneAdditional1(e.target.value.replace(/\D/g, ''))} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <label style={{ fontSize: '11px', color: '#737373', textTransform: 'uppercase' }}>Additional Dispatch Number 2</label>
+                      <span style={{ fontSize: '10px', color: '#A78BFA', fontWeight: 600 }}>Prefilled (Admin Variable)</span>
+                    </div>
+                    <input type="tel" className="premium-input" placeholder="9000000002" value={phoneAdditional2} onChange={(e) => setPhoneAdditional2(e.target.value.replace(/\D/g, ''))} />
                   </div>
                 </div>
 

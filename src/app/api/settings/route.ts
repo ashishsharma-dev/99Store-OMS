@@ -55,6 +55,12 @@ export async function POST(request: Request) {
       secondaryContactNumbers: Array.isArray(body.secondaryContactNumbers) 
         ? body.secondaryContactNumbers.map((n: string) => n.trim()) 
         : (settings.secondaryContactNumbers || ['+91 9123456789', '+91 9123456780']),
+      additionalContactNumbers1: Array.isArray(body.additionalContactNumbers1)
+        ? body.additionalContactNumbers1.map((n: string) => n.trim()).filter(Boolean)
+        : (settings.additionalContactNumbers1 || []),
+      additionalContactNumbers2: Array.isArray(body.additionalContactNumbers2)
+        ? body.additionalContactNumbers2.map((n: string) => n.trim()).filter(Boolean)
+        : (settings.additionalContactNumbers2 || []),
       otpWhatsappNumber: typeof body.otpWhatsappNumber === 'string' ? body.otpWhatsappNumber.trim() : settings.otpWhatsappNumber,
       whatsappBrandName: typeof body.whatsappBrandName === 'string' ? body.whatsappBrandName.trim() : settings.whatsappBrandName,
       whatsappSupportName: typeof body.whatsappSupportName === 'string' ? body.whatsappSupportName.trim() : settings.whatsappSupportName,

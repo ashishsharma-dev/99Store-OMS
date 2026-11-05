@@ -782,6 +782,9 @@ export default function NdrManagement() {
                       <td>
                         <div style={{ fontWeight: 500 }}>{n.customerName}</div>
                         <div style={{ fontSize: '11px', color: '#737373' }}>Tel: {n.phonePrimary}</div>
+                        <div style={{ fontSize: '11px', color: order?.shipmentContactPhone || n.shipmentContactPhone ? '#A78BFA' : '#737373', fontWeight: 600 }}>
+                          AWB contact: {order?.shipmentContactPhone || n.shipmentContactPhone || 'Not recorded (legacy)'}{(order?.shipmentContactType || n.shipmentContactType) ? ` (${order?.shipmentContactType || n.shipmentContactType})` : ''}
+                        </div>
                       </td>
                       <td>
                         <div style={{ fontWeight: 500 }}>{n.courier}</div>
@@ -922,6 +925,9 @@ export default function NdrManagement() {
                       <td>
                         <div style={{ fontWeight: 500 }}>{n.customerName}</div>
                         <div style={{ fontSize: '11px', color: '#737373' }}>Tel: {n.phonePrimary}</div>
+                        <div style={{ fontSize: '11px', color: order?.shipmentContactPhone || n.shipmentContactPhone ? '#A78BFA' : '#737373', fontWeight: 600 }}>
+                          AWB contact: {order?.shipmentContactPhone || n.shipmentContactPhone || 'Not recorded (legacy)'}{(order?.shipmentContactType || n.shipmentContactType) ? ` (${order?.shipmentContactType || n.shipmentContactType})` : ''}
+                        </div>
                       </td>
                       <td>
                         <div style={{ fontWeight: 500 }}>{n.courier}</div>

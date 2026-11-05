@@ -279,6 +279,8 @@ async function applyOrderStatus(
           orderId: order.orderId,
           customerName: order.customerName,
           phonePrimary: order.phonePrimary,
+          shipmentContactPhone: order.shipmentContactPhone,
+          shipmentContactType: order.shipmentContactType,
           courier: order.courier || 'DTDC',
           awb: order.awb || 'N/A',
           reason: customRemarks || `Courier reported exception: "${courierStatus}" at ${scanLocation || 'Hub'}.`,

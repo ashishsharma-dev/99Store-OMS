@@ -212,6 +212,8 @@ export async function PATCH(
           orderId: order.orderId,
           customerName: order.customerName,
           phonePrimary: order.phonePrimary,
+          shipmentContactPhone: order.shipmentContactPhone,
+          shipmentContactType: order.shipmentContactType,
           courier: order.courier || 'DTDC',
           awb: order.awb || 'N/A',
           reason: remarks || 'Delivery failed: Reason code unprovided by courier scan.',
@@ -285,6 +287,8 @@ export async function PUT(
       customerName,
       phonePrimary,
       phoneSecondary,
+      phoneAdditional1,
+      phoneAdditional2,
       phoneTertiary,
       phoneWhatsApp,
       address,
@@ -332,6 +336,8 @@ export async function PUT(
     if (customerName !== undefined) order.customerName = customerName;
     if (phonePrimary !== undefined) order.phonePrimary = phonePrimary;
     if (phoneSecondary !== undefined) order.phoneSecondary = phoneSecondary || undefined;
+    if (phoneAdditional1 !== undefined) order.phoneAdditional1 = phoneAdditional1 || undefined;
+    if (phoneAdditional2 !== undefined) order.phoneAdditional2 = phoneAdditional2 || undefined;
     if (phoneTertiary !== undefined) order.phoneTertiary = phoneTertiary || undefined;
     order.phoneWhatsApp = normalizedWhatsApp;
     if (address !== undefined) order.address = address;

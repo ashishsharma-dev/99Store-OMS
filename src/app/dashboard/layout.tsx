@@ -20,6 +20,7 @@ import {
   ArrowLeft,
   Megaphone,
   Bell,
+  Activity,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -108,6 +109,7 @@ export default function DashboardLayout({
   const [notificationStreamStatus, setNotificationStreamStatus] = useState<'connecting' | 'live' | 'offline'>('connecting');
   const [isNotificationDrawerOpen, setIsNotificationDrawerOpen] = useState(false);
   const [streamUnreadCount, setStreamUnreadCount] = useState(0);
+  const [activityLoading, setActivityLoading] = useState(false);
 
   const knownIdsRef = useRef<Set<string>>(new Set());
   const isFirstFetchRef = useRef(true);
@@ -183,6 +185,39 @@ export default function DashboardLayout({
       eventSource.close();
     };
   }, []);
+
+  const openNotificationDrawer = async () => {
+    const shouldOpen = !isNotificationDrawerOpen;
+    setIsNotificationDrawerOpen(shouldOpen);
+    setStreamUnreadCount(0);
+    if (!shouldOpen) return;
+
+    setActivityLoading(true);
+    try {
+      const startDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const pageSize = 500;
+      const firstResponse = await fetch(`/api/activity-logs?startDate=${encodeURIComponent(startDate)}&page=1&limit=${pageSize}`, { cache: 'no-store' });
+      const firstData = await firstResponse.json();
+      if (!firstResponse.ok) throw new Error(firstData.error || 'Failed to load recent activity.');
+      const allLogs: StreamEvent[] = firstData.logs || [];
+      const totalPages = Math.max(1, firstData.pagination?.totalPages || 1);
+      for (let page = 2; page <= totalPages; page++) {
+        const response = await fetch(`/api/activity-logs?startDate=${encodeURIComponent(startDate)}&page=${page}&limit=${pageSize}`, { cache: 'no-store' });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to load recent activity.');
+        allLogs.push(...(data.logs || []));
+      }
+      setStreamEvents(previous => {
+        const byId = new Map<string, StreamEvent>();
+        [...previous.filter(event => !event.initial && event.type !== 'system'), ...allLogs].forEach(event => byId.set(event.id, event));
+        return [...byId.values()].sort((left, right) => right.timestamp.localeCompare(left.timestamp));
+      });
+    } catch (error) {
+      console.error('Failed to load the 24-hour notification activity:', error);
+    } finally {
+      setActivityLoading(false);
+    }
+  };
 
   // Load user list
   useEffect(() => {
@@ -510,6 +545,12 @@ export default function DashboardLayout({
       name: 'Internal Messages',
       path: '/dashboard/messages',
       icon: MessageSquare,
+      roles: ['Super Admin', 'Order Team', 'Packing Team', 'Tracking Team', 'Accounts Team']
+    },
+    {
+      name: 'Activity Logs',
+      path: '/dashboard/activity-logs',
+      icon: Activity,
       roles: ['Super Admin', 'Order Team', 'Packing Team', 'Tracking Team', 'Accounts Team']
     },
     {
@@ -1133,10 +1174,7 @@ export default function DashboardLayout({
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '16px' }}>
             {/* Notification Bell Icon */}
             <button
-              onClick={() => {
-                setIsNotificationDrawerOpen(!isNotificationDrawerOpen);
-                setStreamUnreadCount(0);
-              }}
+              onClick={openNotificationDrawer}
               style={{
                 position: 'relative',
                 backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -1195,15 +1233,17 @@ export default function DashboardLayout({
                 <div style={{ padding: '14px 16px', borderBottom: '1px solid #2A2A30', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#0F0F11' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Bell size={16} style={{ color: '#3B82F6' }} />
-                    <span style={{ fontSize: '14px', fontWeight: 600, color: '#FAFAFA' }}>Real-Time Stream Feed</span>
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: '#FAFAFA' }}>Last 24 Hours</span>
                   </div>
                   <button onClick={() => setIsNotificationDrawerOpen(false)} style={{ background: 'none', border: 'none', color: '#737373', cursor: 'pointer' }}>
                     <X size={16} />
                   </button>
                 </div>
                 <div style={{ overflowY: 'auto', flex: 1, padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {streamEvents.length === 0 ? (
-                    <div style={{ padding: '30px', textAlign: 'center', color: '#737373', fontSize: '13px' }}>Listening for live system events...</div>
+                  {activityLoading ? (
+                    <div style={{ padding: '30px', textAlign: 'center', color: '#737373', fontSize: '13px' }}>Loading the last 24 hours...</div>
+                  ) : streamEvents.length === 0 ? (
+                    <div style={{ padding: '30px', textAlign: 'center', color: '#737373', fontSize: '13px' }}>No notification or order activity in the last 24 hours.</div>
                   ) : (
                     streamEvents.map((evt) => (
                       <div key={evt.id} style={{ 
@@ -1212,20 +1252,30 @@ export default function DashboardLayout({
                         borderRadius: '8px', 
                         borderLeft: `3px solid ${
                           evt.type === 'ndr' ? '#EF4444' : 
-                          evt.type === 'call_placed' ? '#10B981' : 
+                          evt.type === 'call_placed' ? '#F59E0B' :
+                          evt.type === 'ofd' ? '#10B981' :
                           evt.type === 'order' ? '#3B82F6' : 
                           '#737373'
                         }` 
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                           <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#FAFAFA' }}>{evt.title}</span>
-                          <span style={{ fontSize: '10px', color: '#737373' }}>{new Date(evt.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                          <span style={{ fontSize: '10px', color: '#737373' }}>{new Date(evt.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
                         </div>
                         <p style={{ fontSize: '12px', color: '#A1A1AA', margin: 0 }}>{evt.message}</p>
                       </div>
                     ))
                   )}
                 </div>
+                <button
+                  onClick={() => {
+                    setIsNotificationDrawerOpen(false);
+                    router.push('/dashboard/activity-logs');
+                  }}
+                  style={{ padding: '12px 16px', border: 'none', borderTop: '1px solid #2A2A30', backgroundColor: '#0F0F11', color: '#60A5FA', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  View More · Activity Logs
+                </button>
               </div>
             )}
           </div>

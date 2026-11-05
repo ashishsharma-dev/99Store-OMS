@@ -34,6 +34,8 @@ export async function GET(request: Request) {
           orderId: order.orderId,
           customerName: order.customerName,
           phonePrimary: order.phonePrimary,
+          shipmentContactPhone: order.shipmentContactPhone,
+          shipmentContactType: order.shipmentContactType,
           courier: order.courier || 'DTDC',
           awb: order.awb || 'N/A',
           reason: 'Courier reported failed delivery exception (Auto-logged).',

@@ -1,5 +1,5 @@
 import { getDatabase } from './mongodb';
-import { User, Order, NdrRecord, SystemSettings, WhatsAppLog, CourierApiLog, Message } from './types';
+import { User, Order, NdrRecord, SystemSettings, WhatsAppLog, CourierApiLog, Message, ActivityLogEntry, ActivityLogType } from './types';
 import { mockUsers, mockSettings, mockOrders, mockNdrs, mockWhatsAppLogs, mockCourierLogs, mockMessages } from './mockData';
 import fs from 'fs';
 import path from 'path';
@@ -29,12 +29,65 @@ export interface OrderQueryOptions {
   limit?: number;
 }
 
+export interface ActivityLogQueryOptions {
+  page?: number;
+  limit?: number;
+  search?: string;
+  types?: ActivityLogType[];
+  startDate?: string;
+  endDate?: string;
+}
+
 export interface PaginatedResult<T> {
   items: T[];
   totalCount: number;
   totalPages: number;
   currentPage: number;
   limit: number;
+}
+
+function activityTypeForStatus(status?: string): ActivityLogType {
+  if (status === 'NDR') return 'ndr';
+  if (status === 'OFD') return 'ofd';
+  if (status === 'Call Placed Notification') return 'call_placed';
+  return 'order';
+}
+
+function buildLocalActivityEntries(): ActivityLogEntry[] {
+  const orderEntries = memoryOrders
+    .filter(order => !order.isDeleted)
+    .flatMap(order => (order.history || []).map((history, index) => ({
+      id: `order:${order.id}:${index}`,
+      timestamp: history.timestamp,
+      type: activityTypeForStatus(history.status),
+      source: 'order' as const,
+      title: `${history.status}: ${order.orderId}`,
+      message: history.remarks,
+      orderId: order.orderId,
+      customerName: order.customerName,
+      status: history.status,
+      courier: order.courier,
+      updatedBy: history.updatedBy,
+      shipmentContactPhone: order.shipmentContactPhone,
+      shipmentContactType: order.shipmentContactType,
+    })));
+  const ndrEntries = memoryNdrs
+    .filter(record => !record.isDeleted)
+    .flatMap(record => (record.history || []).map((history, index) => ({
+      id: `ndr:${record.id}:${index}`,
+      timestamp: history.timestamp,
+      type: 'ndr' as const,
+      source: 'ndr' as const,
+      title: `${history.action}: ${record.orderId}`,
+      message: history.remarks,
+      orderId: record.orderId,
+      customerName: record.customerName,
+      status: record.status,
+      courier: record.courier,
+      shipmentContactPhone: record.shipmentContactPhone,
+      shipmentContactType: record.shipmentContactType,
+    })));
+  return [...orderEntries, ...ndrEntries];
 }
 
 export function selectWhatsAppReconciliationBatch(
@@ -490,7 +543,7 @@ export const db = {
         if (options.courier) filter.courier = { $regex: escapeRegExp(options.courier), $options: 'i' };
         if (options.search) {
           const query = escapeRegExp(options.search);
-          filter.$or = ['customerName', 'orderId', 'phonePrimary', 'phoneSecondary', 'phoneTertiary', 'pincode', 'awb', 'address']
+          filter.$or = ['customerName', 'orderId', 'phonePrimary', 'phoneSecondary', 'phoneAdditional1', 'phoneAdditional2', 'phoneTertiary', 'pincode', 'awb', 'address']
             .map(field => ({ [field]: { $regex: query, $options: 'i' } }));
         }
 
@@ -520,7 +573,7 @@ export const db = {
     if (options.courier) rows = rows.filter(order => order.courier?.toLowerCase().includes(options.courier!.toLowerCase()));
     if (options.search) {
       const query = options.search.toLowerCase();
-      rows = rows.filter(order => [order.customerName, order.orderId, order.phonePrimary, order.phoneSecondary, order.phoneTertiary, order.pincode, order.awb, order.address]
+      rows = rows.filter(order => [order.customerName, order.orderId, order.phonePrimary, order.phoneSecondary, order.phoneAdditional1, order.phoneAdditional2, order.phoneTertiary, order.pincode, order.awb, order.address]
         .some(value => String(value || '').toLowerCase().includes(query)));
     }
     rows = [...rows].sort((left: any, right: any) => {
@@ -528,6 +581,119 @@ export const db = {
       const b = right[sortField] ?? '';
       return (a < b ? -1 : a > b ? 1 : 0) * sortDirection;
     });
+    const totalCount = rows.length;
+    return {
+      items: rows.slice((page - 1) * limit, page * limit),
+      totalCount,
+      totalPages: Math.ceil(totalCount / limit),
+      currentPage: page,
+      limit,
+    };
+  },
+  queryActivityLogs: async (options: ActivityLogQueryOptions = {}): Promise<PaginatedResult<ActivityLogEntry>> => {
+    const page = Math.max(1, Math.floor(options.page || 1));
+    const limit = Math.max(1, Math.min(2000, Math.floor(options.limit || 50)));
+    const database = await safeGetDb();
+
+    if (database) {
+      try {
+        const postUnionMatch: any = {};
+        if (options.startDate || options.endDate) {
+          postUnionMatch.timestamp = {};
+          if (options.startDate) postUnionMatch.timestamp.$gte = options.startDate;
+          if (options.endDate) postUnionMatch.timestamp.$lte = options.endDate;
+        }
+        if (options.types?.length) postUnionMatch.type = { $in: options.types };
+        if (options.search) {
+          const query = escapeRegExp(options.search);
+          postUnionMatch.$or = ['title', 'message', 'orderId', 'customerName', 'courier', 'updatedBy', 'shipmentContactPhone', 'shipmentContactType']
+            .map(field => ({ [field]: { $regex: query, $options: 'i' } }));
+        }
+
+        const pipeline: any[] = [
+          { $match: { isDeleted: { $ne: true } } },
+          { $unwind: { path: '$history', includeArrayIndex: 'historyIndex' } },
+          {
+            $project: {
+              _id: 0,
+              id: { $concat: ['order:', { $ifNull: ['$id', 'unknown'] }, ':', { $toString: '$historyIndex' }] },
+              timestamp: '$history.timestamp',
+              type: {
+                $switch: {
+                  branches: [
+                    { case: { $eq: ['$history.status', 'NDR'] }, then: 'ndr' },
+                    { case: { $eq: ['$history.status', 'OFD'] }, then: 'ofd' },
+                    { case: { $eq: ['$history.status', 'Call Placed Notification'] }, then: 'call_placed' },
+                  ],
+                  default: 'order',
+                },
+              },
+              source: { $literal: 'order' },
+              title: { $concat: [{ $ifNull: ['$history.status', '$status'] }, ': ', '$orderId'] },
+              message: { $ifNull: ['$history.remarks', 'Order activity recorded.'] },
+              orderId: 1,
+              customerName: 1,
+              status: '$history.status',
+              courier: 1,
+              updatedBy: '$history.updatedBy',
+              shipmentContactPhone: 1,
+              shipmentContactType: 1,
+            },
+          },
+          {
+            $unionWith: {
+              coll: 'ndr',
+              pipeline: [
+                { $match: { isDeleted: { $ne: true } } },
+                { $unwind: { path: '$history', includeArrayIndex: 'historyIndex' } },
+                {
+                  $project: {
+                    _id: 0,
+                    id: { $concat: ['ndr:', { $ifNull: ['$id', 'unknown'] }, ':', { $toString: '$historyIndex' }] },
+                    timestamp: '$history.timestamp',
+                    type: { $literal: 'ndr' },
+                    source: { $literal: 'ndr' },
+                    title: { $concat: [{ $ifNull: ['$history.action', 'NDR Activity'] }, ': ', '$orderId'] },
+                    message: { $ifNull: ['$history.remarks', 'NDR activity recorded.'] },
+                    orderId: 1,
+                    customerName: 1,
+                    status: 1,
+                    courier: 1,
+                    shipmentContactPhone: 1,
+                    shipmentContactType: 1,
+                  },
+                },
+              ],
+            },
+          },
+          ...(Object.keys(postUnionMatch).length ? [{ $match: postUnionMatch }] : []),
+          { $sort: { timestamp: -1 } },
+          {
+            $facet: {
+              rows: [{ $skip: (page - 1) * limit }, { $limit: limit }],
+              metadata: [{ $count: 'totalCount' }],
+            },
+          },
+        ];
+        const [result] = await database.collection('orders').aggregate(pipeline).toArray();
+        const items = (result?.rows || []) as ActivityLogEntry[];
+        const totalCount = Number(result?.metadata?.[0]?.totalCount || 0);
+        return { items, totalCount, totalPages: Math.ceil(totalCount / limit), currentPage: page, limit };
+      } catch (error) {
+        console.warn('[DB Engine] MongoDB activity log query failed; using local fallback:', error);
+      }
+    }
+
+    let rows = buildLocalActivityEntries();
+    if (options.startDate) rows = rows.filter(row => row.timestamp >= options.startDate!);
+    if (options.endDate) rows = rows.filter(row => row.timestamp <= options.endDate!);
+    if (options.types?.length) rows = rows.filter(row => options.types!.includes(row.type));
+    if (options.search) {
+      const query = options.search.toLowerCase();
+      rows = rows.filter(row => [row.title, row.message, row.orderId, row.customerName, row.courier, row.updatedBy, row.shipmentContactPhone, row.shipmentContactType]
+        .some(value => String(value || '').toLowerCase().includes(query)));
+    }
+    rows.sort((left, right) => right.timestamp.localeCompare(left.timestamp));
     const totalCount = rows.length;
     return {
       items: rows.slice((page - 1) * limit, page * limit),

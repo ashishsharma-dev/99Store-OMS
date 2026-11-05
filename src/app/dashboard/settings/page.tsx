@@ -50,6 +50,8 @@ export default function IntegrationsSettings() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [primaryContacts, setPrimaryContacts] = useState('');
   const [secondaryContacts, setSecondaryContacts] = useState('');
+  const [additionalContacts1, setAdditionalContacts1] = useState('');
+  const [additionalContacts2, setAdditionalContacts2] = useState('');
 
   const [otpWhatsappNumber, setOtpWhatsappNumber] = useState('');
   const [whatsappBrandName, setWhatsappBrandName] = useState('99Store');
@@ -193,6 +195,8 @@ export default function IntegrationsSettings() {
         setSettings(s);
         setPrimaryContacts(s.primaryContactNumbers ? s.primaryContactNumbers.join(', ') : '+91 9876543210, +91 9876543211');
         setSecondaryContacts(s.secondaryContactNumbers ? s.secondaryContactNumbers.join(', ') : '+91 9123456789, +91 9123456780');
+        setAdditionalContacts1(s.additionalContactNumbers1?.join(', ') || '');
+        setAdditionalContacts2(s.additionalContactNumbers2?.join(', ') || '');
         setOtpWhatsappNumber(s.otpWhatsappNumber || '');
         setWhatsappBrandName(s.whatsappBrandName || '99Store');
         setWhatsappSupportName(s.whatsappSupportName || '99Store Support');
@@ -408,6 +412,8 @@ export default function IntegrationsSettings() {
           userRole,
           primaryContactNumbers: primaryContacts.split(',').map(n => n.trim()).filter(n => n.length > 0),
           secondaryContactNumbers: secondaryContacts.split(',').map(n => n.trim()).filter(n => n.length > 0),
+          additionalContactNumbers1: additionalContacts1.split(',').map(n => n.trim()).filter(n => n.length > 0),
+          additionalContactNumbers2: additionalContacts2.split(',').map(n => n.trim()).filter(n => n.length > 0),
           otpWhatsappNumber,
           whatsappBrandName,
           whatsappSupportName,
@@ -1578,7 +1584,7 @@ export default function IntegrationsSettings() {
                 Global Contact Hierarchy & Role Configurations
               </h3>
               <p style={{ fontSize: '13px', color: '#A1A1AA' }}>
-                Define default Primary and Secondary contact arrays for store fulfillment. Editing these central settings requires an <strong>Admin / Super Admin</strong> user session (enforced via strict HTTP 403 authorization).
+                Define the four default dispatch contact arrays used during order creation and AWB generation. Editing these central settings requires a <strong>Super Admin</strong> session.
               </p>
             </div>
 
@@ -1596,6 +1602,38 @@ export default function IntegrationsSettings() {
                 />
                 <span style={{ fontSize: '11.5px', color: '#71717A', marginTop: '4px', display: 'block' }}>
                   Globally referenced across order creation forms and dispatch labels.
+                </span>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Additional Dispatch Number 1 (Comma Separated)
+                </label>
+                <input
+                  type="text"
+                  className="premium-input"
+                  placeholder="+91 9000000001"
+                  value={additionalContacts1}
+                  onChange={(e) => setAdditionalContacts1(e.target.value)}
+                />
+                <span style={{ fontSize: '11.5px', color: '#71717A', marginTop: '4px', display: 'block' }}>
+                  Prefilled into new orders and available as an AWB shipment contact.
+                </span>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Additional Dispatch Number 2 (Comma Separated)
+                </label>
+                <input
+                  type="text"
+                  className="premium-input"
+                  placeholder="+91 9000000002"
+                  value={additionalContacts2}
+                  onChange={(e) => setAdditionalContacts2(e.target.value)}
+                />
+                <span style={{ fontSize: '11.5px', color: '#71717A', marginTop: '4px', display: 'block' }}>
+                  Prefilled into new orders and available as an AWB shipment contact.
                 </span>
               </div>
 

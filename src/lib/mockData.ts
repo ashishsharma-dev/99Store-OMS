@@ -59,6 +59,10 @@ export const mockUsers: User[] = [
 ];
 
 export const mockSettings: SystemSettings = {
+  primaryContactNumbers: ['+91 9876543210'],
+  secondaryContactNumbers: ['+91 9123456789'],
+  additionalContactNumbers1: [],
+  additionalContactNumbers2: [],
   otpWhatsappNumber: '9999999999',
   whatsappBrandName: '99Store',
   whatsappSupportName: '99Store Support',

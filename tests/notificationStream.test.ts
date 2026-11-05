@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, it, mock } from 'node:test';
-import { GET, loadNotificationSnapshot } from '../src/app/api/notifications/stream/route';
+import { GET } from '../src/app/api/notifications/stream/route';
+import { loadNotificationSnapshot } from '../src/lib/notificationSnapshot';
 import { db } from '../src/lib/db';
 import type { NdrRecord, Order } from '../src/lib/types';
 
