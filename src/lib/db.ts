@@ -268,8 +268,15 @@ async function safeGetDb() {
   }
 }
 
+// The systemd 99store-mongodb-backup.timer owns real backups (streamed mongodump).
+// This in-process JSON dump loads whole collections into the Node heap, so it stays off unless explicitly enabled.
+function isJsonBackupEnabled(): boolean {
+  return process.env.APP_JSON_BACKUP_ENABLED === 'true';
+}
+
 // Helper to perform weekly backup asynchronously
 async function performWeeklyBackupIfDue() {
+  if (!isJsonBackupEnabled()) return;
   try {
     const backupDir = path.join(process.cwd(), 'data', 'backups');
     if (!fs.existsSync(backupDir)) {
@@ -296,15 +303,15 @@ async function performWeeklyBackupIfDue() {
       let dataToBackup: any = null;
 
       if (database) {
+        // courierLogs and tracking_events are append-only and grow without bound (millions of
+        // documents); loading them with toArray() exhausts the heap. They are covered by mongodump.
         dataToBackup = {
           users: await database.collection('users').find({}).toArray(),
           orders: await database.collection('orders').find({}).toArray(),
           ndr: await database.collection('ndr').find({}).toArray(),
           whatsappLogs: await database.collection('whatsappLogs').find({}).toArray(),
-          courierLogs: await database.collection('courierLogs').find({}).toArray(),
           settings: await database.collection('settings').findOne({ key: 'system-settings' }),
-          messages: await database.collection('messages').find({}).toArray(),
-          tracking_events: await database.collection('tracking_events').find({}).toArray()
+          messages: await database.collection('messages').find({}).toArray()
         };
       } else {
         dataToBackup = {
