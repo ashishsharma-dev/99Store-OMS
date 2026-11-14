@@ -7,6 +7,7 @@ import argparse
 import base64
 import shlex
 import sys
+import time
 from datetime import datetime, timezone
 
 import paramiko
@@ -31,15 +32,41 @@ def connect() -> paramiko.SSHClient:
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     client.connect(VPS_HOST, username=VPS_USER, password=VPS_PASS, timeout=20)
+    client.get_transport().set_keepalive(30)
     return client
 
 
 def run(client: paramiko.SSHClient, label: str, command: str, timeout: int = 900) -> str:
     print(f"[VPS] {label}...", flush=True)
-    _, stdout, stderr = client.exec_command(command, timeout=timeout)
-    output = stdout.read().decode("utf-8", errors="replace")
-    error = stderr.read().decode("utf-8", errors="replace")
-    status = stdout.channel.recv_exit_status()
+    channel = client.get_transport().open_session(timeout=timeout)
+    channel.settimeout(5.0)
+    channel.exec_command(command)
+
+    out: list[bytes] = []
+    err: list[bytes] = []
+    deadline = time.monotonic() + timeout
+    while True:
+        progressed = False
+        while channel.recv_ready():
+            out.append(channel.recv(65536))
+            progressed = True
+        while channel.recv_stderr_ready():
+            err.append(channel.recv_stderr(65536))
+            progressed = True
+        # Blocking on stdout EOF hangs forever when the remote side keeps the stream open
+        # after the command exits, so completion is decided by the exit status instead.
+        if channel.exit_status_ready() and not channel.recv_ready() and not channel.recv_stderr_ready():
+            break
+        if time.monotonic() > deadline:
+            channel.close()
+            raise RuntimeError(f"{label} did not report an exit status within {timeout}s")
+        if not progressed:
+            time.sleep(0.5)
+
+    status = channel.recv_exit_status()
+    channel.close()
+    output = b"".join(out).decode("utf-8", errors="replace")
+    error = b"".join(err).decode("utf-8", errors="replace")
     if output.strip():
         print(output.strip(), flush=True)
     if error.strip():
