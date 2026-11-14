@@ -162,7 +162,7 @@ def deploy(client: paramiko.SSHClient, target_commit: str) -> None:
             f"{shlex.quote(previous_commit)} {shlex.quote(target_commit)} {shlex.quote(release_id)} "
             f"> {shlex.quote(release_dir)}/release.env"
         ),
-        timeout=600,
+        timeout=2400,
     )
 
     rollback_script = make_rollback_script(previous_commit)
