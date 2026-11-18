@@ -23,7 +23,7 @@ import { HealvitaShippingLabel } from '@/components/HealvitaShippingLabel';
 import { printThermalLabel } from '@/lib/printLabel';
 import { CourierLogo } from '@/components/CourierLogo';
 import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
-import { checkCourierServiceability } from '@/lib/utils';
+import { checkCourierServiceability, SHOW_FULL_CLIENT_RELEASE } from '@/lib/utils';
 import { getShipmentContactValue, resolveShipmentContact } from '@/lib/shipmentContact';
 import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 
@@ -876,21 +876,21 @@ export default function Packing() {
 
           <button
             onClick={() => setLabelPrintedFilter(prev => prev === 'printed' ? 'all' : 'printed')}
-            style={{ background: labelPrintedFilter === 'printed' ? 'rgba(16,185,129,0.2)' : 'none', border: '1px solid ' + (labelPrintedFilter === 'printed' ? '#10B981' : '#27272A'), color: labelPrintedFilter === 'printed' ? '#34D399' : '#A1A1AA', padding: '3px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+            style={{ display: SHOW_FULL_CLIENT_RELEASE ? 'inline-block' : 'none', background: labelPrintedFilter === 'printed' ? 'rgba(16,185,129,0.2)' : 'none', border: '1px solid ' + (labelPrintedFilter === 'printed' ? '#10B981' : '#27272A'), color: labelPrintedFilter === 'printed' ? '#34D399' : '#A1A1AA', padding: '3px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
           >
             <strong>{orders.filter(o => o.labelPrinted).length}</strong> Labels Printed
           </button>
 
           <button
             onClick={() => setBookedFilter(prev => prev === 'booked' ? 'all' : 'booked')}
-            style={{ background: bookedFilter === 'booked' ? 'rgba(59,130,246,0.2)' : 'none', border: '1px solid ' + (bookedFilter === 'booked' ? '#3B82F6' : '#27272A'), color: bookedFilter === 'booked' ? '#60A5FA' : '#A1A1AA', padding: '3px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+            style={{ display: SHOW_FULL_CLIENT_RELEASE ? 'inline-block' : 'none', background: bookedFilter === 'booked' ? 'rgba(59,130,246,0.2)' : 'none', border: '1px solid ' + (bookedFilter === 'booked' ? '#3B82F6' : '#27272A'), color: bookedFilter === 'booked' ? '#60A5FA' : '#A1A1AA', padding: '3px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
           >
             <strong>{orders.filter(o => Boolean(o.isBooked || o.status === 'Dispatched')).length}</strong> Booked (Scanned)
           </button>
         </div>
 
         {/* Barcode Scan to Book & Dispatch */}
-        <form onSubmit={handleBarcodeScan} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <form onSubmit={handleBarcodeScan} style={{ display: SHOW_FULL_CLIENT_RELEASE ? 'flex' : 'none', alignItems: 'center', gap: '8px' }}>
           <div style={{ position: 'relative' }}>
             <Barcode size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#3B82F6' }} />
             <input
@@ -1052,7 +1052,7 @@ export default function Packing() {
         </div>
 
         {/* Label Printed Filter */}
-        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+        <div style={{ position: 'relative', display: SHOW_FULL_CLIENT_RELEASE ? 'inline-flex' : 'none', alignItems: 'center' }}>
           <select
             className="premium-input"
             style={{
@@ -1077,7 +1077,7 @@ export default function Packing() {
         </div>
 
         {/* Shipment Booked / Scanned Filter */}
-        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+        <div style={{ position: 'relative', display: SHOW_FULL_CLIENT_RELEASE ? 'inline-flex' : 'none', alignItems: 'center' }}>
           <select
             className="premium-input"
             style={{
@@ -1325,7 +1325,7 @@ export default function Packing() {
                         <span className={`premium-badge status-${o.status.toLowerCase().replace(' ', '')}`}>
                           {o.status}
                         </span>
-                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                        <div style={{ display: SHOW_FULL_CLIENT_RELEASE ? 'flex' : 'none', gap: '4px', flexWrap: 'wrap' }}>
                           <button
                             type="button"
                             onClick={() => handleToggleLabelPrinted(o)}

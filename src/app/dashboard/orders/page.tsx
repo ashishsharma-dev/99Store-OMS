@@ -33,7 +33,7 @@ import { InspectTooltipButton } from '@/components/InspectTooltipButton';
 import { CourierLogo } from '@/components/CourierLogo';
 import { AddressRatingIndicator } from '@/components/AddressRatingIndicator';
 import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
-import { getUserDisplayName } from '@/lib/utils';
+import { getUserDisplayName, SHOW_FULL_CLIENT_RELEASE } from '@/lib/utils';
 import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 
 const WHATSAPP_LIFECYCLE_TEMPLATES = [
@@ -1042,7 +1042,7 @@ export default function Orders() {
         className="premium-card"
         style={{
           padding: '12px 16px',
-          display: 'flex',
+          display: SHOW_FULL_CLIENT_RELEASE ? 'flex' : 'none',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
@@ -1267,7 +1267,7 @@ export default function Orders() {
         </div>
 
         {/* Filter Label Printed */}
-        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+        <div style={{ position: 'relative', display: SHOW_FULL_CLIENT_RELEASE ? 'inline-flex' : 'none', alignItems: 'center' }}>
           <select
             className="premium-input"
             style={{
@@ -1293,7 +1293,7 @@ export default function Orders() {
         </div>
 
         {/* Filter Booked / Scanned */}
-        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+        <div style={{ position: 'relative', display: SHOW_FULL_CLIENT_RELEASE ? 'inline-flex' : 'none', alignItems: 'center' }}>
           <select
             className="premium-input"
             style={{
@@ -1319,7 +1319,7 @@ export default function Orders() {
         </div>
 
         {/* Filter Payment Settled */}
-        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+        <div style={{ position: 'relative', display: SHOW_FULL_CLIENT_RELEASE ? 'inline-flex' : 'none', alignItems: 'center' }}>
           <select
             className="premium-input"
             style={{
@@ -1371,7 +1371,7 @@ export default function Orders() {
         </div>
 
         {/* Filter Created By */}
-        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+        <div style={{ position: 'relative', display: SHOW_FULL_CLIENT_RELEASE ? 'inline-flex' : 'none', alignItems: 'center' }}>
           <select
             className="premium-input"
             style={{
@@ -1586,12 +1586,12 @@ export default function Orders() {
                             </span>
                           )}
                           {(o.isPaymentSettled || isOrderPaid) && (
-                            <span style={{ fontSize: '10px', color: '#10B981', fontWeight: 600 }}>
+                            <span style={{ display: SHOW_FULL_CLIENT_RELEASE ? 'inline' : 'none', fontSize: '10px', color: '#10B981', fontWeight: 600 }}>
                               ✓ Payment Paid
                             </span>
                           )}
                           {(currentUser?.role === 'Super Admin' || currentUser?.role === 'Accounts Team') && o.paymentType !== 'Paid' && (
-                            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: '#A1A1AA', cursor: 'pointer' }}>
+                            <label style={{ display: SHOW_FULL_CLIENT_RELEASE ? 'inline-flex' : 'none', alignItems: 'center', gap: '5px', fontSize: '11px', color: '#A1A1AA', cursor: 'pointer' }}>
                               <input
                                 type="checkbox"
                                 checked={Boolean(o.isPaymentSettled)}
@@ -1609,7 +1609,7 @@ export default function Orders() {
                           <span className={`premium-badge status-${o.status.toLowerCase().replace(' ', '')}`}>
                             {o.status}
                           </span>
-                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                          <div style={{ display: SHOW_FULL_CLIENT_RELEASE ? 'flex' : 'none', gap: '4px', flexWrap: 'wrap' }}>
                             <button
                               type="button"
                               onClick={() => handleToggleLabelPrinted(o)}

@@ -1,4 +1,10 @@
 /**
+ * Controls visibility of the Phase 2 (~70%) client-facing UI features.
+ * Passphrase to unlock 100% live: "UNLOCK-99STORE-100"
+ */
+export const SHOW_FULL_CLIENT_RELEASE = process.env.NEXT_PUBLIC_SHOW_FULL_CLIENT_RELEASE === 'true';
+
+/**
  * Maps a username to their user display name (full name).
  * If the username is not recognized, returns the original username.
  */

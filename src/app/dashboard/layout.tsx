@@ -27,6 +27,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { User, UserRole, Message } from '@/lib/types';
+import { SHOW_FULL_CLIENT_RELEASE } from '@/lib/utils';
 import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 
 type StreamEvent = { id: string; title: string; message: string; timestamp: string; type: string; initial?: boolean };
@@ -547,13 +548,15 @@ export default function DashboardLayout({
       name: 'Accounts & Payments',
       path: '/dashboard/accounts',
       icon: CreditCard,
-      roles: ['Super Admin', 'Accounts Team']
+      roles: ['Super Admin', 'Accounts Team'],
+      hidden: !SHOW_FULL_CLIENT_RELEASE
     },
     {
       name: 'Reports & Performance',
       path: '/dashboard/reports',
       icon: FileSpreadsheet,
-      roles: ['Super Admin', 'Order Team', 'Packing Team', 'Tracking Team', 'Accounts Team']
+      roles: ['Super Admin', 'Order Team', 'Packing Team', 'Tracking Team', 'Accounts Team'],
+      hidden: !SHOW_FULL_CLIENT_RELEASE
     },
     {
       name: 'Internal Messages',
@@ -739,7 +742,7 @@ export default function DashboardLayout({
                 disabled={!hasAccess}
                 title={isSidebarCollapsed ? item.name : undefined}
                 style={{
-                  display: 'flex',
+                  display: item.hidden ? 'none' : 'flex',
                   alignItems: 'center',
                   justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
                   gap: isSidebarCollapsed ? '0' : '12px',
@@ -1052,7 +1055,7 @@ export default function DashboardLayout({
                   }}
                   disabled={!hasAccess}
                   style={{
-                    display: 'flex',
+                    display: item.hidden ? 'none' : 'flex',
                     alignItems: 'center',
                     gap: '12px',
                     width: '100%',
@@ -1260,17 +1263,16 @@ export default function DashboardLayout({
                     <div style={{ padding: '30px', textAlign: 'center', color: '#737373', fontSize: '13px' }}>No notification or order activity in the last 24 hours.</div>
                   ) : (
                     streamEvents.map((evt) => (
-                      <div key={evt.id} style={{ 
-                        padding: '10px 12px', 
-                        backgroundColor: '#1A1A1E', 
-                        borderRadius: '8px', 
-                        borderLeft: `3px solid ${
-                          evt.type === 'ndr' ? '#EF4444' : 
-                          evt.type === 'call_placed' ? '#F59E0B' :
-                          evt.type === 'ofd' ? '#10B981' :
-                          evt.type === 'order' ? '#3B82F6' : 
-                          '#737373'
-                        }` 
+                      <div key={evt.id} style={{
+                        padding: '10px 12px',
+                        backgroundColor: '#1A1A1E',
+                        borderRadius: '8px',
+                        borderLeft: `3px solid ${evt.type === 'ndr' ? '#EF4444' :
+                            evt.type === 'call_placed' ? '#F59E0B' :
+                              evt.type === 'ofd' ? '#10B981' :
+                                evt.type === 'order' ? '#3B82F6' :
+                                  '#737373'
+                          }`
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                           <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#FAFAFA' }}>{evt.title}</span>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Calendar, ChevronDown, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { SHOW_FULL_CLIENT_RELEASE } from '@/lib/utils';
 
 export interface DateRange {
   startDate: string;
@@ -191,6 +192,7 @@ export const DateRangeFilter = ({ value, onChange }: DateRangeFilterProps) => {
         onClick={() => handleStepDay(-1)}
         className="premium-btn premium-btn-secondary"
         style={{
+          display: SHOW_FULL_CLIENT_RELEASE ? 'inline-flex' : 'none',
           padding: '8px',
           minWidth: '32px',
           justifyContent: 'center',
@@ -225,6 +227,7 @@ export const DateRangeFilter = ({ value, onChange }: DateRangeFilterProps) => {
         onClick={() => handleStepDay(1)}
         className="premium-btn premium-btn-secondary"
         style={{
+          display: SHOW_FULL_CLIENT_RELEASE ? 'inline-flex' : 'none',
           padding: '8px',
           minWidth: '32px',
           justifyContent: 'center',
@@ -277,7 +280,7 @@ export const DateRangeFilter = ({ value, onChange }: DateRangeFilterProps) => {
                     }
                   }}
                   style={{
-                    display: 'flex',
+                    display: (!SHOW_FULL_CLIENT_RELEASE && (preset.id === 'yesterday' || preset.id === 'single_day')) ? 'none' : 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '8px 12px',
@@ -324,7 +327,7 @@ export const DateRangeFilter = ({ value, onChange }: DateRangeFilterProps) => {
             }}
           >
             {/* Day-Wise Single Day Picker */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: '12px', borderBottom: '1px solid #262629' }}>
+            <div style={{ display: SHOW_FULL_CLIENT_RELEASE ? 'flex' : 'none', flexDirection: 'column', gap: '8px', paddingBottom: '12px', borderBottom: '1px solid #262629' }}>
               <div style={{ fontSize: '11px', fontWeight: 600, color: '#3B82F6', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Day-Wise Filter (Single Day)
               </div>

@@ -23,7 +23,7 @@ import { printThermalLabel } from '@/lib/printLabel';
 import { CourierLogo } from '@/components/CourierLogo';
 import { AddressRatingIndicator } from '@/components/AddressRatingIndicator';
 import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
-import { getUserDisplayName } from '@/lib/utils';
+import { getUserDisplayName, SHOW_FULL_CLIENT_RELEASE } from '@/lib/utils';
 import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 
 export default function Tracking() {
@@ -386,7 +386,7 @@ export default function Tracking() {
 
               <select
                 className="premium-input"
-                style={{ fontSize: '12px', padding: '4px 8px' }}
+                style={{ display: SHOW_FULL_CLIENT_RELEASE ? 'block' : 'none', fontSize: '12px', padding: '4px 8px' }}
                 value={labelPrintedFilter}
                 onChange={(e) => setLabelPrintedFilter(e.target.value)}
               >
@@ -397,7 +397,7 @@ export default function Tracking() {
 
               <select
                 className="premium-input"
-                style={{ fontSize: '12px', padding: '4px 8px' }}
+                style={{ display: SHOW_FULL_CLIENT_RELEASE ? 'block' : 'none', fontSize: '12px', padding: '4px 8px' }}
                 value={bookedFilter}
                 onChange={(e) => setBookedFilter(e.target.value)}
               >
@@ -473,10 +473,10 @@ export default function Tracking() {
                         <span className={`premium-badge status-${o.status.toLowerCase().replace(' ', '')}`} style={{ fontSize: '9px', padding: '2px 5px' }}>
                           {o.status}
                         </span>
-                        <span style={{ fontSize: '9px', padding: '1px 5px', borderRadius: '4px', backgroundColor: o.labelPrinted ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.08)', color: o.labelPrinted ? '#34D399' : '#FBBF24' }}>
+                        <span style={{ display: SHOW_FULL_CLIENT_RELEASE ? 'inline' : 'none', fontSize: '9px', padding: '1px 5px', borderRadius: '4px', backgroundColor: o.labelPrinted ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.08)', color: o.labelPrinted ? '#34D399' : '#FBBF24' }}>
                           {o.labelPrinted ? 'Printed' : 'Unprinted'}
                         </span>
-                        <span style={{ fontSize: '9px', padding: '1px 5px', borderRadius: '4px', backgroundColor: (o.isBooked || ['Dispatched', 'Call Placed Notification', 'RDC', 'OFD', 'Delivered', 'Undelivered', 'NDR', 'Return'].includes(o.status)) ? 'rgba(59,130,246,0.12)' : 'rgba(113,113,122,0.1)', color: (o.isBooked || ['Dispatched', 'Call Placed Notification', 'RDC', 'OFD', 'Delivered', 'Undelivered', 'NDR', 'Return'].includes(o.status)) ? '#60A5FA' : '#A1A1AA' }}>
+                        <span style={{ display: SHOW_FULL_CLIENT_RELEASE ? 'inline' : 'none', fontSize: '9px', padding: '1px 5px', borderRadius: '4px', backgroundColor: (o.isBooked || ['Dispatched', 'Call Placed Notification', 'RDC', 'OFD', 'Delivered', 'Undelivered', 'NDR', 'Return'].includes(o.status)) ? 'rgba(59,130,246,0.12)' : 'rgba(113,113,122,0.1)', color: (o.isBooked || ['Dispatched', 'Call Placed Notification', 'RDC', 'OFD', 'Delivered', 'Undelivered', 'NDR', 'Return'].includes(o.status)) ? '#60A5FA' : '#A1A1AA' }}>
                           {(o.isBooked || ['Dispatched', 'Call Placed Notification', 'RDC', 'OFD', 'Delivered', 'Undelivered', 'NDR', 'Return'].includes(o.status)) ? 'Booked' : 'Not Booked'}
                         </span>
                       </div>

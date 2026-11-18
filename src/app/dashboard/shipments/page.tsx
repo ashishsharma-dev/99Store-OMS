@@ -25,7 +25,7 @@ import { InspectTooltipButton } from '@/components/InspectTooltipButton';
 import { CourierLogo } from '@/components/CourierLogo';
 import { AddressRatingIndicator } from '@/components/AddressRatingIndicator';
 import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
-import { getUserDisplayName } from '@/lib/utils';
+import { getUserDisplayName, SHOW_FULL_CLIENT_RELEASE } from '@/lib/utils';
 import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 
 export default function AllShipments() {
@@ -423,7 +423,7 @@ export default function AllShipments() {
         </div>
 
         {/* Label Printed filter */}
-        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+        <div style={{ position: 'relative', display: SHOW_FULL_CLIENT_RELEASE ? 'inline-flex' : 'none', alignItems: 'center' }}>
           <select
             className="premium-input"
             style={{ 
@@ -449,7 +449,7 @@ export default function AllShipments() {
         </div>
 
         {/* Shipment Booked / Scanned filter */}
-        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+        <div style={{ position: 'relative', display: SHOW_FULL_CLIENT_RELEASE ? 'inline-flex' : 'none', alignItems: 'center' }}>
           <select
             className="premium-input"
             style={{ 
@@ -685,7 +685,7 @@ export default function AllShipments() {
                           <span className={`premium-badge status-${o.status.toLowerCase().replace(' ', '')}`}>
                             {o.status}
                           </span>
-                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                          <div style={{ display: SHOW_FULL_CLIENT_RELEASE ? 'flex' : 'none', gap: '4px', flexWrap: 'wrap' }}>
                             <span
                               style={{
                                 fontSize: '10px',
