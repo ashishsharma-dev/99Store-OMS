@@ -106,7 +106,7 @@ export async function generatePackingSlipImage(orderId: string, baseUrl?: string
     }
 
     // Save image file locally to disk
-    const filePath = path.join(slipsDir, `${orderId}.png`);
+    const filePath = path.join(/* turbopackIgnore: true */ slipsDir, `${orderId}.png`);
     fs.writeFileSync(/* turbopackIgnore: true */ filePath, imageBuffer);
     console.log(`[Screenshot] Saved packing slip image locally at "${filePath}"`);
 

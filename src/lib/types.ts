@@ -124,6 +124,17 @@ export interface Order {
   label_generated?: boolean;
   cancelled?: boolean;
 
+  // Label printing, booking scan & payment settlement tracking
+  labelPrinted?: boolean;
+  labelPrintedAt?: string;
+  labelPrintedBy?: string;
+  isBooked?: boolean;
+  bookedAt?: string;
+  bookedBy?: string;
+  isPaymentSettled?: boolean;
+  paymentSettledAt?: string;
+  paymentSettledBy?: string;
+
   isDeleted?: boolean;
   deletedAt?: string;
   deletedBy?: string;

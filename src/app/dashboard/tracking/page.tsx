@@ -38,6 +38,9 @@ export default function Tracking() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [courierFilter, setCourierFilter] = useState('all');
+  const [paymentFilter, setPaymentFilter] = useState('all');
+  const [labelPrintedFilter, setLabelPrintedFilter] = useState('all');
+  const [bookedFilter, setBookedFilter] = useState('all');
   
   // Selected Order for detailing and logistics control
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -215,9 +218,26 @@ export default function Tracking() {
       }
     }
     if (courierFilter !== 'all') {
-      const c = o.courier || 'DTDC';
-      if (!c.toLowerCase().includes(courierFilter.toLowerCase())) return false;
+      if (courierFilter === 'Unassigned') {
+        if (o.courier) return false;
+      } else {
+        const c = o.courier || 'DTDC';
+        if (!c.toLowerCase().includes(courierFilter.toLowerCase())) return false;
+      }
     }
+    if (paymentFilter !== 'all') {
+      const paidAmt = Number(o.partiallyPaidAmount || 0);
+      const isPartial = paidAmt > 0 && Number(o.orderValue || 0) > paidAmt;
+      if (paymentFilter === 'Partially Paid' && !isPartial) return false;
+      if (paymentFilter === 'Pure COD' && !(o.paymentType === 'COD' && !isPartial)) return false;
+      if (paymentFilter === 'Paid' && o.paymentType !== 'Paid') return false;
+      if (paymentFilter === 'COD' && o.paymentType !== 'COD') return false;
+    }
+    if (labelPrintedFilter === 'true' && !o.labelPrinted) return false;
+    if (labelPrintedFilter === 'false' && o.labelPrinted) return false;
+    const isBooked = Boolean(o.isBooked || ['Dispatched', 'Call Placed Notification', 'RDC', 'OFD', 'Delivered', 'Undelivered', 'NDR', 'Return'].includes(o.status));
+    if (bookedFilter === 'true' && !isBooked) return false;
+    if (bookedFilter === 'false' && isBooked) return false;
     return true;
   });
 
@@ -226,7 +246,7 @@ export default function Tracking() {
 
   useEffect(() => {
     setDisplayLimit(20);
-  }, [search, statusFilter, courierFilter, dateRange]);
+  }, [search, statusFilter, courierFilter, paymentFilter, labelPrintedFilter, bookedFilter, dateRange]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -248,8 +268,27 @@ export default function Tracking() {
     setShowPrintLabel(true);
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     printThermalLabel('printable-shipping-label');
+    if (printingOrder) {
+      try {
+        const res = await fetch(`/api/orders/${printingOrder.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ labelPrinted: true })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.order) {
+            setOrders(prev => prev.map(item => (item.id === data.order.id ? data.order : item)));
+            setPrintingOrder(data.order);
+            if (selectedOrder?.id === data.order.id) setSelectedOrder(data.order);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to persist labelPrinted state:', err);
+      }
+    }
   };
 
   if (loading) return <DashboardSkeleton variant="tracking" />;
@@ -324,10 +363,67 @@ export default function Tracking() {
               >
                 <option value="all">Courier (All)</option>
                 <option value="DTDC">DTDC Express</option>
-                <option value="XpressBees">XpressBees</option>
+                <option value="XpressBees">XpressBees (All)</option>
+                <option value="XpressBees Air">XpressBees Air</option>
+                <option value="XpressBees Surface">XpressBees Surface</option>
                 <option value="Delhivery">Delhivery</option>
                 <option value="Shadowfax">Shadowfax</option>
+                <option value="Unassigned">Unassigned</option>
               </select>
+
+              <select
+                className="premium-input"
+                style={{ fontSize: '12px', padding: '4px 8px' }}
+                value={paymentFilter}
+                onChange={(e) => setPaymentFilter(e.target.value)}
+              >
+                <option value="all">Payment (All)</option>
+                <option value="Paid">Prepaid (Paid)</option>
+                <option value="COD">COD (All COD)</option>
+                <option value="Pure COD">COD (Unpaid Only)</option>
+                <option value="Partially Paid">Partially Paid</option>
+              </select>
+
+              <select
+                className="premium-input"
+                style={{ fontSize: '12px', padding: '4px 8px' }}
+                value={labelPrintedFilter}
+                onChange={(e) => setLabelPrintedFilter(e.target.value)}
+              >
+                <option value="all">Label (All)</option>
+                <option value="true">Printed</option>
+                <option value="false">Not Printed</option>
+              </select>
+
+              <select
+                className="premium-input"
+                style={{ fontSize: '12px', padding: '4px 8px' }}
+                value={bookedFilter}
+                onChange={(e) => setBookedFilter(e.target.value)}
+              >
+                <option value="all">Booking (All)</option>
+                <option value="true">Booked (Scanned)</option>
+                <option value="false">Not Booked</option>
+              </select>
+
+              {(search || statusFilter !== 'all' || courierFilter !== 'all' || paymentFilter !== 'all' || labelPrintedFilter !== 'all' || bookedFilter !== 'all' || dateRange.preset !== 'all') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch('');
+                    setStatusFilter('all');
+                    setCourierFilter('all');
+                    setPaymentFilter('all');
+                    setLabelPrintedFilter('all');
+                    setBookedFilter('all');
+                    setDateRange({ preset: 'all', startDate: '', endDate: '' });
+                  }}
+                  className="premium-btn premium-btn-secondary"
+                  style={{ fontSize: '11.5px', padding: '4px 8px', color: '#F87171', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                >
+                  Reset All Filters
+                </button>
+              )}
             </div>
           </div>
 
@@ -376,6 +472,12 @@ export default function Tracking() {
                         </span>
                         <span className={`premium-badge status-${o.status.toLowerCase().replace(' ', '')}`} style={{ fontSize: '9px', padding: '2px 5px' }}>
                           {o.status}
+                        </span>
+                        <span style={{ fontSize: '9px', padding: '1px 5px', borderRadius: '4px', backgroundColor: o.labelPrinted ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.08)', color: o.labelPrinted ? '#34D399' : '#FBBF24' }}>
+                          {o.labelPrinted ? 'Printed' : 'Unprinted'}
+                        </span>
+                        <span style={{ fontSize: '9px', padding: '1px 5px', borderRadius: '4px', backgroundColor: (o.isBooked || ['Dispatched', 'Call Placed Notification', 'RDC', 'OFD', 'Delivered', 'Undelivered', 'NDR', 'Return'].includes(o.status)) ? 'rgba(59,130,246,0.12)' : 'rgba(113,113,122,0.1)', color: (o.isBooked || ['Dispatched', 'Call Placed Notification', 'RDC', 'OFD', 'Delivered', 'Undelivered', 'NDR', 'Return'].includes(o.status)) ? '#60A5FA' : '#A1A1AA' }}>
+                          {(o.isBooked || ['Dispatched', 'Call Placed Notification', 'RDC', 'OFD', 'Delivered', 'Undelivered', 'NDR', 'Return'].includes(o.status)) ? 'Booked' : 'Not Booked'}
                         </span>
                       </div>
                       

@@ -138,7 +138,7 @@ npm ci --include=dev
 if npm run | grep -q 'verify:env'; then npm run verify:env; fi
 npm run test
 npm run lint -- --quiet
-npm run build
+(npm run build || npm run build)
 pm2 startOrReload ecosystem.config.js --update-env
 pm2 save
 {health_command()}
@@ -158,7 +158,7 @@ def rollback(client: paramiko.SSHClient, previous_commit: str) -> None:
             f"install -d {shlex.quote(RUNTIME_MEDIA_DIR)}; cp -a \"$RUNTIME_MEDIA\"/. {shlex.quote(RUNTIME_MEDIA_DIR)}/; "
             "rm -f \"$RUNTIME_DATA\"; rm -rf \"$RUNTIME_MEDIA\"; "
             "npm ci --include=dev; if npm run | grep -q 'verify:env'; then npm run verify:env; fi; npm run test; "
-            "npm run lint -- --quiet; npm run build; "
+            "npm run lint -- --quiet; (npm run build || npm run build); "
             "pm2 startOrReload ecosystem.config.js --update-env; pm2 save; " + health_command()
         ),
         timeout=1200,
@@ -222,7 +222,7 @@ def deploy(client: paramiko.SSHClient, target_commit: str) -> None:
         run(
             client,
             "Running release verification",
-            app_command("npm run verify:env; npm run test; npm run lint -- --quiet; npm run audit:prod; npm run build"),
+            app_command("npm run verify:env; npm run test; npm run lint -- --quiet; npm run audit:prod; (npm run build || npm run build)"),
             timeout=1200,
         )
         run(

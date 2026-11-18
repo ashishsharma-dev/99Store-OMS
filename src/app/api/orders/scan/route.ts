@@ -12,8 +12,8 @@ import {
 export async function POST(request: Request) {
   try {
     const session = await getActiveSession(request);
-    if (!session || !hasAllowedRole(session, ['Super Admin', 'Packing Team'])) {
-      return NextResponse.json({ error: 'Packing Team access required.' }, { status: 403 });
+    if (!session || !hasAllowedRole(session, ['Super Admin', 'Packing Team', 'Tracking Team', 'Order Team'])) {
+      return NextResponse.json({ error: 'Packing or Operations access required.' }, { status: 403 });
     }
 
     const { barcode } = await request.json();
@@ -28,16 +28,22 @@ export async function POST(request: Request) {
     }
 
     const alreadyDispatched = order.status === 'Dispatched';
-    if (!alreadyDispatched) {
+    const wasBooked = Boolean(order.isBooked);
+    if (!alreadyDispatched || !wasBooked) {
       const now = new Date().toISOString();
-      order.status = 'Dispatched';
+      order.isBooked = true;
+      order.bookedAt = order.bookedAt || now;
+      order.bookedBy = order.bookedBy || session.username;
+      if (!alreadyDispatched) {
+        order.status = 'Dispatched';
+        order.history.push({
+          status: 'Dispatched',
+          timestamp: now,
+          updatedBy: session.username,
+          remarks: `Barcode scan confirmed warehouse dispatch & shipment booked for AWB ${order.awb}.`,
+        });
+      }
       order.updatedAt = now;
-      order.history.push({
-        status: 'Dispatched',
-        timestamp: now,
-        updatedBy: session.username,
-        remarks: `Barcode scan confirmed warehouse dispatch for AWB ${order.awb}.`,
-      });
       await db.saveOrder(order);
     }
 

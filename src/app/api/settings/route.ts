@@ -9,12 +9,39 @@ async function isSuperAdmin(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    if (!await isSuperAdmin(request)) return NextResponse.json({ error: 'Super Admin access required.' }, { status: 403 });
+    const session = await getActiveSession(request);
+    if (!session) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+
     const settings = await db.getSettings();
 
-    return NextResponse.json({ 
-      success: true, 
-      settings
+    if (session.role === 'Super Admin') {
+      return NextResponse.json({
+        success: true,
+        settings
+      });
+    }
+
+    const publicSettings = {
+      primaryContactNumbers: settings.primaryContactNumbers || [],
+      secondaryContactNumbers: settings.secondaryContactNumbers || [],
+      additionalContactNumbers1: settings.additionalContactNumbers1 || [],
+      additionalContactNumbers2: settings.additionalContactNumbers2 || [],
+      whatsappBrandName: settings.whatsappBrandName,
+      whatsappSupportName: settings.whatsappSupportName,
+      whatsappSupportNumber: settings.whatsappSupportNumber,
+      whatsappCourierSupportName: settings.whatsappCourierSupportName,
+      whatsappCourierSupportNumber: settings.whatsappCourierSupportNumber,
+      whatsappNotificationsEnabled: settings.whatsappNotificationsEnabled,
+      autoCourierEnabled: settings.autoCourierEnabled,
+      dtdcActive: settings.dtdcActive,
+      xpressbeesActive: settings.xpressbeesActive,
+      deliveryActive: settings.deliveryActive,
+      shadowfaxActive: settings.shadowfaxActive,
+    };
+
+    return NextResponse.json({
+      success: true,
+      settings: publicSettings
     });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });

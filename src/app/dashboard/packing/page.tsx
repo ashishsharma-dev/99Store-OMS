@@ -9,13 +9,14 @@ import {
   Check, 
   RefreshCcw, 
   ArrowRight,
-  Barcode,
   Calendar,
   Download,
   Info,
   Search,
   Filter,
-  ChevronDown
+  ChevronDown,
+  Barcode,
+  AlertTriangle
 } from 'lucide-react';
 import { Order, OrderStatus, ShipmentContactType } from '@/lib/types';
 import { HealvitaShippingLabel } from '@/components/HealvitaShippingLabel';
@@ -62,8 +63,16 @@ export default function Packing() {
   // Module 4: Bulk Logistics header dropdown filters
   const [courierFilter, setCourierFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [paymentFilter, setPaymentFilter] = useState<string>('all');
+  const [labelPrintedFilter, setLabelPrintedFilter] = useState<string>('all');
+  const [bookedFilter, setBookedFilter] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
   const [contactBindingFilter, setContactBindingFilter] = useState<Exclude<ShipmentContactType, 'Custom'>>('Primary');
+
+  // Barcode scan to book & dispatch states
+  const [scanInput, setScanInput] = useState('');
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanFeedback, setScanFeedback] = useState<{ success: boolean; message: string } | null>(null);
 
   // Reassign Modal States
   const [reassignOrder, setReassignOrder] = useState<Order | null>(null);
@@ -95,15 +104,11 @@ export default function Packing() {
   const [bulkDispatchCourier, setBulkDispatchCourier] = useState<string>('DTDC');
   const [bulkDispatchPhoneBinding, setBulkDispatchPhoneBinding] = useState<Exclude<ShipmentContactType, 'Custom'>>('Primary');
 
-  const [scanInput, setScanInput] = useState('');
-  const [scanLoading, setScanLoading] = useState(false);
-  const [scanResult, setScanResult] = useState<{ ok: boolean; message: string } | null>(null);
-  const scanInputRef = useRef<HTMLInputElement>(null);
 
   // Infinite Scroll Reset
   useEffect(() => {
     setDisplayLimit(20);
-  }, [search, statusFilter, courierFilter, dateRange]);
+  }, [search, statusFilter, courierFilter, paymentFilter, labelPrintedFilter, bookedFilter, dateRange]);
 
   useEffect(() => {
     if (showAwbErrorModal && awbErrorDetails) {
@@ -218,10 +223,30 @@ export default function Packing() {
     }
     // 2. Courier Filter
     if (courierFilter !== 'all') {
-      const c = courierOverrides[o.id] || o.courier || 'DTDC';
-      if (!c.toLowerCase().includes(courierFilter.toLowerCase())) return false;
+      if (courierFilter === 'Unassigned') {
+        if (o.courier) return false;
+      } else {
+        const c = courierOverrides[o.id] || o.courier || 'DTDC';
+        if (!c.toLowerCase().includes(courierFilter.toLowerCase())) return false;
+      }
     }
-    // 3. Search Filter
+    // 3. Payment Variation Filter
+    if (paymentFilter !== 'all') {
+      const paidAmt = Number(o.partiallyPaidAmount || 0);
+      const isPartial = paidAmt > 0 && Number(o.orderValue || 0) > paidAmt;
+      if (paymentFilter === 'Partially Paid' && !isPartial) return false;
+      if (paymentFilter === 'Pure COD' && !(o.paymentType === 'COD' && !isPartial)) return false;
+      if (paymentFilter === 'Paid' && o.paymentType !== 'Paid') return false;
+      if (paymentFilter === 'COD' && o.paymentType !== 'COD') return false;
+    }
+    // 4. Label Printed Filter
+    if (labelPrintedFilter === 'printed' && !o.labelPrinted) return false;
+    if (labelPrintedFilter === 'not_printed' && o.labelPrinted) return false;
+    // 5. Booked / Scanned Filter
+    const booked = Boolean(o.isBooked || o.status === 'Dispatched');
+    if (bookedFilter === 'booked' && !booked) return false;
+    if (bookedFilter === 'not_booked' && booked) return false;
+    // 6. Search Filter
     if (search.trim()) {
       const q = search.toLowerCase();
       const match =
@@ -437,41 +462,6 @@ export default function Packing() {
     }
   };
 
-  const handleBarcodeDispatch = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const barcode = scanInput.trim();
-    if (!barcode || scanLoading) return;
-
-    setScanLoading(true);
-    setScanResult(null);
-    try {
-      const res = await fetch('/api/orders/scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ barcode }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setScanResult({ ok: false, message: data.error || 'Unable to dispatch this barcode.' });
-      } else {
-        const notificationMessage = data.notificationSent
-          ? 'Customer WhatsApp notification sent.'
-          : `Parcel dispatched, but WhatsApp failed${data.notificationError ? `: ${data.notificationError}` : '.'}`;
-        setScanResult({
-          ok: data.notificationSent,
-          message: `${data.order.orderId}${data.alreadyDispatched ? ' was already dispatched.' : ' dispatched successfully.'} ${notificationMessage}`,
-        });
-        setScanInput('');
-        await fetchPackingQueue();
-      }
-    } catch {
-      setScanResult({ ok: false, message: 'Barcode dispatch network error.' });
-    } finally {
-      setScanLoading(false);
-      window.setTimeout(() => scanInputRef.current?.focus(), 0);
-    }
-  };
-
   // Open bulk dispatch modal
   const handleOpenBulkDispatchModal = () => {
     if (selectedIds.length === 0) return;
@@ -614,12 +604,86 @@ export default function Packing() {
     fetchPackingQueue();
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     printThermalLabel('printable-labels-boundary');
+    const ids = printingOrders.map(o => o.id);
+    if (ids.length > 0) {
+      try {
+        const res = await fetch('/api/orders', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderIds: ids, labelPrinted: true })
+        });
+        if (res.ok) {
+          const now = new Date().toISOString();
+          setOrders(prev => prev.map(item => (
+            ids.includes(item.id)
+              ? { ...item, labelPrinted: true, labelPrintedAt: now, labelPrintedBy: currentUser?.username }
+              : item
+          )));
+        }
+      } catch (err) {
+        console.error('Failed to mark labels printed:', err);
+      }
+    }
+  };
+
+  const handleToggleLabelPrinted = async (order: Order) => {
+    try {
+      const nextVal = !order.labelPrinted;
+      const res = await fetch(`/api/orders/${order.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ labelPrinted: nextVal })
+      });
+      const data = await res.json();
+      if (res.ok && data?.order) {
+        setOrders(prev => prev.map(item => (item.id === data.order.id ? data.order : item)));
+      }
+    } catch {
+      console.error('Failed to toggle labelPrinted.');
+    }
+  };
+
+  const handleBarcodeScan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = scanInput.trim();
+    if (!code) return;
+    setScanLoading(true);
+    setScanFeedback(null);
+    try {
+      const res = await fetch('/api/orders/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ barcode: code })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setScanFeedback({
+          success: true,
+          message: data.alreadyDispatched
+            ? `Order ${data.order.orderId} confirmed Booked (Scanned).`
+            : `Order ${data.order.orderId} scanned — Shipment switched to Booked & Dispatched.`
+        });
+        setScanInput('');
+        fetchPackingQueue();
+      } else {
+        setScanFeedback({ success: false, message: data.error || 'Barcode scan failed.' });
+      }
+    } catch {
+      setScanFeedback({ success: false, message: 'Network error while scanning barcode.' });
+    } finally {
+      setScanLoading(false);
+    }
   };
 
   const handleExportCsv = () => {
-    let url = `/api/reports?queue=packing&courier=${courierFilter}`;
+    let url = `/api/reports?queue=packing&courier=${encodeURIComponent(courierFilter)}&payment=${encodeURIComponent(paymentFilter)}`;
+    if (labelPrintedFilter === 'printed') url += '&labelPrinted=true';
+    else if (labelPrintedFilter === 'not_printed') url += '&labelPrinted=false';
+    if (bookedFilter === 'booked') url += '&booked=true';
+    else if (bookedFilter === 'not_booked') url += '&booked=false';
+    if (search.trim()) url += `&search=${encodeURIComponent(search.trim())}`;
     if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
     if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
     window.open(url);
@@ -766,33 +830,6 @@ export default function Packing() {
         </div>
       </div>
 
-      <form onSubmit={handleBarcodeDispatch} className="premium-card" style={{ padding: '14px 18px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', borderColor: '#10B981' }}>
-        <Barcode size={20} style={{ color: '#34D399' }} />
-        <div style={{ minWidth: '180px' }}>
-          <div style={{ color: '#FAFAFA', fontSize: '13px', fontWeight: 600 }}>Scan parcel to dispatch</div>
-          <div style={{ color: '#737373', fontSize: '11px' }}>Accepts the order barcode or courier AWB.</div>
-        </div>
-        <input
-          ref={scanInputRef}
-          className="premium-input"
-          value={scanInput}
-          onChange={(event) => setScanInput(event.target.value)}
-          placeholder="Scan barcode and press Enter"
-          autoComplete="off"
-          autoFocus
-          disabled={scanLoading}
-          style={{ flex: 1, minWidth: '240px' }}
-        />
-        <button type="submit" className="premium-btn premium-btn-primary" disabled={scanLoading || !scanInput.trim()} style={{ backgroundColor: '#10B981', borderColor: '#10B981' }}>
-          {scanLoading ? 'Dispatching...' : 'Scan & Dispatch'}
-        </button>
-        {scanResult && (
-          <div style={{ width: '100%', color: scanResult.ok ? '#34D399' : '#F87171', fontSize: '12px' }} role="status">
-            {scanResult.message}
-          </div>
-        )}
-      </form>
-
       {/* Queue Counter Dashboard banner */}
       <div className="premium-card" style={{ padding: '14px 20px', display: 'flex', gap: '16px', alignItems: 'center', backgroundColor: '#0F0F11', borderStyle: 'dashed', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -836,8 +873,65 @@ export default function Packing() {
           >
             <strong>{orders.filter(o => o.status === 'Dispatched').length}</strong> Dispatched
           </button>
+
+          <button
+            onClick={() => setLabelPrintedFilter(prev => prev === 'printed' ? 'all' : 'printed')}
+            style={{ background: labelPrintedFilter === 'printed' ? 'rgba(16,185,129,0.2)' : 'none', border: '1px solid ' + (labelPrintedFilter === 'printed' ? '#10B981' : '#27272A'), color: labelPrintedFilter === 'printed' ? '#34D399' : '#A1A1AA', padding: '3px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+          >
+            <strong>{orders.filter(o => o.labelPrinted).length}</strong> Labels Printed
+          </button>
+
+          <button
+            onClick={() => setBookedFilter(prev => prev === 'booked' ? 'all' : 'booked')}
+            style={{ background: bookedFilter === 'booked' ? 'rgba(59,130,246,0.2)' : 'none', border: '1px solid ' + (bookedFilter === 'booked' ? '#3B82F6' : '#27272A'), color: bookedFilter === 'booked' ? '#60A5FA' : '#A1A1AA', padding: '3px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+          >
+            <strong>{orders.filter(o => Boolean(o.isBooked || o.status === 'Dispatched')).length}</strong> Booked (Scanned)
+          </button>
         </div>
+
+        {/* Barcode Scan to Book & Dispatch */}
+        <form onSubmit={handleBarcodeScan} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ position: 'relative' }}>
+            <Barcode size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#3B82F6' }} />
+            <input
+              type="text"
+              className="premium-input"
+              style={{ paddingLeft: '30px', height: '34px', fontSize: '12.5px', width: '230px', backgroundColor: '#18181B', borderColor: '#3B82F6' }}
+              placeholder="Scan Label AWB / Order ID..."
+              value={scanInput}
+              onChange={(e) => setScanInput(e.target.value)}
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={scanLoading || !scanInput.trim()}
+            className="premium-btn premium-btn-primary"
+            style={{ height: '34px', padding: '0 14px', fontSize: '12.5px', backgroundColor: '#3B82F6', borderColor: '#3B82F6' }}
+          >
+            {scanLoading ? 'Scanning...' : 'Scan & Book'}
+          </button>
+        </form>
       </div>
+
+      {scanFeedback && (
+        <div
+          className="animate-fade-in"
+          style={{
+            padding: '10px 16px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            backgroundColor: scanFeedback.success ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+            border: `1px solid ${scanFeedback.success ? '#10B981' : '#EF4444'}`,
+            color: scanFeedback.success ? '#34D399' : '#F87171'
+          }}
+        >
+          {scanFeedback.success ? <Check size={15} /> : <AlertTriangle size={15} />}
+          <span>{scanFeedback.message}</span>
+        </div>
+      )}
 
       {/* Global Search & Filters Toolboard */}
       <div 
@@ -920,9 +1014,89 @@ export default function Packing() {
           >
             <option value="all">All Carrier Partners</option>
             <option value="DTDC">DTDC Express</option>
-            <option value="XpressBees">XpressBees Logistics</option>
+            <option value="XpressBees">XpressBees (All)</option>
+            <option value="XpressBees Air">XpressBees Air</option>
+            <option value="XpressBees Surface">XpressBees Surface</option>
             <option value="Delhivery">Delhivery Express</option>
             <option value="Shadowfax">Shadowfax (SFX)</option>
+            <option value="Unassigned">Unassigned</option>
+          </select>
+          <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
+        </div>
+
+        {/* Payment Variation Filter */}
+        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+          <select
+            className="premium-input"
+            style={{
+              width: 'auto',
+              minWidth: '130px',
+              padding: '6px 28px 6px 12px',
+              height: '34px',
+              fontSize: '12.5px',
+              backgroundColor: '#18181B',
+              borderColor: '#27272A',
+              appearance: 'none',
+              cursor: 'pointer'
+            }}
+            value={paymentFilter}
+            onChange={(e) => setPaymentFilter(e.target.value)}
+          >
+            <option value="all">Payment (All)</option>
+            <option value="Paid">Prepaid (Paid)</option>
+            <option value="COD">COD (All COD)</option>
+            <option value="Pure COD">COD (Unpaid Only)</option>
+            <option value="Partially Paid">Partially Paid</option>
+          </select>
+          <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
+        </div>
+
+        {/* Label Printed Filter */}
+        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+          <select
+            className="premium-input"
+            style={{
+              width: 'auto',
+              minWidth: '130px',
+              padding: '6px 28px 6px 12px',
+              height: '34px',
+              fontSize: '12.5px',
+              backgroundColor: '#18181B',
+              borderColor: '#27272A',
+              appearance: 'none',
+              cursor: 'pointer'
+            }}
+            value={labelPrintedFilter}
+            onChange={(e) => setLabelPrintedFilter(e.target.value)}
+          >
+            <option value="all">Label (All)</option>
+            <option value="printed">Printed</option>
+            <option value="not_printed">Not Printed</option>
+          </select>
+          <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
+        </div>
+
+        {/* Shipment Booked / Scanned Filter */}
+        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+          <select
+            className="premium-input"
+            style={{
+              width: 'auto',
+              minWidth: '135px',
+              padding: '6px 28px 6px 12px',
+              height: '34px',
+              fontSize: '12.5px',
+              backgroundColor: '#18181B',
+              borderColor: '#27272A',
+              appearance: 'none',
+              cursor: 'pointer'
+            }}
+            value={bookedFilter}
+            onChange={(e) => setBookedFilter(e.target.value)}
+          >
+            <option value="all">Booking (All)</option>
+            <option value="booked">Booked (Scanned)</option>
+            <option value="not_booked">Not Booked</option>
           </select>
           <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
         </div>
@@ -1147,9 +1321,49 @@ export default function Packing() {
                       </div>
                     </td>
                     <td>
-                      <span className={`premium-badge status-${o.status.toLowerCase().replace(' ', '')}`}>
-                        {o.status}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                        <span className={`premium-badge status-${o.status.toLowerCase().replace(' ', '')}`}>
+                          {o.status}
+                        </span>
+                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleLabelPrinted(o)}
+                            title={o.labelPrinted ? `Printed${o.labelPrintedBy ? ` by ${o.labelPrintedBy}` : ''} (click to toggle)` : 'Not printed yet (click to toggle)'}
+                            style={{
+                              fontSize: '10px',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              border: `1px solid ${o.labelPrinted ? 'rgba(16, 185, 129, 0.4)' : 'rgba(245, 158, 11, 0.35)'}`,
+                              backgroundColor: o.labelPrinted ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.08)',
+                              color: o.labelPrinted ? '#34D399' : '#FBBF24',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {o.labelPrinted ? 'Printed ✓' : 'Not Printed'}
+                          </button>
+                          {(() => {
+                            const booked = Boolean(o.isBooked || o.status === 'Dispatched');
+                            return (
+                              <span
+                                title={booked && o.bookedBy ? `Scanned/Booked by ${o.bookedBy}` : booked ? 'Shipment Booked / Dispatched' : 'Not Booked yet (scan label barcode to book)'}
+                                style={{
+                                  fontSize: '10px',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  border: `1px solid ${booked ? 'rgba(59, 130, 246, 0.4)' : 'rgba(113, 113, 122, 0.35)'}`,
+                                  backgroundColor: booked ? 'rgba(59, 130, 246, 0.14)' : 'rgba(113, 113, 122, 0.1)',
+                                  color: booked ? '#60A5FA' : '#A1A1AA',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {booked ? 'Booked ✓' : 'Not Booked'}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      </div>
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'inline-flex', gap: '8px' }}>

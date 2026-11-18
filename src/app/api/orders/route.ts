@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     const vip = searchParams.get('vip');
     const payment = searchParams.get('payment');
     
-    const allowedSortFields = new Set(['createdAt', 'updatedAt', 'orderId', 'customerName', 'status', 'orderValue']);
+    const allowedSortFields = new Set(['createdAt', 'updatedAt', 'orderId', 'customerName', 'status', 'orderValue', 'weight']);
     const requestedSortField = searchParams.get('sortField') || 'createdAt';
     const sortField = allowedSortFields.has(requestedSortField) ? requestedSortField : 'createdAt';
     const sortOrder = searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc';
@@ -37,6 +37,12 @@ export async function GET(request: Request) {
     const endDate = searchParams.get('endDate');
 
     const courier = searchParams.get('courier');
+    const labelPrintedParam = searchParams.get('labelPrinted');
+    const bookedParam = searchParams.get('booked');
+    const paymentSettledParam = searchParams.get('paymentSettled');
+    const createdByParam = searchParams.get('createdBy');
+    const assignedToParam = searchParams.get('assignedTo');
+
     const statuses = status && status !== 'all' as any
       ? status.split(',').map(value => value.trim()).filter(Boolean)
       : undefined;
@@ -48,6 +54,11 @@ export async function GET(request: Request) {
       vip: vip && vip !== 'all' ? vip === 'true' : undefined,
       payment: payment && payment !== 'all' ? payment : undefined,
       courier: courier && courier !== 'all' ? courier : undefined,
+      labelPrinted: labelPrintedParam === 'true' ? true : labelPrintedParam === 'false' ? false : undefined,
+      isBooked: bookedParam === 'true' ? true : bookedParam === 'false' ? false : undefined,
+      paymentSettled: paymentSettledParam === 'settled' ? 'settled' : paymentSettledParam === 'unsettled' ? 'unsettled' : undefined,
+      createdBy: createdByParam && createdByParam !== 'all' ? createdByParam.trim() : undefined,
+      assignedTo: assignedToParam && assignedToParam !== 'all' ? assignedToParam.trim() : undefined,
       startDate: normalizedStartDate,
       endDate: normalizedEndDate,
       sortField,
@@ -281,5 +292,83 @@ export async function DELETE(request: Request) {
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to execute bulk deletion.' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const session = await getActiveSession(request);
+    if (!session) {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { orderIds, labelPrinted, isBooked, isPaymentSettled } = body;
+
+    if (!Array.isArray(orderIds) || orderIds.length === 0) {
+      return NextResponse.json({ error: 'No order IDs provided for bulk update.' }, { status: 400 });
+    }
+
+    if (isPaymentSettled !== undefined && !hasAllowedRole(session, ['Super Admin', 'Accounts Team'])) {
+      return NextResponse.json({ error: 'Accounts Team or Super Admin access required.' }, { status: 403 });
+    }
+
+    if (
+      (labelPrinted !== undefined || isBooked !== undefined) &&
+      !hasAllowedRole(session, ['Super Admin', 'Order Team', 'Packing Team', 'Tracking Team'])
+    ) {
+      return NextResponse.json({ error: 'Insufficient role permissions for bulk fulfillment update.' }, { status: 403 });
+    }
+
+    const now = new Date().toISOString();
+    const updatedOrders: Order[] = [];
+
+    for (const id of orderIds) {
+      const order = await db.getOrderById(id) || await db.getOrderByOrderId(id);
+      if (!order || order.isDeleted) continue;
+
+      const changeParts: string[] = [];
+      if (labelPrinted !== undefined) {
+        const nextVal = Boolean(labelPrinted);
+        order.labelPrinted = nextVal;
+        order.labelPrintedAt = nextVal ? now : undefined;
+        order.labelPrintedBy = nextVal ? session.username : undefined;
+        changeParts.push(nextVal ? 'Label marked Printed' : 'Label marked Not Printed');
+      }
+      if (isBooked !== undefined) {
+        const nextVal = Boolean(isBooked);
+        order.isBooked = nextVal;
+        order.bookedAt = nextVal ? now : undefined;
+        order.bookedBy = nextVal ? session.username : undefined;
+        changeParts.push(nextVal ? 'Shipment marked Booked' : 'Shipment marked Not Booked');
+      }
+      if (isPaymentSettled !== undefined) {
+        const nextVal = Boolean(isPaymentSettled);
+        order.isPaymentSettled = nextVal;
+        order.paymentSettledAt = nextVal ? now : undefined;
+        order.paymentSettledBy = nextVal ? session.username : undefined;
+        changeParts.push(nextVal ? 'Payment marked Paid' : 'Payment settlement cleared');
+      }
+
+      if (changeParts.length > 0) {
+        order.updatedAt = now;
+        order.history.push({
+          status: order.status,
+          timestamp: now,
+          updatedBy: session.username,
+          remarks: `Bulk update by ${session.username}: ${changeParts.join(', ')}.`,
+        });
+        await db.saveOrder(order);
+        updatedOrders.push(order);
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      updatedCount: updatedOrders.length,
+      orders: updatedOrders,
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to execute bulk update.' }, { status: 500 });
   }
 }

@@ -55,8 +55,18 @@ export async function PATCH(
       futureDeliveryDate,
       isVip,
       shipmentContactPhone,
-      shipmentContactType
+      shipmentContactType,
+      labelPrinted,
+      isBooked,
+      isPaymentSettled,
     } = body;
+
+    if (isPaymentSettled !== undefined && !hasAllowedRole(session, ['Super Admin', 'Accounts Team'])) {
+      return NextResponse.json(
+        { error: 'Accounts Team or Super Admin access required to update payment settlement.' },
+        { status: 403 },
+      );
+    }
 
     const order = await db.getOrderById(id);
     if (!order) {
@@ -113,10 +123,44 @@ export async function PATCH(
     if (ndrAction !== undefined) order.ndrAction = ndrAction;
     if (futureDeliveryDate !== undefined) order.futureDeliveryDate = futureDeliveryDate || undefined;
     if (isVip !== undefined) order.isVip = !!isVip;
+    if (labelPrinted !== undefined) {
+      const nextPrinted = Boolean(labelPrinted);
+      order.labelPrinted = nextPrinted;
+      order.labelPrintedAt = nextPrinted ? now : undefined;
+      order.labelPrintedBy = nextPrinted ? session.username : undefined;
+    }
+    if (isBooked !== undefined) {
+      const nextBooked = Boolean(isBooked);
+      order.isBooked = nextBooked;
+      order.bookedAt = nextBooked ? now : undefined;
+      order.bookedBy = nextBooked ? session.username : undefined;
+    }
+    if (isPaymentSettled !== undefined) {
+      const nextSettled = Boolean(isPaymentSettled);
+      order.isPaymentSettled = nextSettled;
+      order.paymentSettledAt = nextSettled ? now : undefined;
+      order.paymentSettledBy = nextSettled ? session.username : undefined;
+    }
 
     // 2. Perform automated workflow integrations based on status changes
     let systemRemarks = remarks || `Status transitioned from ${previousStatus} to ${targetStatus}.`;
-    if (isVip !== undefined && !remarks) {
+    if (!remarks && !statusChanged) {
+      if (isPaymentSettled !== undefined) {
+        systemRemarks = isPaymentSettled
+          ? `Order marked as Paid (payment settled) by ${session.username}.`
+          : `Order payment settlement unmarked by ${session.username}.`;
+      } else if (labelPrinted !== undefined) {
+        systemRemarks = labelPrinted
+          ? `Shipping label printed by ${session.username}.`
+          : `Shipping label marked as Not Printed by ${session.username}.`;
+      } else if (isBooked !== undefined) {
+        systemRemarks = isBooked
+          ? `Shipment marked as Booked (Scanned) by ${session.username}.`
+          : `Shipment booking tag reset by ${session.username}.`;
+      } else if (isVip !== undefined) {
+        systemRemarks = `Order VIP status updated to ${isVip ? 'Enabled' : 'Disabled'}.`;
+      }
+    } else if (isVip !== undefined && !remarks) {
       systemRemarks = `Order VIP status updated to ${isVip ? 'Enabled' : 'Disabled'}.`;
     }
 

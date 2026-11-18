@@ -27,6 +27,8 @@ export function formatOrderForSheet(o: Order) {
     customerName: o.customerName || '',
     phonePrimary: o.phonePrimary || '',
     phoneSecondary: o.phoneSecondary || o.phoneWhatsApp || '',
+    customerPhone: o.phoneTertiary || o.phoneWhatsApp || '',
+    whatsappPhone: o.phoneWhatsApp || '',
     address: o.address || '',
     area: o.area || '',
     state: o.state || '',
@@ -38,6 +40,12 @@ export function formatOrderForSheet(o: Order) {
     finalPayableAmount: o.finalPayableAmount || (o.orderValue || 0),
     weight: o.weight || 0,
     status: o.status || 'Created',
+    labelPrinted: Boolean(o.labelPrinted),
+    isBooked: Boolean(
+      o.isBooked ||
+      ['Dispatched', 'Call Placed Notification', 'RDC', 'OFD', 'Delivered', 'Undelivered', 'NDR', 'Return'].includes(o.status)
+    ),
+    isPaymentSettled: Boolean(o.isPaymentSettled || o.paymentType === 'Paid'),
     courier: o.courier || '',
     awb: o.awb || '',
     handledBy: o.handledBy || o.assignedTo || o.createdBy || '',

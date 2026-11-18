@@ -356,6 +356,14 @@ export default function Orders() {
   const [paymentFilter, setPaymentFilter] = useState('all');
   const [vipFilter, setVipFilter] = useState('all');
   const [courierFilter, setCourierFilter] = useState('all');
+  const [labelPrintedFilter, setLabelPrintedFilter] = useState('all');
+  const [bookedFilter, setBookedFilter] = useState('all');
+  const [paymentSettledFilter, setPaymentSettledFilter] = useState('all');
+  const [createdByFilter, setCreatedByFilter] = useState('all');
+  const [teamUsers, setTeamUsers] = useState<{ username: string; name: string; role: string }[]>([]);
+  const [scanInput, setScanInput] = useState('');
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanFeedback, setScanFeedback] = useState<{ success: boolean; message: string } | null>(null);
   const [sortField, setSortField] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
   const [page, setPage] = useState(1);
@@ -368,7 +376,7 @@ export default function Orders() {
 
   useEffect(() => {
     setDisplayLimit(20);
-  }, [search, statusFilter, paymentFilter, vipFilter, courierFilter, dateRange]);
+  }, [search, statusFilter, paymentFilter, vipFilter, courierFilter, labelPrintedFilter, bookedFilter, paymentSettledFilter, createdByFilter, dateRange]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -493,18 +501,26 @@ export default function Orders() {
       }
     };
     fetchSettingsContacts();
+    fetch('/api/users', { cache: 'no-store' })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.success && Array.isArray(data.users)) {
+          setTeamUsers(data.users);
+        }
+      })
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
     fetchOrdersList();
-  }, [search, statusFilter, paymentFilter, vipFilter, courierFilter, sortField, sortOrder, page, limit, dateRange]);
+  }, [search, statusFilter, paymentFilter, vipFilter, courierFilter, labelPrintedFilter, bookedFilter, paymentSettledFilter, createdByFilter, sortField, sortOrder, page, limit, dateRange]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       fetchOrdersList(true);
     }, 20000);
     return () => clearInterval(interval);
-  }, [search, statusFilter, paymentFilter, vipFilter, courierFilter, sortField, sortOrder, page, limit, dateRange]);
+  }, [search, statusFilter, paymentFilter, vipFilter, courierFilter, labelPrintedFilter, bookedFilter, paymentSettledFilter, createdByFilter, sortField, sortOrder, page, limit, dateRange]);
 
   // Autofetch State/Area via Pincode API when 6 digits are typed
   useEffect(() => {
@@ -534,7 +550,7 @@ export default function Orders() {
 
   const fetchOrdersList = async (isBackground = false) => {
     try {
-      let url = `/api/orders?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}&status=${statusFilter}&payment=${paymentFilter}&vip=${vipFilter}&courier=${encodeURIComponent(courierFilter)}&sortField=${sortField}&sortOrder=${sortOrder}`;
+      let url = `/api/orders?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}&status=${encodeURIComponent(statusFilter)}&payment=${encodeURIComponent(paymentFilter)}&vip=${vipFilter}&courier=${encodeURIComponent(courierFilter)}&labelPrinted=${labelPrintedFilter}&booked=${bookedFilter}&paymentSettled=${paymentSettledFilter}&createdBy=${encodeURIComponent(createdByFilter)}&sortField=${sortField}&sortOrder=${sortOrder}`;
       if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
       if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
       const res = await fetch(url);
@@ -807,7 +823,7 @@ export default function Orders() {
   };
 
   const handleExportCsv = () => {
-    let url = `/api/reports?status=${statusFilter}&payment=${paymentFilter}&vip=${vipFilter}`;
+    let url = `/api/reports?status=${encodeURIComponent(statusFilter)}&payment=${encodeURIComponent(paymentFilter)}&vip=${vipFilter}&courier=${encodeURIComponent(courierFilter)}&labelPrinted=${labelPrintedFilter}&booked=${bookedFilter}&paymentSettled=${paymentSettledFilter}&createdBy=${encodeURIComponent(createdByFilter)}`;
     if (search.trim() !== '') url += `&search=${encodeURIComponent(search)}`;
     if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
     if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
@@ -847,9 +863,16 @@ export default function Orders() {
   };
 
   const handleResetFilters = () => {
+    setSearch('');
     setStatusFilter('all');
+    setCourierFilter('all');
     setPaymentFilter('all');
     setVipFilter('all');
+    setLabelPrintedFilter('all');
+    setBookedFilter('all');
+    setPaymentSettledFilter('all');
+    setCreatedByFilter('all');
+    setDateRange({ preset: 'all', startDate: '', endDate: '' });
     setPage(1);
   };
 
@@ -858,8 +881,97 @@ export default function Orders() {
     setShowPrintLabel(true);
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     printThermalLabel('printable-shipping-label');
+    if (printingOrder) {
+      try {
+        const res = await fetch(`/api/orders/${printingOrder.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ labelPrinted: true })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.order) {
+            setOrders(prev => prev.map(item => (item.id === data.order.id ? data.order : item)));
+            setPrintingOrder(data.order);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to persist labelPrinted state:', err);
+      }
+    }
+  };
+
+  const handleTogglePaymentSettled = async (order: Order) => {
+    try {
+      const nextVal = !order.isPaymentSettled;
+      const res = await fetch(`/api/orders/${order.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPaymentSettled: nextVal })
+      });
+      const data = await res.json();
+      if (res.ok && data?.order) {
+        setOrders(prev => prev.map(item => (item.id === data.order.id ? data.order : item)));
+      } else {
+        alert(data?.error || 'Failed to update payment status.');
+      }
+    } catch {
+      alert('Network error updating payment settlement.');
+    }
+  };
+
+  const handleToggleLabelPrinted = async (order: Order) => {
+    try {
+      const nextVal = !order.labelPrinted;
+      const res = await fetch(`/api/orders/${order.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ labelPrinted: nextVal })
+      });
+      const data = await res.json();
+      if (res.ok && data?.order) {
+        setOrders(prev => prev.map(item => (item.id === data.order.id ? data.order : item)));
+      }
+    } catch {
+      console.error('Failed to toggle labelPrinted.');
+    }
+  };
+
+  const handleBarcodeScan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = scanInput.trim();
+    if (!code) return;
+    setScanLoading(true);
+    setScanFeedback(null);
+    try {
+      const res = await fetch('/api/orders/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ barcode: code })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setScanFeedback({
+          success: true,
+          message: data.alreadyDispatched
+            ? `Order ${data.order.orderId} confirmed Booked (Scanned).`
+            : `Order ${data.order.orderId} scanned — Shipment switched to Booked & Dispatched.`
+        });
+        setScanInput('');
+        fetchOrdersList(true);
+      } else {
+        setScanFeedback({
+          success: false,
+          message: data.error || 'Scan failed.'
+        });
+      }
+    } catch {
+      setScanFeedback({ success: false, message: 'Network error while scanning barcode.' });
+    } finally {
+      setScanLoading(false);
+    }
   };
 
   return (
@@ -925,6 +1037,105 @@ export default function Orders() {
         </div>
       )}
 
+      {/* Order Creation Numbers & Live Summary Bar (Visible to ALL users) */}
+      <div
+        className="premium-card"
+        style={{
+          padding: '12px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+          backgroundColor: '#0F0F12',
+          borderColor: '#27272A',
+        }}
+      >
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center', fontSize: '12.5px' }}>
+          <span style={{ color: '#A1A1AA' }}>
+            Total Matching Orders: <strong style={{ color: '#FAFAFA', fontSize: '14px' }}>{totalCount}</strong>
+          </span>
+          <span style={{ color: '#10B981' }}>
+            Labels Printed: <strong>{orders.filter(o => o.labelPrinted).length}</strong>
+            <span style={{ color: '#737373' }}> / {orders.length}</span>
+          </span>
+          <span style={{ color: '#3B82F6' }}>
+            Booked (Scanned): <strong>{orders.filter(o => o.isBooked || ['Dispatched', 'Call Placed Notification', 'RDC', 'OFD', 'Delivered', 'Undelivered', 'NDR', 'Return'].includes(o.status)).length}</strong>
+          </span>
+          <span style={{ color: '#34D399' }}>
+            Paid: <strong>{orders.filter(o => o.paymentType === 'Paid').length}</strong>
+          </span>
+          <span style={{ color: '#F59E0B' }}>
+            COD: <strong>{orders.filter(o => o.paymentType === 'COD').length}</strong>
+          </span>
+          <span style={{ color: '#A78BFA' }}>
+            Partial: <strong>{orders.filter(o => (o.partiallyPaidAmount || 0) > 0 && o.orderValue > (o.partiallyPaidAmount || 0)).length}</strong>
+          </span>
+          {orders.length > 0 && (() => {
+            const creatorCounts = Object.entries(
+              orders.reduce<Record<string, number>>((acc, o) => {
+                const key = o.createdBy || 'unknown';
+                acc[key] = (acc[key] || 0) + 1;
+                return acc;
+              }, {})
+            ).sort((a, b) => b[1] - a[1]);
+            return (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', color: '#71717A', fontSize: '11.5px' }}>
+                <span>By Team:</span>
+                {creatorCounts.slice(0, 5).map(([creator, count]) => (
+                  <span key={creator} style={{ backgroundColor: '#18181B', border: '1px solid #27272A', padding: '1px 7px', borderRadius: '999px', color: '#D4D4D8' }}>
+                    {getUserDisplayName(creator).split(' (')[0]}: <strong>{count}</strong>
+                  </span>
+                ))}
+              </span>
+            );
+          })()}
+        </div>
+
+        {/* Barcode Scanner Input */}
+        <form onSubmit={handleBarcodeScan} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ position: 'relative' }}>
+            <Barcode size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#3B82F6' }} />
+            <input
+              type="text"
+              className="premium-input"
+              style={{ paddingLeft: '30px', height: '32px', fontSize: '12.5px', width: '215px', backgroundColor: '#18181B' }}
+              placeholder="Scan AWB / Order ID to Book..."
+              value={scanInput}
+              onChange={(e) => setScanInput(e.target.value)}
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={scanLoading || !scanInput.trim()}
+            className="premium-btn premium-btn-secondary"
+            style={{ height: '32px', padding: '0 12px', fontSize: '12px', borderColor: '#3B82F6', color: '#60A5FA' }}
+          >
+            {scanLoading ? 'Scanning...' : 'Scan & Book'}
+          </button>
+        </form>
+      </div>
+
+      {scanFeedback && (
+        <div
+          className="animate-fade-in"
+          style={{
+            padding: '10px 16px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            backgroundColor: scanFeedback.success ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+            border: `1px solid ${scanFeedback.success ? '#10B981' : '#EF4444'}`,
+            color: scanFeedback.success ? '#34D399' : '#F87171'
+          }}
+        >
+          {scanFeedback.success ? <Check size={15} /> : <AlertTriangle size={15} />}
+          <span>{scanFeedback.message}</span>
+        </div>
+      )}
+
       {/* Search & Filter Toolbar Card */}
       <div
         className="premium-card"
@@ -985,12 +1196,13 @@ export default function Orders() {
             <option value="Courier Selected">Courier Selected</option>
             <option value="Label Generated">Ready to Dispatch (Label Generated)</option>
             <option value="Dispatched">Dispatched</option>
+            <option value="Call Placed Notification">Call Placed</option>
+            <option value="RDC">RDC Update</option>
             <option value="OFD">OFD (Out for Delivery)</option>
             <option value="Delivered">Delivered</option>
             <option value="Undelivered">Undelivered</option>
-            <option value="Return">Returned</option>
-            <option value="RDC">RDC Update</option>
             <option value="NDR">NDR Failure</option>
+            <option value="Return">Returned</option>
           </select>
           <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
         </div>
@@ -1016,9 +1228,12 @@ export default function Orders() {
           >
             <option value="all">Courier (All)</option>
             <option value="DTDC">DTDC Express</option>
-            <option value="XpressBees">XpressBees</option>
+            <option value="XpressBees">XpressBees (All)</option>
+            <option value="XpressBees Air">XpressBees Air</option>
+            <option value="XpressBees Surface">XpressBees Surface</option>
             <option value="Delhivery">Delhivery</option>
             <option value="Shadowfax">Shadowfax</option>
+            <option value="Unassigned">Unassigned Courier</option>
           </select>
           <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
         </div>
@@ -1044,7 +1259,87 @@ export default function Orders() {
           >
             <option value="all">Payment (All)</option>
             <option value="Paid">Prepaid (Paid)</option>
-            <option value="COD">Cash on Delivery (COD)</option>
+            <option value="COD">COD (All COD)</option>
+            <option value="Pure COD">COD (Unpaid Only)</option>
+            <option value="Partially Paid">Partially Paid</option>
+          </select>
+          <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
+        </div>
+
+        {/* Filter Label Printed */}
+        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+          <select
+            className="premium-input"
+            style={{
+              width: 'auto',
+              minWidth: '130px',
+              padding: '6px 28px 6px 12px',
+              height: '34px',
+              fontSize: '13px',
+              backgroundColor: '#18181B',
+              borderColor: '#27272A',
+              appearance: 'none',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
+            value={labelPrintedFilter}
+            onChange={(e) => { setLabelPrintedFilter(e.target.value); setPage(1); }}
+          >
+            <option value="all">Label (All)</option>
+            <option value="true">Label Printed</option>
+            <option value="false">Not Printed</option>
+          </select>
+          <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
+        </div>
+
+        {/* Filter Booked / Scanned */}
+        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+          <select
+            className="premium-input"
+            style={{
+              width: 'auto',
+              minWidth: '135px',
+              padding: '6px 28px 6px 12px',
+              height: '34px',
+              fontSize: '13px',
+              backgroundColor: '#18181B',
+              borderColor: '#27272A',
+              appearance: 'none',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
+            value={bookedFilter}
+            onChange={(e) => { setBookedFilter(e.target.value); setPage(1); }}
+          >
+            <option value="all">Booking (All)</option>
+            <option value="true">Booked (Scanned)</option>
+            <option value="false">Not Booked</option>
+          </select>
+          <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
+        </div>
+
+        {/* Filter Payment Settled */}
+        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+          <select
+            className="premium-input"
+            style={{
+              width: 'auto',
+              minWidth: '135px',
+              padding: '6px 28px 6px 12px',
+              height: '34px',
+              fontSize: '13px',
+              backgroundColor: '#18181B',
+              borderColor: '#27272A',
+              appearance: 'none',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
+            value={paymentSettledFilter}
+            onChange={(e) => { setPaymentSettledFilter(e.target.value); setPage(1); }}
+          >
+            <option value="all">Settlement (All)</option>
+            <option value="settled">Marked Paid</option>
+            <option value="unsettled">Payment Pending</option>
           </select>
           <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
         </div>
@@ -1055,7 +1350,7 @@ export default function Orders() {
             className="premium-input"
             style={{
               width: 'auto',
-              minWidth: '120px',
+              minWidth: '115px',
               padding: '6px 28px 6px 12px',
               height: '34px',
               fontSize: '13px',
@@ -1074,6 +1369,49 @@ export default function Orders() {
           </select>
           <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
         </div>
+
+        {/* Filter Created By */}
+        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+          <select
+            className="premium-input"
+            style={{
+              width: 'auto',
+              minWidth: '130px',
+              padding: '6px 28px 6px 12px',
+              height: '34px',
+              fontSize: '13px',
+              backgroundColor: '#18181B',
+              borderColor: '#27272A',
+              appearance: 'none',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
+            value={createdByFilter}
+            onChange={(e) => { setCreatedByFilter(e.target.value); setPage(1); }}
+          >
+            <option value="all">Creator (All)</option>
+            {Array.from(new Set([
+              ...teamUsers.map(u => u.username),
+              ...orders.map(o => o.createdBy).filter(Boolean),
+            ])).map(uname => (
+              <option key={uname} value={uname}>
+                {getUserDisplayName(uname)}
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
+        </div>
+
+        {(search || statusFilter !== 'all' || courierFilter !== 'all' || paymentFilter !== 'all' || labelPrintedFilter !== 'all' || bookedFilter !== 'all' || paymentSettledFilter !== 'all' || vipFilter !== 'all' || createdByFilter !== 'all' || dateRange.preset !== 'all') && (
+          <button
+            type="button"
+            onClick={handleResetFilters}
+            className="premium-btn premium-btn-secondary"
+            style={{ height: '34px', padding: '0 10px', fontSize: '12px', color: '#F87171', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+          >
+            Reset
+          </button>
+        )}
 
         {/* Sort Select (Icon Only) */}
         <div
@@ -1239,19 +1577,77 @@ export default function Orders() {
                         <span style={{ fontSize: '11px', color: '#737373' }}>Weight: {o.weight} kg</span>
                       </td>
                       <td>
-                        {isPartiallyPaid ? (
-                          <span className="premium-badge badge-partial">Partially Paid</span>
-                        ) : (
-                          <span className={`premium-badge ${isOrderPaid ? 'badge-paid' : 'badge-cod'}`}>
-                            {o.paymentType}
-                          </span>
-                        )}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          {isPartiallyPaid ? (
+                            <span className="premium-badge badge-partial" style={{ width: 'fit-content' }}>Partially Paid</span>
+                          ) : (
+                            <span className={`premium-badge ${isOrderPaid ? 'badge-paid' : 'badge-cod'}`} style={{ width: 'fit-content' }}>
+                              {o.paymentType}
+                            </span>
+                          )}
+                          {(o.isPaymentSettled || isOrderPaid) && (
+                            <span style={{ fontSize: '10px', color: '#10B981', fontWeight: 600 }}>
+                              ✓ Payment Paid
+                            </span>
+                          )}
+                          {(currentUser?.role === 'Super Admin' || currentUser?.role === 'Accounts Team') && o.paymentType !== 'Paid' && (
+                            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: '#A1A1AA', cursor: 'pointer' }}>
+                              <input
+                                type="checkbox"
+                                checked={Boolean(o.isPaymentSettled)}
+                                onChange={() => handleTogglePaymentSettled(o)}
+                                style={{ accentColor: '#10B981', cursor: 'pointer' }}
+                              />
+                              <span>Mark Paid</span>
+                            </label>
+                          )}
+                        </div>
                       </td>
                       <td style={{ fontWeight: 600 }}>₹{o.orderValue.toFixed(2)}</td>
                       <td>
-                        <span className={`premium-badge status-${o.status.toLowerCase().replace(' ', '')}`}>
-                          {o.status}
-                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                          <span className={`premium-badge status-${o.status.toLowerCase().replace(' ', '')}`}>
+                            {o.status}
+                          </span>
+                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleLabelPrinted(o)}
+                              title={o.labelPrinted ? `Label printed${o.labelPrintedBy ? ` by ${o.labelPrintedBy}` : ''} (click to toggle)` : 'Label not printed yet (click to toggle)'}
+                              style={{
+                                fontSize: '10px',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                border: `1px solid ${o.labelPrinted ? 'rgba(16, 185, 129, 0.4)' : 'rgba(245, 158, 11, 0.35)'}`,
+                                backgroundColor: o.labelPrinted ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.08)',
+                                color: o.labelPrinted ? '#34D399' : '#FBBF24',
+                                cursor: 'pointer',
+                                fontWeight: 600,
+                              }}
+                            >
+                              {o.labelPrinted ? 'Printed ✓' : 'Not Printed'}
+                            </button>
+                            {(() => {
+                              const booked = Boolean(o.isBooked || ['Dispatched', 'Call Placed Notification', 'RDC', 'OFD', 'Delivered', 'Undelivered', 'NDR', 'Return'].includes(o.status));
+                              return (
+                                <span
+                                  title={booked && o.bookedBy ? `Scanned/Booked by ${o.bookedBy}` : booked ? 'Shipment booked / dispatched' : 'Not booked yet (scan label to book)'}
+                                  style={{
+                                    fontSize: '10px',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    border: `1px solid ${booked ? 'rgba(59, 130, 246, 0.4)' : 'rgba(113, 113, 122, 0.35)'}`,
+                                    backgroundColor: booked ? 'rgba(59, 130, 246, 0.14)' : 'rgba(113, 113, 122, 0.1)',
+                                    color: booked ? '#60A5FA' : '#A1A1AA',
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  {booked ? 'Booked ✓' : 'Not Booked'}
+                                </span>
+                              );
+                            })()}
+                          </div>
+                        </div>
                       </td>
                       <td>
                         {o.awb ? (

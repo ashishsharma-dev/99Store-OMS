@@ -21,12 +21,101 @@ export interface OrderQueryOptions {
   vip?: boolean;
   payment?: string;
   courier?: string;
+  labelPrinted?: boolean;
+  isBooked?: boolean;
+  paymentSettled?: 'settled' | 'unsettled';
+  createdBy?: string;
+  assignedTo?: string;
   startDate?: string;
   endDate?: string;
   sortField?: string;
   sortOrder?: 'asc' | 'desc';
   page?: number;
   limit?: number;
+}
+
+export const BOOKED_STATUSES = [
+  'Dispatched',
+  'Call Placed Notification',
+  'RDC',
+  'OFD',
+  'Delivered',
+  'Undelivered',
+  'NDR',
+  'Return',
+] as const;
+
+export function isOrderBooked(order: Pick<Order, 'isBooked' | 'status'>): boolean {
+  return Boolean(order.isBooked || (BOOKED_STATUSES as readonly string[]).includes(order.status));
+}
+
+export function isOrderPartiallyPaid(order: Pick<Order, 'partiallyPaidAmount' | 'orderValue'>): boolean {
+  const paid = Number(order.partiallyPaidAmount || 0);
+  return paid > 0 && Number(order.orderValue || 0) > paid;
+}
+
+export function isOrderPaymentSettled(order: Pick<Order, 'isPaymentSettled' | 'paymentType'>): boolean {
+  return Boolean(order.isPaymentSettled || order.paymentType === 'Paid');
+}
+
+export function filterOrdersInMemory(orders: Order[], options: OrderQueryOptions = {}): Order[] {
+  let rows = orders.filter(order => !order.isDeleted);
+  if (options.startDate) rows = rows.filter(order => order.createdAt >= options.startDate!);
+  if (options.endDate) rows = rows.filter(order => order.createdAt <= options.endDate!);
+  if (options.statuses?.length) rows = rows.filter(order => options.statuses!.includes(order.status));
+  if (typeof options.vip === 'boolean') rows = rows.filter(order => Boolean(order.isVip) === options.vip);
+  if (options.payment) {
+    if (options.payment === 'Partially Paid') {
+      rows = rows.filter(order => isOrderPartiallyPaid(order));
+    } else if (options.payment === 'Pure COD') {
+      rows = rows.filter(order => order.paymentType === 'COD' && !isOrderPartiallyPaid(order));
+    } else {
+      rows = rows.filter(order => order.paymentType === options.payment);
+    }
+  }
+  if (options.courier) {
+    if (options.courier === 'Unassigned') {
+      rows = rows.filter(order => !order.courier || String(order.courier).trim() === '');
+    } else {
+      rows = rows.filter(order => order.courier?.toLowerCase().includes(options.courier!.toLowerCase()));
+    }
+  }
+  if (typeof options.labelPrinted === 'boolean') {
+    rows = rows.filter(order => Boolean(order.labelPrinted) === options.labelPrinted);
+  }
+  if (typeof options.isBooked === 'boolean') {
+    rows = rows.filter(order => isOrderBooked(order) === options.isBooked);
+  }
+  if (options.paymentSettled === 'settled') {
+    rows = rows.filter(order => isOrderPaymentSettled(order));
+  } else if (options.paymentSettled === 'unsettled') {
+    rows = rows.filter(order => !isOrderPaymentSettled(order));
+  }
+  if (options.createdBy) {
+    const targetCreator = options.createdBy.toLowerCase();
+    rows = rows.filter(order => String(order.createdBy || '').toLowerCase() === targetCreator);
+  }
+  if (options.assignedTo) {
+    const targetAssignee = options.assignedTo.toLowerCase();
+    rows = rows.filter(order => String(order.assignedTo || '').toLowerCase() === targetAssignee);
+  }
+  if (options.search) {
+    const query = options.search.toLowerCase();
+    rows = rows.filter(order => [
+      order.customerName,
+      order.orderId,
+      order.phonePrimary,
+      order.phoneSecondary,
+      order.phoneAdditional1,
+      order.phoneAdditional2,
+      order.phoneTertiary,
+      order.phoneWhatsApp,
+      order.pincode,
+      order.awb,
+      order.address,
+    ].some(value => String(value || '').toLowerCase().includes(query)));
+  }
+  return rows;
 }
 
 export interface ActivityLogQueryOptions {
@@ -538,21 +627,70 @@ export const db = {
 
     if (database) {
       try {
-        const filter: any = { isDeleted: { $ne: true } };
+        const andConditions: any[] = [{ isDeleted: { $ne: true } }];
         if (options.startDate || options.endDate) {
-          filter.createdAt = {};
-          if (options.startDate) filter.createdAt.$gte = options.startDate;
-          if (options.endDate) filter.createdAt.$lte = options.endDate;
+          const dateFilter: any = {};
+          if (options.startDate) dateFilter.$gte = options.startDate;
+          if (options.endDate) dateFilter.$lte = options.endDate;
+          andConditions.push({ createdAt: dateFilter });
         }
-        if (options.statuses?.length) filter.status = { $in: options.statuses };
-        if (typeof options.vip === 'boolean') filter.isVip = options.vip;
-        if (options.payment) filter.paymentType = options.payment;
-        if (options.courier) filter.courier = { $regex: escapeRegExp(options.courier), $options: 'i' };
+        if (options.statuses?.length) andConditions.push({ status: { $in: options.statuses } });
+        if (typeof options.vip === 'boolean') andConditions.push({ isVip: options.vip });
+        if (options.payment) {
+          if (options.payment === 'Partially Paid') {
+            andConditions.push({
+              partiallyPaidAmount: { $gt: 0 },
+              $expr: { $gt: ['$orderValue', '$partiallyPaidAmount'] },
+            });
+          } else if (options.payment === 'Pure COD') {
+            andConditions.push({
+              paymentType: 'COD',
+              $or: [
+                { partiallyPaidAmount: { $exists: false } },
+                { partiallyPaidAmount: null },
+                { partiallyPaidAmount: { $lte: 0 } },
+              ],
+            });
+          } else {
+            andConditions.push({ paymentType: options.payment });
+          }
+        }
+        if (options.courier) {
+          if (options.courier === 'Unassigned') {
+            andConditions.push({ $or: [{ courier: { $exists: false } }, { courier: null }, { courier: '' }] });
+          } else {
+            andConditions.push({ courier: { $regex: escapeRegExp(options.courier), $options: 'i' } });
+          }
+        }
+        if (typeof options.labelPrinted === 'boolean') {
+          andConditions.push(options.labelPrinted ? { labelPrinted: true } : { labelPrinted: { $ne: true } });
+        }
+        if (typeof options.isBooked === 'boolean') {
+          andConditions.push(
+            options.isBooked
+              ? { $or: [{ isBooked: true }, { status: { $in: [...BOOKED_STATUSES] } }] }
+              : { isBooked: { $ne: true }, status: { $nin: [...BOOKED_STATUSES] } },
+          );
+        }
+        if (options.paymentSettled === 'settled') {
+          andConditions.push({ $or: [{ isPaymentSettled: true }, { paymentType: 'Paid' }] });
+        } else if (options.paymentSettled === 'unsettled') {
+          andConditions.push({ isPaymentSettled: { $ne: true }, paymentType: { $ne: 'Paid' } });
+        }
+        if (options.createdBy) {
+          andConditions.push({ createdBy: { $regex: `^${escapeRegExp(options.createdBy)}$`, $options: 'i' } });
+        }
+        if (options.assignedTo) {
+          andConditions.push({ assignedTo: { $regex: `^${escapeRegExp(options.assignedTo)}$`, $options: 'i' } });
+        }
         if (options.search) {
           const query = escapeRegExp(options.search);
-          filter.$or = ['customerName', 'orderId', 'phonePrimary', 'phoneSecondary', 'phoneAdditional1', 'phoneAdditional2', 'phoneTertiary', 'pincode', 'awb', 'address']
-            .map(field => ({ [field]: { $regex: query, $options: 'i' } }));
+          andConditions.push({
+            $or: ['customerName', 'orderId', 'phonePrimary', 'phoneSecondary', 'phoneAdditional1', 'phoneAdditional2', 'phoneTertiary', 'phoneWhatsApp', 'pincode', 'awb', 'address']
+              .map(field => ({ [field]: { $regex: query, $options: 'i' } })),
+          });
         }
+        const filter = andConditions.length === 1 ? andConditions[0] : { $and: andConditions };
 
         const collection = database.collection('orders');
         const [rows, totalCount] = await Promise.all([
@@ -571,18 +709,7 @@ export const db = {
       }
     }
 
-    let rows = memoryOrders.filter(order => !order.isDeleted);
-    if (options.startDate) rows = rows.filter(order => order.createdAt >= options.startDate!);
-    if (options.endDate) rows = rows.filter(order => order.createdAt <= options.endDate!);
-    if (options.statuses?.length) rows = rows.filter(order => options.statuses!.includes(order.status));
-    if (typeof options.vip === 'boolean') rows = rows.filter(order => Boolean(order.isVip) === options.vip);
-    if (options.payment) rows = rows.filter(order => order.paymentType === options.payment);
-    if (options.courier) rows = rows.filter(order => order.courier?.toLowerCase().includes(options.courier!.toLowerCase()));
-    if (options.search) {
-      const query = options.search.toLowerCase();
-      rows = rows.filter(order => [order.customerName, order.orderId, order.phonePrimary, order.phoneSecondary, order.phoneAdditional1, order.phoneAdditional2, order.phoneTertiary, order.pincode, order.awb, order.address]
-        .some(value => String(value || '').toLowerCase().includes(query)));
-    }
+    let rows = filterOrdersInMemory(memoryOrders, options);
     rows = [...rows].sort((left: any, right: any) => {
       const a = left[sortField] ?? '';
       const b = right[sortField] ?? '';

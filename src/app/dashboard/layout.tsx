@@ -22,7 +22,9 @@ import {
   Bell,
   Activity,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  CreditCard,
+  FileSpreadsheet
 } from 'lucide-react';
 import { User, UserRole, Message } from '@/lib/types';
 import { DashboardSkeleton } from '@/components/DashboardSkeleton';
@@ -540,6 +542,18 @@ export default function DashboardLayout({
       path: '/dashboard/ofd',
       icon: Truck,
       roles: ['Super Admin', 'Tracking Team']
+    },
+    {
+      name: 'Accounts & Payments',
+      path: '/dashboard/accounts',
+      icon: CreditCard,
+      roles: ['Super Admin', 'Accounts Team']
+    },
+    {
+      name: 'Reports & Performance',
+      path: '/dashboard/reports',
+      icon: FileSpreadsheet,
+      roles: ['Super Admin', 'Order Team', 'Packing Team', 'Tracking Team', 'Accounts Team']
     },
     {
       name: 'Internal Messages',

@@ -62,6 +62,10 @@ export default function AllShipments() {
   // Filters State
   const [statusFilter, setStatusFilter] = useState('all');
   const [courierFilter, setCourierFilter] = useState('all');
+  const [paymentFilter, setPaymentFilter] = useState('all');
+  const [labelPrintedFilter, setLabelPrintedFilter] = useState('all');
+  const [bookedFilter, setBookedFilter] = useState('all');
+  const [vipFilter, setVipFilter] = useState('all');
   const [sortField, setSortField] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
   
@@ -70,7 +74,7 @@ export default function AllShipments() {
 
   useEffect(() => {
     setDisplayLimit(20);
-  }, [search, statusFilter, courierFilter, dateRange]);
+  }, [search, statusFilter, courierFilter, paymentFilter, labelPrintedFilter, bookedFilter, vipFilter, dateRange]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -183,21 +187,21 @@ export default function AllShipments() {
 
   useEffect(() => {
     fetchShipmentsList();
-  }, [search, statusFilter, courierFilter, sortField, sortOrder, dateRange]);
+  }, [search, statusFilter, courierFilter, paymentFilter, labelPrintedFilter, bookedFilter, vipFilter, sortField, sortOrder, dateRange]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       fetchShipmentsList(true);
     }, 20000);
     return () => clearInterval(interval);
-  }, [search, statusFilter, courierFilter, sortField, sortOrder, dateRange]);
+  }, [search, statusFilter, courierFilter, paymentFilter, labelPrintedFilter, bookedFilter, vipFilter, sortField, sortOrder, dateRange]);
 
   const fetchShipmentsList = async (isBackground = false) => {
     try {
       const shipmentStatuses = statusFilter === 'all'
-        ? 'Label%20Generated,Dispatched,OFD,Delivered,Undelivered,Return,RDC,NDR'
+        ? 'all'
         : encodeURIComponent(statusFilter);
-      let url = `/api/orders?limit=500&search=${encodeURIComponent(search)}&status=${shipmentStatuses}&courier=${encodeURIComponent(courierFilter)}&sortField=${sortField}&sortOrder=${sortOrder}`;
+      let url = `/api/orders?limit=500&search=${encodeURIComponent(search)}&status=${shipmentStatuses}&courier=${encodeURIComponent(courierFilter)}&payment=${encodeURIComponent(paymentFilter)}&labelPrinted=${labelPrintedFilter}&booked=${bookedFilter}&vip=${vipFilter}&sortField=${sortField}&sortOrder=${sortOrder}`;
       if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
       if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
       const res = await fetch(url);
@@ -244,11 +248,23 @@ export default function AllShipments() {
   };
 
   const handleExportCsv = () => {
-    let url = `/api/reports?status=${statusFilter}&courier=${courierFilter}`;
+    let url = `/api/reports?status=${encodeURIComponent(statusFilter)}&courier=${encodeURIComponent(courierFilter)}&payment=${encodeURIComponent(paymentFilter)}&labelPrinted=${labelPrintedFilter}&booked=${bookedFilter}&vip=${vipFilter}`;
     if (search.trim() !== '') url += `&search=${encodeURIComponent(search)}`;
     if (dateRange.startDate) url += `&startDate=${encodeURIComponent(dateRange.startDate)}`;
     if (dateRange.endDate) url += `&endDate=${encodeURIComponent(dateRange.endDate)}`;
     window.open(url);
+  };
+
+  const handleResetFilters = () => {
+    setSearch('');
+    setStatusFilter('all');
+    setCourierFilter('all');
+    setPaymentFilter('all');
+    setLabelPrintedFilter('all');
+    setBookedFilter('all');
+    setVipFilter('all');
+    setDateRange({ preset: 'all', startDate: '', endDate: '' });
+    setDisplayLimit(20);
   };
 
   return (
@@ -368,12 +384,132 @@ export default function AllShipments() {
           >
             <option value="all">Courier (All)</option>
             <option value="DTDC">DTDC</option>
-            <option value="XpressBees">XpressBees</option>
+            <option value="XpressBees">XpressBees (All)</option>
+            <option value="XpressBees Air">XpressBees Air</option>
+            <option value="XpressBees Surface">XpressBees Surface</option>
             <option value="Delhivery">Delhivery</option>
             <option value="Shadowfax">Shadowfax</option>
+            <option value="Unassigned">Unassigned</option>
           </select>
           <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
         </div>
+
+        {/* Payment Variation filter */}
+        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+          <select
+            className="premium-input"
+            style={{ 
+              width: 'auto', 
+              minWidth: '125px', 
+              padding: '6px 28px 6px 12px',
+              height: '34px',
+              fontSize: '13px',
+              backgroundColor: '#18181B',
+              borderColor: '#27272A',
+              appearance: 'none',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
+            value={paymentFilter}
+            onChange={(e) => { setPaymentFilter(e.target.value); setDisplayLimit(20); }}
+          >
+            <option value="all">Payment (All)</option>
+            <option value="Paid">Prepaid (Paid)</option>
+            <option value="COD">COD (All COD)</option>
+            <option value="Pure COD">COD (Unpaid Only)</option>
+            <option value="Partially Paid">Partially Paid</option>
+          </select>
+          <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
+        </div>
+
+        {/* Label Printed filter */}
+        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+          <select
+            className="premium-input"
+            style={{ 
+              width: 'auto', 
+              minWidth: '125px', 
+              padding: '6px 28px 6px 12px',
+              height: '34px',
+              fontSize: '13px',
+              backgroundColor: '#18181B',
+              borderColor: '#27272A',
+              appearance: 'none',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
+            value={labelPrintedFilter}
+            onChange={(e) => { setLabelPrintedFilter(e.target.value); setDisplayLimit(20); }}
+          >
+            <option value="all">Label (All)</option>
+            <option value="true">Printed</option>
+            <option value="false">Not Printed</option>
+          </select>
+          <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
+        </div>
+
+        {/* Shipment Booked / Scanned filter */}
+        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+          <select
+            className="premium-input"
+            style={{ 
+              width: 'auto', 
+              minWidth: '130px', 
+              padding: '6px 28px 6px 12px',
+              height: '34px',
+              fontSize: '13px',
+              backgroundColor: '#18181B',
+              borderColor: '#27272A',
+              appearance: 'none',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
+            value={bookedFilter}
+            onChange={(e) => { setBookedFilter(e.target.value); setDisplayLimit(20); }}
+          >
+            <option value="all">Booking (All)</option>
+            <option value="true">Booked (Scanned)</option>
+            <option value="false">Not Booked</option>
+          </select>
+          <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
+        </div>
+
+        {/* VIP filter */}
+        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+          <select
+            className="premium-input"
+            style={{ 
+              width: 'auto', 
+              minWidth: '110px', 
+              padding: '6px 28px 6px 12px',
+              height: '34px',
+              fontSize: '13px',
+              backgroundColor: '#18181B',
+              borderColor: '#27272A',
+              appearance: 'none',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
+            value={vipFilter}
+            onChange={(e) => { setVipFilter(e.target.value); setDisplayLimit(20); }}
+          >
+            <option value="all">VIP (All)</option>
+            <option value="true">⭐ VIP Only</option>
+            <option value="false">Non-VIP</option>
+          </select>
+          <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
+        </div>
+
+        {(search || statusFilter !== 'all' || courierFilter !== 'all' || paymentFilter !== 'all' || labelPrintedFilter !== 'all' || bookedFilter !== 'all' || vipFilter !== 'all' || dateRange.preset !== 'all') && (
+          <button
+            type="button"
+            onClick={handleResetFilters}
+            className="premium-btn premium-btn-secondary"
+            style={{ height: '34px', padding: '0 10px', fontSize: '12px', color: '#F87171', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+          >
+            Reset
+          </button>
+        )}
 
         {/* Sort Select (Icon Only) */}
         <div 
@@ -545,9 +681,44 @@ export default function AllShipments() {
                         </div>
                       </td>
                       <td>
-                        <span className={`premium-badge status-${o.status.toLowerCase().replace(' ', '')}`}>
-                          {o.status}
-                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                          <span className={`premium-badge status-${o.status.toLowerCase().replace(' ', '')}`}>
+                            {o.status}
+                          </span>
+                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                border: `1px solid ${o.labelPrinted ? 'rgba(16, 185, 129, 0.4)' : 'rgba(245, 158, 11, 0.35)'}`,
+                                backgroundColor: o.labelPrinted ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.08)',
+                                color: o.labelPrinted ? '#34D399' : '#FBBF24',
+                                fontWeight: 600,
+                              }}
+                            >
+                              {o.labelPrinted ? 'Printed ✓' : 'Not Printed'}
+                            </span>
+                            {(() => {
+                              const booked = Boolean(o.isBooked || ['Dispatched', 'Call Placed Notification', 'RDC', 'OFD', 'Delivered', 'Undelivered', 'NDR', 'Return'].includes(o.status));
+                              return (
+                                <span
+                                  style={{
+                                    fontSize: '10px',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    border: `1px solid ${booked ? 'rgba(59, 130, 246, 0.4)' : 'rgba(113, 113, 122, 0.35)'}`,
+                                    backgroundColor: booked ? 'rgba(59, 130, 246, 0.14)' : 'rgba(113, 113, 122, 0.1)',
+                                    color: booked ? '#60A5FA' : '#A1A1AA',
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  {booked ? 'Booked ✓' : 'Not Booked'}
+                                </span>
+                              );
+                            })()}
+                          </div>
+                        </div>
                       </td>
                       <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'inline-flex', gap: '6px', justifyContent: 'flex-end' }}>

@@ -24,9 +24,25 @@ function publicUser(user: User) {
 
 export async function GET(request: Request) {
   try {
-    if (!await authorize(request)) return NextResponse.json({ error: 'Super Admin access required.' }, { status: 403 });
+    const session = await getActiveSession(request);
+    if (!session) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+
     const users = await db.getUsers();
-    return NextResponse.json({ success: true, users: users.map(publicUser) });
+    if (session.role === 'Super Admin') {
+      return NextResponse.json({ success: true, users: users.map(publicUser) });
+    }
+
+    return NextResponse.json({
+      success: true,
+      users: users.map(u => ({
+        id: u.id,
+        username: u.username,
+        name: u.name,
+        role: u.role,
+        isActive: u.isActive,
+        createdAt: u.createdAt,
+      })),
+    });
   } catch (error: any) {
     return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
   }
