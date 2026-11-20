@@ -12,6 +12,7 @@ import {
   normalizeDtdcTrackingPayload,
   trackDtdcShipment,
 } from '@/lib/dtdcTracking';
+import { appendDeliveryAgentRemarks } from '@/lib/deliveryAgent';
 
 async function syncTrackedStatus(...args: Parameters<typeof syncOrderStatus>) {
   const result = await syncOrderStatus(...args);
@@ -103,7 +104,10 @@ export async function handleCourierTracking(request: Request) {
           const courierStatus = simulatedTracking.ShipmentData[0].Shipment.Status.Status;
           const scanLocation = simulatedTracking.ShipmentData[0].Shipment.Status.StatusLocation;
           const latestScan = simulatedTracking.ShipmentData[0].Shipment.Scans?.[0]?.ScanDetail;
-          const customRemarks = latestScan ? `${latestScan.Scan}. Remarks: ${latestScan.Instructions}` : undefined;
+          const customRemarks = appendDeliveryAgentRemarks(
+            latestScan ? `${latestScan.Scan}. Remarks: ${latestScan.Instructions}` : '',
+            simulatedTracking
+          ) || undefined;
           await syncTrackedStatus(waybill, courierStatus, scanLocation, customRemarks);
 
           return NextResponse.json(simulatedTracking);
@@ -256,7 +260,10 @@ export async function handleCourierTracking(request: Request) {
         const scanLocation = unifiedData?.ShipmentData?.[0]?.Shipment?.Status?.StatusLocation;
         const liveEta = data?.expected_delivery_date || data?.data?.expected_delivery_date || data?.ExpectedDeliveryDate || data?.edd || null;
         const latestScan = getLatestDelhiveryScan(unifiedData?.ShipmentData?.[0]?.Shipment?.Scans);
-        const customRemarks = latestScan ? `${latestScan.Scan}. Remarks: ${latestScan.Instructions}` : undefined;
+        const customRemarks = appendDeliveryAgentRemarks(
+          latestScan ? `${latestScan.Scan}. Remarks: ${latestScan.Instructions}` : '',
+          data
+        ) || undefined;
         if (courierStatus || latestScan?.Scan) {
           await syncTrackedStatus(waybill, (mapCourierStatusToInternal(latestScan?.Scan) ? latestScan?.Scan : courierStatus) || courierStatus, latestScan?.ScannedLocation || scanLocation, customRemarks, liveEta, latestScan?.StatusDateTime || latestScan?.ScanDateTime);
         }
@@ -330,7 +337,10 @@ export async function handleCourierTracking(request: Request) {
           });
 
           const latestScan = simulatedTracking.ShipmentData[0].Shipment.Scans?.[0]?.ScanDetail;
-          const customRemarks = latestScan ? `${latestScan.Scan}. Remarks: ${latestScan.Instructions}` : undefined;
+          const customRemarks = appendDeliveryAgentRemarks(
+            latestScan ? `${latestScan.Scan}. Remarks: ${latestScan.Instructions}` : '',
+            simulatedTracking
+          ) || undefined;
           await syncTrackedStatus(waybill, 'Out for Delivery', 'Delhi Hub', customRemarks);
           return NextResponse.json(simulatedTracking);
         }
@@ -386,7 +396,10 @@ export async function handleCourierTracking(request: Request) {
 
           const liveEta = trackData?.expected_delivery_date || trackData?.expectedDeliveryDate || trackData?.edd || (trackData?.data && (trackData.data.expected_delivery_date || trackData.data.expectedDeliveryDate)) || null;
           const latestScan = getLatestDelhiveryScan(unifiedData?.ShipmentData?.[0]?.Shipment?.Scans);
-          const customRemarks = latestScan ? `${latestScan.Scan}. Remarks: ${latestScan.Instructions}` : undefined;
+          const customRemarks = appendDeliveryAgentRemarks(
+            latestScan ? `${latestScan.Scan}. Remarks: ${latestScan.Instructions}` : '',
+            trackData
+          ) || undefined;
           if (currentStatus || latestScan?.Scan) {
             await syncTrackedStatus(waybill, (mapCourierStatusToInternal(latestScan?.Scan) ? latestScan?.Scan : currentStatus) || currentStatus, latestScan?.ScannedLocation || currentLocation, customRemarks, liveEta, latestScan?.StatusDateTime || latestScan?.ScanDateTime);
           }
@@ -510,7 +523,10 @@ export async function handleCourierTracking(request: Request) {
 
           {
             const latest = getLatestDelhiveryScan(unifiedData.ShipmentData[0].Shipment.Scans);
-            if (latest?.Scan || currentStatus) await syncTrackedStatus(waybill, latest?.Scan || currentStatus, latest?.ScannedLocation || currentLocation, latest?.Instructions || comments, undefined, latest?.ScanDateTime);
+            if (latest?.Scan || currentStatus) {
+              const customRemarks = appendDeliveryAgentRemarks(latest?.Instructions || comments, trackData);
+              await syncTrackedStatus(waybill, latest?.Scan || currentStatus, latest?.ScannedLocation || currentLocation, customRemarks, undefined, latest?.ScanDateTime);
+            }
           }
 
           return NextResponse.json(unifiedData);
@@ -684,7 +700,10 @@ export async function handleCourierTracking(request: Request) {
       const liveEta = data?.ShipmentData?.[0]?.Shipment?.ExpectedDeliveryDate || data?.ShipmentData?.[0]?.Shipment?.expected_delivery_date || data?.expected_delivery_date || null;
       const latestScan = getLatestDelhiveryScan(data?.ShipmentData?.[0]?.Shipment?.Scans);
       const statusObj = data?.ShipmentData?.[0]?.Shipment?.Status;
-      const customRemarks = `Current Status: "${statusObj?.Status}" [Type: ${statusObj?.StatusType || 'UD'}, Instructions: ${statusObj?.Instructions || ''}]. Latest Scan: ${latestScan ? `${latestScan.Scan} (${latestScan.Instructions})` : 'None'}`;
+      const customRemarks = appendDeliveryAgentRemarks(
+        `Current Status: "${statusObj?.Status}" [Type: ${statusObj?.StatusType || 'UD'}, Instructions: ${statusObj?.Instructions || ''}]. Latest Scan: ${latestScan ? `${latestScan.Scan} (${latestScan.Instructions})` : 'None'}`,
+        data
+      );
       if (courierStatus) {
         await syncTrackedStatus(waybill, courierStatus, scanLocation, customRemarks, liveEta, statusObj?.StatusDateTime || latestScan?.StatusDateTime || latestScan?.ScanDateTime);
       }

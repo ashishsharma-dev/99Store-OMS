@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { OrderStatus, NdrRecord, ShipmentContactType } from '@/lib/types';
 import { triggerWhatsAppNotification } from '@/lib/whatsapp';
 import { bookOrderCourierShipment } from '@/lib/courierReliability';
-import { isShipmentContactType, resolveShipmentContact } from '@/lib/shipmentContact';
+import { isShipmentContactType, resolveShipmentContact, resolveConsigneePhone } from '@/lib/shipmentContact';
 import { hasAllowedRole } from '@/lib/session';
 import { getActiveSession } from '@/lib/authorization';
 import { normalizeCustomerWhatsAppNumber } from '@/lib/customerPhone';
@@ -184,7 +184,7 @@ export async function PATCH(
           {
             weight: order.weight,
             courier: selectedCourier,
-            phone: selectedShipmentContact?.phone || order.phonePrimary,
+            phone: selectedShipmentContact?.phone || resolveConsigneePhone(order),
             shipmentContactType: selectedShipmentContact?.type,
           },
         );

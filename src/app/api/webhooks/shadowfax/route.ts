@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { syncOrderStatus } from '@/lib/courierSync';
 import { verifyWebhookSignature } from '@/lib/webhookSecurity';
+import { appendDeliveryAgentRemarks, extractDeliveryAgentDetails } from '@/lib/deliveryAgent';
 
 export async function POST(request: Request) {
   try {
@@ -16,8 +17,7 @@ export async function POST(request: Request) {
     const courierStatus = payload.status || payload.event || 'In Transit';
     const scanLocation = payload.current_location || payload.location || 'Hub';
     const comments = payload.comments || payload.description || '';
-    const riderContact = payload.rider_contact || payload.riderPhone;
-    const riderName = payload.rider_name || payload.riderName;
+    const deliveryAgent = extractDeliveryAgentDetails(payload);
 
     // Log the incoming Shadowfax Webhook event
     await db.addCourierLog({
@@ -44,15 +44,13 @@ export async function POST(request: Request) {
 
     if (order) {
       // If rider contact is provided, record it as Field Executive (FE) number
-      if (riderContact) {
-        order.feNumber = String(riderContact);
+      if (deliveryAgent.phone) {
+        order.feNumber = deliveryAgent.phone;
         await db.saveOrder(order);
       }
 
       const waybillToSync = order.awb || String(awb);
-      const customRemarks = riderName 
-        ? `${comments} (Rider: ${riderName}${riderContact ? `, Phone: ${riderContact}` : ''})` 
-        : comments;
+      const customRemarks = appendDeliveryAgentRemarks(comments, payload);
 
       const result = await syncOrderStatus(
         waybillToSync,
@@ -60,7 +58,7 @@ export async function POST(request: Request) {
         scanLocation,
         customRemarks,
         undefined,
-        payload.timestamp || payload.created || payload.event_time
+        payload.event_timestamp || payload.timestamp || payload.created || payload.event_time
       );
 
       if (result.error) return NextResponse.json({ success: false, error: result.error }, { status: 500 });

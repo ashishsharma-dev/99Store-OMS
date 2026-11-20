@@ -466,8 +466,8 @@ export default function Orders() {
 
   // Current session user and default contact variables from settings
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [defaultPrimaryPhone, setDefaultPrimaryPhone] = useState('+91 9876543210');
-  const [defaultSecondaryPhone, setDefaultSecondaryPhone] = useState('+91 9123456789');
+  const [defaultPrimaryPhone, setDefaultPrimaryPhone] = useState('');
+  const [defaultSecondaryPhone, setDefaultSecondaryPhone] = useState('');
   const [defaultAdditionalPhone1, setDefaultAdditionalPhone1] = useState('');
   const [defaultAdditionalPhone2, setDefaultAdditionalPhone2] = useState('');
 
@@ -483,8 +483,8 @@ export default function Orders() {
         const res = await fetch('/api/settings');
         const data = await res.json();
         if (res.ok && data.settings) {
-          const prim = data.settings.primaryContactNumbers?.[0] || '+91 9876543210';
-          const sec = data.settings.secondaryContactNumbers?.[0] || '+91 9123456789';
+          const prim = data.settings.primaryContactNumbers?.[0] || '';
+          const sec = data.settings.secondaryContactNumbers?.[0] || '';
           const additional1 = data.settings.additionalContactNumbers1?.[0] || '';
           const additional2 = data.settings.additionalContactNumbers2?.[0] || '';
           setDefaultPrimaryPhone(prim);
@@ -1839,7 +1839,7 @@ export default function Orders() {
                       <label style={{ fontSize: '11px', color: '#737373', textTransform: 'uppercase' }}>Primary Phone *</label>
                       <span style={{ fontSize: '10px', color: '#10B981', fontWeight: 600 }}>Prefilled (Admin Variable)</span>
                     </div>
-                    <input type="tel" className="premium-input" placeholder="9876543210" value={phonePrimary} onChange={(e) => setPhonePrimary(e.target.value.replace(/\D/g, ''))} required />
+                    <input type="tel" className="premium-input" placeholder="e.g. 8791271012" value={phonePrimary} onChange={(e) => setPhonePrimary(e.target.value.replace(/\D/g, ''))} required />
                   </div>
                 </div>
 
@@ -1849,11 +1849,11 @@ export default function Orders() {
                       <label style={{ fontSize: '11px', color: '#737373', textTransform: 'uppercase' }}>Secondary Phone</label>
                       <span style={{ fontSize: '10px', color: '#3B82F6', fontWeight: 600 }}>Prefilled (Admin Variable)</span>
                     </div>
-                    <input type="tel" className="premium-input" placeholder="9876543211" value={phoneSecondary} onChange={(e) => setPhoneSecondary(e.target.value.replace(/\D/g, ''))} />
+                    <input type="tel" className="premium-input" placeholder="e.g. 8439581832" value={phoneSecondary} onChange={(e) => setPhoneSecondary(e.target.value.replace(/\D/g, ''))} />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', color: '#737373', marginBottom: '4px', textTransform: 'uppercase' }}>Customer Number</label>
-                    <input type="tel" className="premium-input" placeholder="9876543212" value={phoneTertiary} onChange={(e) => setPhoneTertiary(e.target.value.replace(/\D/g, ''))} />
+                    <input type="tel" className="premium-input" placeholder="e.g. 98XXXXXXXX" value={phoneTertiary} onChange={(e) => setPhoneTertiary(e.target.value.replace(/\D/g, ''))} />
                   </div>
                 </div>
 

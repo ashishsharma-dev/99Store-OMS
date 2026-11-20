@@ -4,6 +4,7 @@ import { getXpressBeesToken, resolveXpressBeesConfig } from '@/lib/xpressbees';
 import { bookShadowfaxOrder } from '@/lib/shadowfax';
 import { isCourierSimulationEnabled } from '@/lib/courierSimulation';
 import { dtdcCustomerReference } from '@/lib/dtdcBooking';
+import { resolveConsigneePhone } from '@/lib/shipmentContact';
 
 export interface CourierBookingResult {
   success: boolean;
@@ -436,7 +437,11 @@ export async function bookCourierShipment(
       const serviceType = xbConfig.serviceType || 'NDD';
       const vendorCode = xbConfig.vendorCode || 'VEND001';
 
-      const cleanConsigneePhone = (phoneOverride || order.phonePrimary || '').replace(/\D/g, '').slice(-10) || '9999999999';
+      const cleanConsigneePhone = resolveConsigneePhone(order, phoneOverride);
+      if (!cleanConsigneePhone || cleanConsigneePhone.length !== 10) {
+        return { success: false, error: 'A valid 10-digit customer/shipment contact number is required for XpressBees booking.' };
+      }
+      const cleanOriginPhone = (xbConfig.phone || settings.dtdcConfig?.phone || '8057023592').replace(/\D/g, '').slice(-10);
       const cleanConsigneeState = cleanStateName(order.state || 'Uttar Pradesh', order.pincode);
       const cleanConsigneeCity = cleanCityName(order.area, order.state, order.pincode);
       const bizAccountName = xbConfig.businessAccountName || xbConfig.accountName || 'Shivay Air';
@@ -463,7 +468,9 @@ export async function bookCourierShipment(
           city: cleanConsigneeCity,
           state: cleanConsigneeState,
           pincode: order.pincode,
-          phone: cleanConsigneePhone
+          phone: cleanConsigneePhone,
+          mobile: cleanConsigneePhone,
+          mobile_no: cleanConsigneePhone
         },
         pickup: {
           vendor_code: vendorCode,
@@ -474,7 +481,7 @@ export async function bookCourierShipment(
           city: xbConfig.city || 'Agra',
           state: xbConfig.state || 'Uttar Pradesh',
           pincode: xbConfig.pincode || '282001',
-          phone: xbConfig.phone || '9999999999'
+          phone: cleanOriginPhone
         },
         order_items: [
           {
@@ -524,7 +531,11 @@ export async function bookCourierShipment(
           Pincode: order.pincode,
           PinCode: order.pincode,
           pincode: order.pincode,
-          PhoneNo: cleanConsigneePhone
+          PhoneNo: cleanConsigneePhone,
+          MobileNo: cleanConsigneePhone,
+          Phone: cleanConsigneePhone,
+          Mobile: cleanConsigneePhone,
+          phone: cleanConsigneePhone
         };
 
         const pickupAddressObj = {
@@ -571,7 +582,9 @@ export async function bookCourierShipment(
             {
               Type: "Primary",
               PhoneNo: cleanConsigneePhone,
-              MobileNo: cleanConsigneePhone
+              MobileNo: cleanConsigneePhone,
+              Phone: cleanConsigneePhone,
+              Mobile: cleanConsigneePhone
             }
           ]
         };
@@ -587,8 +600,10 @@ export async function bookCourierShipment(
           ContactDetails: [
             {
               Type: "Primary",
-              PhoneNo: xbConfig.phone || '9999999999',
-              MobileNo: xbConfig.phone || '9999999999'
+              PhoneNo: cleanOriginPhone,
+              MobileNo: cleanOriginPhone,
+              Phone: cleanOriginPhone,
+              Mobile: cleanOriginPhone
             }
           ]
         };
@@ -605,8 +620,10 @@ export async function bookCourierShipment(
           ContactDetails: [
             {
               Type: "Primary",
-              PhoneNo: xbConfig.phone || '9999999999',
-              MobileNo: xbConfig.phone || '9999999999'
+              PhoneNo: cleanOriginPhone,
+              MobileNo: cleanOriginPhone,
+              Phone: cleanOriginPhone,
+              Mobile: cleanOriginPhone
             }
           ]
         };
@@ -784,7 +801,7 @@ export async function bookCourierShipment(
         },
         destination_details: {
           name: order.customerName,
-          phone: phoneOverride || order.phonePrimary,
+          phone: resolveConsigneePhone(order, phoneOverride),
           alternate_phone: order.phoneSecondary || '',
           address_line_1: order.address,
           address_line_2: '',
@@ -983,7 +1000,7 @@ export async function bookCourierShipment(
         city: order.area || 'New Delhi',
         state: order.state || 'Delhi',
         country: 'India',
-        phone: phoneOverride || order.phonePrimary,
+        phone: resolveConsigneePhone(order, phoneOverride),
         order: order.orderId,
         payment_mode: paymentMode,
         return_pin: "",

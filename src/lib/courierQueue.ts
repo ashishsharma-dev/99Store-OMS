@@ -10,7 +10,7 @@ export async function enqueueBulkJob(
   orderIds: string[],
   courierPartner: string,
   username: string,
-  phoneBinding: Exclude<ShipmentContactType, 'Custom'> = 'Primary',
+  phoneBinding: Exclude<ShipmentContactType, 'Custom'> = 'Customer',
 ): Promise<BulkJob> {
   const jobId = `job-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   const newJob: BulkJob = {
@@ -114,7 +114,14 @@ async function processCourierJobs() {
         }
 
         try {
-          const selectedContact = resolveShipmentContact(order, pendingJob.phoneBinding || 'Primary');
+          const defaultBinding = (order.phoneTertiary || order.phoneWhatsApp) ? 'Customer' : 'Primary';
+          const targetBinding = pendingJob.phoneBinding || defaultBinding;
+          let selectedContact;
+          try {
+            selectedContact = resolveShipmentContact(order, targetBinding);
+          } catch {
+            selectedContact = resolveShipmentContact(order, (order.phoneTertiary || order.phoneWhatsApp) ? 'Customer' : 'Primary');
+          }
           const result = await bookOrderCourierShipment(
             order,
             settings,

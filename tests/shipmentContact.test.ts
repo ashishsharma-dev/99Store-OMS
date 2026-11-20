@@ -2,8 +2,10 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   getShipmentContactValue,
+  isDummyPhoneNumber,
   isShipmentContactType,
   normalizeShipmentContactPhone,
+  resolveConsigneePhone,
   resolveShipmentContact,
 } from '../src/lib/shipmentContact';
 
@@ -66,6 +68,50 @@ describe('shipment contact selection', () => {
     assert.equal(isShipmentContactType('Additional 1'), true);
     assert.equal(isShipmentContactType('Tertiary'), false);
     assert.equal(getShipmentContactValue(contacts, 'WhatsApp'), contacts.phoneWhatsApp);
+  });
+
+  it('detects dummy phone numbers correctly', () => {
+    assert.equal(isDummyPhoneNumber('9876543210'), true);
+    assert.equal(isDummyPhoneNumber('+91 9876543210'), true);
+    assert.equal(isDummyPhoneNumber('9123456789'), true);
+    assert.equal(isDummyPhoneNumber('9999999999'), true);
+    assert.equal(isDummyPhoneNumber('0000000000'), true);
+    assert.equal(isDummyPhoneNumber('9870123456'), false);
+    assert.equal(isDummyPhoneNumber(undefined), false);
+    assert.equal(isDummyPhoneNumber(null), false);
+  });
+
+  it('resolves consignee phone skipping dummy numbers and prioritizing customer phone', () => {
+    // When primary and secondary are dummy numbers, it falls back to customer phoneTertiary
+    const dummyOrder = {
+      phonePrimary: '+91 9876543210',
+      phoneSecondary: '+91 9123456789',
+      phoneAdditional1: '',
+      phoneAdditional2: '',
+      phoneTertiary: '9870123456',
+      phoneWhatsApp: '9870123457',
+    };
+    assert.equal(resolveConsigneePhone(dummyOrder), '9870123456');
+
+    // When phoneOverride is provided and valid, it takes top precedence
+    assert.equal(resolveConsigneePhone(dummyOrder, '9811223344'), '9811223344');
+
+    // When phoneOverride is a dummy number, it ignores it and falls back to customer phone
+    assert.equal(resolveConsigneePhone(dummyOrder, '9876543210'), '9870123456');
+
+    // When shipmentContactPhone is set to a valid number, it takes precedence
+    const orderWithShipmentContact = {
+      ...dummyOrder,
+      shipmentContactPhone: '9822334455',
+    };
+    assert.equal(resolveConsigneePhone(orderWithShipmentContact), '9822334455');
+
+    // When shipmentContactPhone is a dummy number, it ignores it and falls back to phoneTertiary
+    const orderWithDummyShipmentContact = {
+      ...dummyOrder,
+      shipmentContactPhone: '9999999999',
+    };
+    assert.equal(resolveConsigneePhone(orderWithDummyShipmentContact), '9870123456');
   });
 });
 

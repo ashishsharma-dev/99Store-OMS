@@ -193,8 +193,8 @@ export default function IntegrationsSettings() {
       if (settingsRes.ok && settingsData.settings) {
         const s: SystemSettings = settingsData.settings;
         setSettings(s);
-        setPrimaryContacts(s.primaryContactNumbers ? s.primaryContactNumbers.join(', ') : '+91 9876543210, +91 9876543211');
-        setSecondaryContacts(s.secondaryContactNumbers ? s.secondaryContactNumbers.join(', ') : '+91 9123456789, +91 9123456780');
+        setPrimaryContacts(s.primaryContactNumbers ? s.primaryContactNumbers.join(', ') : '');
+        setSecondaryContacts(s.secondaryContactNumbers ? s.secondaryContactNumbers.join(', ') : '');
         setAdditionalContacts1(s.additionalContactNumbers1?.join(', ') || '');
         setAdditionalContacts2(s.additionalContactNumbers2?.join(', ') || '');
         setOtpWhatsappNumber(s.otpWhatsappNumber || '');

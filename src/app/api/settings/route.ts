@@ -78,10 +78,10 @@ export async function POST(request: Request) {
     const updatedSettings: SystemSettings = {
       primaryContactNumbers: Array.isArray(body.primaryContactNumbers) 
         ? body.primaryContactNumbers.map((n: string) => n.trim()) 
-        : (settings.primaryContactNumbers || ['+91 9876543210', '+91 9876543211']),
+        : (settings.primaryContactNumbers || []),
       secondaryContactNumbers: Array.isArray(body.secondaryContactNumbers) 
         ? body.secondaryContactNumbers.map((n: string) => n.trim()) 
-        : (settings.secondaryContactNumbers || ['+91 9123456789', '+91 9123456780']),
+        : (settings.secondaryContactNumbers || []),
       additionalContactNumbers1: Array.isArray(body.additionalContactNumbers1)
         ? body.additionalContactNumbers1.map((n: string) => n.trim()).filter(Boolean)
         : (settings.additionalContactNumbers1 || []),

@@ -67,7 +67,7 @@ export default function Packing() {
   const [labelPrintedFilter, setLabelPrintedFilter] = useState<string>('all');
   const [bookedFilter, setBookedFilter] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
-  const [contactBindingFilter, setContactBindingFilter] = useState<Exclude<ShipmentContactType, 'Custom'>>('Primary');
+  const [contactBindingFilter, setContactBindingFilter] = useState<Exclude<ShipmentContactType, 'Custom'>>('Customer');
 
   // Barcode scan to book & dispatch states
   const [scanInput, setScanInput] = useState('');
@@ -96,13 +96,13 @@ export default function Packing() {
   // Single AWB Dispatch Modal State
   const [singleDispatchOrder, setSingleDispatchOrder] = useState<Order | null>(null);
   const [singleDispatchCourier, setSingleDispatchCourier] = useState<string>('DTDC');
-  const [singleDispatchPhoneChoice, setSingleDispatchPhoneChoice] = useState<ShipmentContactType>('Primary');
+  const [singleDispatchPhoneChoice, setSingleDispatchPhoneChoice] = useState<ShipmentContactType>('Customer');
   const [singleDispatchCustomPhone, setSingleDispatchCustomPhone] = useState<string>('');
 
   // Bulk AWB Dispatch Modal State
   const [showBulkDispatchModal, setShowBulkDispatchModal] = useState<boolean>(false);
   const [bulkDispatchCourier, setBulkDispatchCourier] = useState<string>('DTDC');
-  const [bulkDispatchPhoneBinding, setBulkDispatchPhoneBinding] = useState<Exclude<ShipmentContactType, 'Custom'>>('Primary');
+  const [bulkDispatchPhoneBinding, setBulkDispatchPhoneBinding] = useState<Exclude<ShipmentContactType, 'Custom'>>('Customer');
 
 
   // Infinite Scroll Reset
@@ -352,7 +352,10 @@ export default function Packing() {
   const handleOpenSingleDispatchModal = (order: Order) => {
     setSingleDispatchOrder(order);
     setSingleDispatchCourier(courierOverrides[order.id] || order.courier || 'DTDC');
-    setSingleDispatchPhoneChoice(phoneSelections[order.id] || order.shipmentContactType || 'Primary');
+    const defaultChoice: ShipmentContactType = phoneSelections[order.id]
+      || order.shipmentContactType
+      || (order.phoneTertiary ? 'Customer' : (order.phoneWhatsApp ? 'WhatsApp' : 'Primary'));
+    setSingleDispatchPhoneChoice(defaultChoice);
     setSingleDispatchCustomPhone('');
   };
 
@@ -1207,8 +1210,10 @@ export default function Packing() {
                 const isProcessing = processingOrderId === o.id || bulkProcessing;
                 const activeCourier = courierOverrides[o.id] || o.courier || 'DTDC';
                 const hasMultiplePhones = Boolean(o.phoneSecondary || o.phoneAdditional1 || o.phoneAdditional2 || o.phoneTertiary || o.phoneWhatsApp);
-                const activePhoneType = phoneSelections[o.id] || o.shipmentContactType || 'Primary';
-                const activePhone = getShipmentContactValue(o, activePhoneType) || o.shipmentContactPhone || o.phonePrimary;
+                const activePhoneType = phoneSelections[o.id]
+                  || o.shipmentContactType
+                  || (o.phoneTertiary ? 'Customer' : (o.phoneWhatsApp ? 'WhatsApp' : 'Primary'));
+                const activePhone = getShipmentContactValue(o, activePhoneType) || o.shipmentContactPhone || o.phoneTertiary || o.phoneWhatsApp || o.phonePrimary;
 
                 // Color highlights for partially paid amount
                 const isPartiallyPaid = o.partiallyPaidAmount !== undefined && o.partiallyPaidAmount > 0;

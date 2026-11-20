@@ -1,6 +1,7 @@
 import { Order, SystemSettings } from '@/lib/types';
 import { cleanCityName, cleanStateName } from '@/lib/courierHelper';
 import { isCourierSimulationEnabled } from '@/lib/courierSimulation';
+import { resolveConsigneePhone } from '@/lib/shipmentContact';
 
 export interface ShadowfaxConfig {
   apiKey: string;
@@ -203,7 +204,7 @@ export async function bookShadowfaxOrder(
     const weightInGrams = Math.round(weightInKg * 1000);
     const paymentMode = order.paymentType === 'COD' ? 'COD' : 'Prepaid';
 
-    const cleanPhone = (phoneOverride || order.phonePrimary || '').replace(/\D/g, '').slice(-10) || '9999999999';
+    const cleanPhone = resolveConsigneePhone(order, phoneOverride);
     const cleanCity = cleanCityName(order.area, order.state, order.pincode);
     const cleanState = cleanStateName(order.state, order.pincode);
 
@@ -237,7 +238,7 @@ export async function bookShadowfaxOrder(
     const orderType = config.orderType || 'warehouse';
     const warehouseCode = config.warehouseCode || 'warehouse_01';
     const pickupName = config.contactName || '99Store Warehouse Manager';
-    const pickupPhone = (config.phone || '9999999999').replace(/\D/g, '').slice(-10);
+    const pickupPhone = (config.phone || '8057023592').replace(/\D/g, '').slice(-10);
     const pickupAddress1 = config.address || 'Plot 101, Main Fulfillment Hub';
     const pickupAddress2 = config.address2 || 'Industrial Area';
     const pickupCity = config.city || 'Delhi';

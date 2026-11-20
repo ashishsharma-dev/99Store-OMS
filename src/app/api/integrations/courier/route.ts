@@ -4,6 +4,7 @@ import { CourierApiLog } from '@/lib/types';
 import { getXpressBeesToken, resolveXpressBeesConfig } from '@/lib/xpressbees';
 import { isDtdcStaging } from '@/lib/courierHelper';
 import { bookOrderCourierShipment, isCourierSimulationEnabled, validateManifestWaybills } from '@/lib/courierReliability';
+import { resolveConsigneePhone } from '@/lib/shipmentContact';
 import { fetchWithRetry } from '@/lib/fetchWithRetry';
 import { getActiveSession } from '@/lib/authorization';
 
@@ -343,7 +344,7 @@ export async function POST(request: Request) {
       {
         weight: body.weight,
         courier: rawCourier,
-        phone: body.phoneOverride || order.phonePrimary,
+        phone: resolveConsigneePhone(order, body.phoneOverride || body.shipmentContactPhone),
         mode: body.mode || body.accountOverride,
       },
     );

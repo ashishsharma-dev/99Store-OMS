@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { OrderStatus } from '@/lib/types';
 import { verifyWebhookSignature } from '@/lib/webhookSecurity';
+import { appendDeliveryAgentRemarks, extractDeliveryAgentDetails } from '@/lib/deliveryAgent';
 
 function mapShadowfaxEventToOrderStatus(event: string, statusDisplay?: string): OrderStatus | null {
   const evt = (event || statusDisplay || '').toLowerCase();
@@ -38,7 +39,10 @@ export async function POST(request: Request) {
     const awb = payload.awb_number;
     const clientOrderId = payload.order_id;
     const event = payload.event || payload.status;
-    const comments = payload.comments || `Shadowfax status updated: ${payload.status || event}`;
+    const comments = appendDeliveryAgentRemarks(
+      payload.comments || `Shadowfax status updated: ${payload.status || event}`,
+      payload
+    );
 
     if (!clientOrderId && !awb) {
       return NextResponse.json({ success: false, error: 'Missing order_id or awb_number' }, { status: 400 });
@@ -51,9 +55,22 @@ export async function POST(request: Request) {
     );
 
     if (order) {
+      const deliveryAgent = extractDeliveryAgentDetails(payload);
+      if (deliveryAgent.phone && order.feNumber !== deliveryAgent.phone) {
+        order.feNumber = deliveryAgent.phone;
+        await db.saveOrder(order);
+      }
+
       const newStatus = mapShadowfaxEventToOrderStatus(event, payload.status);
       if (newStatus && order.awb) {
-        const result = await syncOrderStatus(order.awb, newStatus, payload.location, comments, undefined, payload.timestamp || payload.created || payload.event_time);
+        const result = await syncOrderStatus(
+          order.awb,
+          newStatus,
+          payload.current_location || payload.location,
+          comments,
+          undefined,
+          payload.event_timestamp || payload.timestamp || payload.created || payload.event_time
+        );
         if (result.error) return NextResponse.json({ success: false, error: result.error }, { status: 500 });
       }
 

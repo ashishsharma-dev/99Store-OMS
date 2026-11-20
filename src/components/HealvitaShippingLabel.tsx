@@ -3,6 +3,7 @@
 import React from 'react';
 import { Order } from '@/lib/types';
 import { AddressRatingIndicator } from './AddressRatingIndicator';
+import { resolveConsigneePhone } from '@/lib/shipmentContact';
 
 // High-Density Code 128 (B) Barcode Pattern Table (0-105 + 106 Stop)
 const CODE128_PATTERNS: number[][] = [
@@ -181,7 +182,12 @@ interface HealvitaShippingLabelProps {
 }
 
 export const HealvitaShippingLabel = ({ order, phoneSelection }: HealvitaShippingLabelProps) => {
-  const finalPhone = phoneSelection || order.phonePrimary;
+  let finalPhone = phoneSelection || order.shipmentContactPhone || order.phoneTertiary || order.phoneWhatsApp || order.phonePrimary || '';
+  try {
+    finalPhone = resolveConsigneePhone(order, phoneSelection);
+  } catch {
+    // If resolveConsigneePhone fails (e.g. empty phones), keep best-effort fallback
+  }
 
   // Format dates: DD-MM-YYYY
   const formatDate = (dateStr: string) => {

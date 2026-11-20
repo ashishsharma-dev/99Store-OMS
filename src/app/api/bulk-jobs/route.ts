@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing courier partner selection.' }, { status: 400 });
     }
 
-    const requestedBinding = phoneBinding || contactBinding || 'Primary';
+    const requestedBinding = phoneBinding || contactBinding || 'Customer';
     if (!isShipmentContactType(requestedBinding) || requestedBinding === 'Custom') {
       return NextResponse.json({ error: 'Invalid bulk shipment contact binding.' }, { status: 400 });
     }
