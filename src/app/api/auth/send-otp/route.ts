@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { generateOtp, hashPassword, isOtpBypassEnabled, verifyPassword } from '@/lib/auth';
 import { sendLoginOTP } from '@/lib/whatsapp';
+import { maskEmail, sendLoginEmailOtp } from '@/lib/resend';
 import { consumeRateLimit, getClientIp } from '@/lib/rateLimit';
 import {
   createOtpDispatchToken,
@@ -12,7 +13,7 @@ import {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { username, password } = body;
+    const { username, password, channel: requestedChannel } = body;
 
     if (!username || !password) {
       return NextResponse.json({ error: 'Username and password are required.' }, { status: 400 });
@@ -36,16 +37,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Your user account is suspended.' }, { status: 403 });
     }
 
-    // Login OTPs always go to the administrator-controlled number from Settings.
     const settings = await db.getSettings();
     const targetPhone = settings.otpWhatsappNumber?.trim();
-
-    // Verify phone number exists for sending OTP
-    if (!targetPhone || targetPhone.trim() === '') {
-      return NextResponse.json({
-        error: 'The admin login OTP WhatsApp number is not configured. Please set it on the Settings page.',
-      }, { status: 400 });
-    }
+    const targetEmail = (settings.adminOtpEmail || process.env.ADMIN_OTP_EMAIL || 'shivaynew66@gmail.com').trim();
+    const activeChannel = requestedChannel || settings.otpDeliveryChannel || 'both';
 
     const cooldownSeconds = getOtpResendCooldownSeconds(user.tempOtpIssuedAt);
     if (cooldownSeconds > 0) {
@@ -75,32 +70,95 @@ export async function POST(request: Request) {
       });
     }
 
-    // Send via WhatsApp
-    const waRes = await sendLoginOTP(targetPhone, otp);
+    // Route dispatch according to selected channel
+    let emailSuccess = false;
+    let emailError = '';
+    let waSuccess = false;
+    let waCampaignId: string | undefined;
+    let waDeliveryStatus: string | undefined;
+    let waError = '';
 
-    if (!waRes.success) {
-      console.warn(`[AUTH] WhatsApp OTP dispatch failed for ${user.username}: ${waRes.error}`);
-      return NextResponse.json({ 
-        error: `Failed to send OTP via WhatsApp: ${waRes.error || 'Gateway issue'}` 
+    // 1. Email dispatch (if channel is 'email' or 'both')
+    if (activeChannel === 'email' || activeChannel === 'both') {
+      const emailRes = await sendLoginEmailOtp(targetEmail, otp, {
+        resendApiKey: settings.resendApiKey,
+        fromEmail: settings.resendFromEmail,
+      });
+      emailSuccess = emailRes.success;
+      emailError = emailRes.error || '';
+    }
+
+    // 2. WhatsApp dispatch (if channel is 'whatsapp' or 'both')
+    if (activeChannel === 'whatsapp' || activeChannel === 'both') {
+      if (targetPhone) {
+        const waRes = await sendLoginOTP(targetPhone, otp);
+        waSuccess = waRes.success;
+        waCampaignId = waRes.campaignId;
+        waDeliveryStatus = waRes.deliveryStatus;
+        waError = waRes.error || '';
+      } else if (activeChannel === 'whatsapp') {
+        waError = 'The admin login OTP WhatsApp number is not configured in Settings.';
+      }
+    }
+
+    // 3. Fallback: If WhatsApp was exclusively requested but failed, auto-fallback to Email
+    if (activeChannel === 'whatsapp' && !waSuccess) {
+      console.warn(`[AUTH] WhatsApp OTP failed (${waError}). Attempting fallback to Email (${targetEmail})...`);
+      const fallbackEmailRes = await sendLoginEmailOtp(targetEmail, otp, {
+        resendApiKey: settings.resendApiKey,
+        fromEmail: settings.resendFromEmail,
+      });
+      if (fallbackEmailRes.success) {
+        emailSuccess = true;
+      } else {
+        emailError = fallbackEmailRes.error || '';
+      }
+    }
+
+    // If neither channel succeeded, return error
+    if (!emailSuccess && !waSuccess) {
+      console.warn(`[AUTH] All OTP dispatch channels failed for ${user.username}. WA: ${waError}; Email: ${emailError}`);
+      const combinedError = [waError ? `WhatsApp: ${waError}` : '', emailError ? `Email: ${emailError}` : '']
+        .filter(Boolean)
+        .join(' | ');
+      return NextResponse.json({
+        error: `Failed to deliver OTP: ${combinedError || 'Channel unavailable'}`,
       }, { status: 502 });
     }
 
+    // Store verified OTP hash on user record
     const issuedAt = new Date();
     user.tempOtp = hashPassword(otp);
     user.tempOtpExpiry = new Date(issuedAt.getTime() + 5 * 60 * 1000).toISOString();
     user.tempOtpIssuedAt = issuedAt.toISOString();
     await db.saveUser(user);
 
-    const dispatchToken = createOtpDispatchToken(waRes.campaignId!, user.username);
-    const isConfirmedSent = waRes.deliveryStatus === 'sent';
+    // Build user-friendly confirmation message
+    let message = '';
+    const masked = maskEmail(targetEmail);
+    if (emailSuccess && waSuccess) {
+      message = `OTP sent to email (${masked}) and WhatsApp (...${targetPhone?.slice(-4)})`;
+    } else if (emailSuccess) {
+      if (activeChannel === 'whatsapp') {
+        message = `WhatsApp gateway unavailable. OTP sent to admin email (${masked})`;
+      } else {
+        message = `OTP sent to admin email (${masked})`;
+      }
+    } else {
+      const isConfirmedSent = waDeliveryStatus === 'sent';
+      message = isConfirmedSent
+        ? `OTP sent to the admin WhatsApp number ending in ...${targetPhone?.slice(-4)}`
+        : `OTP queued for the admin WhatsApp number ending in ...${targetPhone?.slice(-4)}`;
+    }
+
+    const dispatchToken = waCampaignId ? createOtpDispatchToken(waCampaignId, user.username) : '';
 
     return NextResponse.json({
       success: true,
-      message: isConfirmedSent
-        ? `OTP sent to the admin WhatsApp number ending in ...${targetPhone.slice(-4)}`
-        : `OTP queued for the admin WhatsApp number ending in ...${targetPhone.slice(-4)}`,
-      deliveryStatus: waRes.deliveryStatus || 'queued',
-      dispatchToken,
+      channel: emailSuccess && waSuccess ? 'both' : emailSuccess ? 'email' : 'whatsapp',
+      message,
+      deliveryStatus: emailSuccess ? 'sent' : (waDeliveryStatus || 'queued'),
+      dispatchToken: dispatchToken || undefined,
       retryAfterSeconds: OTP_RESEND_COOLDOWN_SECONDS,
     });
 

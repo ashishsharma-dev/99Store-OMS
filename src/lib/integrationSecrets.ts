@@ -16,6 +16,10 @@ export function applyIntegrationSecrets(settings: SystemSettings): SystemSetting
     walabzUsername: fromEnv('WALABZ_USERNAME', settings.walabzUsername),
     walabzPassword: fromEnv('WALABZ_PASSWORD', settings.walabzPassword),
     walabzApiKey: fromEnv('WALABZ_API_KEY', settings.walabzApiKey),
+    resendApiKey: fromEnv('RESEND_API_KEY', settings.resendApiKey),
+    resendFromEmail: fromEnv('RESEND_FROM_EMAIL', settings.resendFromEmail || '99Store OMS <onboarding@resend.dev>'),
+    adminOtpEmail: fromEnv('ADMIN_OTP_EMAIL', settings.adminOtpEmail || 'shivaynew66@gmail.com'),
+    otpDeliveryChannel: (fromEnv('OTP_DELIVERY_CHANNEL', settings.otpDeliveryChannel) as any) || settings.otpDeliveryChannel || 'both',
     dtdcConfig: {
       ...settings.dtdcConfig,
       apiKey: fromEnv('DTDC_API_KEY', settings.dtdcConfig?.apiKey),
@@ -66,6 +70,7 @@ export function stripIntegrationSecrets(settings: SystemSettings): SystemSetting
     walabzUsername: '',
     walabzPassword: '',
     walabzApiKey: '',
+    resendApiKey: '',
     dtdcConfig: {
       ...settings.dtdcConfig,
       apiKey: '',

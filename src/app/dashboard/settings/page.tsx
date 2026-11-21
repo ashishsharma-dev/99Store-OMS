@@ -24,7 +24,8 @@ import {
   RefreshCw,
   FileSpreadsheet,
   ExternalLink,
-  AlertTriangle
+  AlertTriangle,
+  Mail
 } from 'lucide-react';
 import { SystemSettings, WhatsAppLog, CourierApiLog } from '@/lib/types';
 import { CourierLogo } from '@/components/CourierLogo';
@@ -54,6 +55,10 @@ export default function IntegrationsSettings() {
   const [additionalContacts2, setAdditionalContacts2] = useState('');
 
   const [otpWhatsappNumber, setOtpWhatsappNumber] = useState('');
+  const [adminOtpEmail, setAdminOtpEmail] = useState('');
+  const [resendApiKey, setResendApiKey] = useState('');
+  const [resendFromEmail, setResendFromEmail] = useState('99Store OMS <onboarding@resend.dev>');
+  const [otpDeliveryChannel, setOtpDeliveryChannel] = useState<'whatsapp' | 'email' | 'both'>('both');
   const [whatsappBrandName, setWhatsappBrandName] = useState('99Store');
   const [whatsappSupportName, setWhatsappSupportName] = useState('99Store Support');
   const [whatsappSupportNumber, setWhatsappSupportNumber] = useState('');
@@ -198,6 +203,10 @@ export default function IntegrationsSettings() {
         setAdditionalContacts1(s.additionalContactNumbers1?.join(', ') || '');
         setAdditionalContacts2(s.additionalContactNumbers2?.join(', ') || '');
         setOtpWhatsappNumber(s.otpWhatsappNumber || '');
+        setAdminOtpEmail(s.adminOtpEmail || 'shivaynew66@gmail.com');
+        setResendApiKey(s.resendApiKey || '');
+        setResendFromEmail(s.resendFromEmail || '99Store OMS <onboarding@resend.dev>');
+        setOtpDeliveryChannel(s.otpDeliveryChannel || 'both');
         setWhatsappBrandName(s.whatsappBrandName || '99Store');
         setWhatsappSupportName(s.whatsappSupportName || '99Store Support');
         setWhatsappSupportNumber(s.whatsappSupportNumber || '');
@@ -415,6 +424,10 @@ export default function IntegrationsSettings() {
           additionalContactNumbers1: additionalContacts1.split(',').map(n => n.trim()).filter(n => n.length > 0),
           additionalContactNumbers2: additionalContacts2.split(',').map(n => n.trim()).filter(n => n.length > 0),
           otpWhatsappNumber,
+          adminOtpEmail,
+          resendApiKey,
+          resendFromEmail,
+          otpDeliveryChannel,
           whatsappBrandName,
           whatsappSupportName,
           whatsappSupportNumber,
@@ -1533,6 +1546,73 @@ export default function IntegrationsSettings() {
               <span style={{ fontSize: '12px', color: '#71717A', display: 'block', marginTop: '6px', lineHeight: '1.4' }}>
                 All user login OTPs are delivered to this administrator-controlled WhatsApp number.
               </span>
+            </div>
+          </div>
+
+          {/* Card: Email OTP / Resend Integration */}
+          <div className="premium-card" style={{ padding: '24px', borderRadius: '12px', backgroundColor: '#121212', border: '1px solid #27272A', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <h3 style={{ fontSize: '16px', color: '#FAFAFA', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Mail size={18} style={{ color: '#10B981' }} />
+              <span>Resend Email OTP Configuration</span>
+            </h3>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
+                Admin Login OTP Email Address
+              </label>
+              <input
+                type="email"
+                className="premium-input"
+                placeholder="e.g. shivaynew66@gmail.com"
+                value={adminOtpEmail}
+                onChange={(e) => setAdminOtpEmail(e.target.value)}
+              />
+              <span style={{ fontSize: '12px', color: '#71717A', display: 'block', marginTop: '6px', lineHeight: '1.4' }}>
+                Login verification codes will be delivered to this administrator email address.
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Resend API Key
+                </label>
+                <input
+                  type="password"
+                  className="premium-input"
+                  placeholder="re_..."
+                  value={resendApiKey}
+                  onChange={(e) => setResendApiKey(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Sender (From Address)
+                </label>
+                <input
+                  type="text"
+                  className="premium-input"
+                  placeholder="99Store OMS <onboarding@resend.dev>"
+                  value={resendFromEmail}
+                  onChange={(e) => setResendFromEmail(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
+                Default OTP Channel
+              </label>
+              <select
+                className="premium-input"
+                value={otpDeliveryChannel}
+                onChange={(e) => setOtpDeliveryChannel(e.target.value as any)}
+              >
+                <option value="both">Both (Email & WhatsApp simultaneously)</option>
+                <option value="email">Email Only (Resend)</option>
+                <option value="whatsapp">WhatsApp Only (Walabz)</option>
+              </select>
             </div>
           </div>
 

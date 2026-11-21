@@ -19,6 +19,7 @@ export default function Login() {
   const [dispatchToken, setDispatchToken] = useState('');
   const [recoveryMode, setRecoveryMode] = useState(false);
   const [recoverySecret, setRecoverySecret] = useState('');
+  const [otpChannel, setOtpChannel] = useState<'both' | 'email' | 'whatsapp'>('both');
   
   const [ipBlocked, setIpBlocked] = useState(false);
   const [clientIp, setClientIp] = useState('');
@@ -96,12 +97,13 @@ export default function Login() {
     };
   }, [dispatchToken, step]);
 
-  const requestOtp = async () => {
+  const requestOtp = async (channelOverride?: 'both' | 'email' | 'whatsapp') => {
     if (!username.trim() || !password.trim()) {
       setError('Please enter both username and password.');
       return;
     }
 
+    const selectedChannel = channelOverride || otpChannel;
     setLoading(true);
     setError('');
     setMessage('');
@@ -112,7 +114,8 @@ export default function Login() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: username.trim().toLowerCase(),
-          password
+          password,
+          channel: selectedChannel,
         })
       });
 
@@ -130,7 +133,7 @@ export default function Login() {
       setOtp('');
       setDispatchToken(data.dispatchToken || '');
       setResendCooldown(Number(data.retryAfterSeconds || 30));
-      setMessage(data.message || 'OTP queued for the configured admin WhatsApp number.');
+      setMessage(data.message || 'OTP has been dispatched.');
     } catch (err: any) {
       setLoading(false);
       setError('Network connection failed. Please check your Next.js server.');
@@ -455,6 +458,73 @@ export default function Login() {
                 />
               </div>
 
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  color: '#A1A1AA',
+                  marginBottom: '8px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  OTP Delivery Channel
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setOtpChannel('both')}
+                    style={{
+                      padding: '8px 4px',
+                      borderRadius: '8px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      border: otpChannel === 'both' ? '1px solid #10B981' : '1px solid #27272A',
+                      background: otpChannel === 'both' ? 'rgba(16, 185, 129, 0.15)' : '#18181B',
+                      color: otpChannel === 'both' ? '#10B981' : '#A1A1AA',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    ⚡ Both
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOtpChannel('email')}
+                    style={{
+                      padding: '8px 4px',
+                      borderRadius: '8px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      border: otpChannel === 'email' ? '1px solid #10B981' : '1px solid #27272A',
+                      background: otpChannel === 'email' ? 'rgba(16, 185, 129, 0.15)' : '#18181B',
+                      color: otpChannel === 'email' ? '#10B981' : '#A1A1AA',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    ✉️ Email
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOtpChannel('whatsapp')}
+                    style={{
+                      padding: '8px 4px',
+                      borderRadius: '8px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      border: otpChannel === 'whatsapp' ? '1px solid #10B981' : '1px solid #27272A',
+                      background: otpChannel === 'whatsapp' ? 'rgba(16, 185, 129, 0.15)' : '#18181B',
+                      color: otpChannel === 'whatsapp' ? '#10B981' : '#A1A1AA',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    💬 WhatsApp
+                  </button>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 className="premium-btn premium-btn-primary"
@@ -547,6 +617,53 @@ export default function Login() {
                     Change User
                   </button>
                 </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+                <button
+                  type="button"
+                  disabled={loading || resendCooldown > 0}
+                  onClick={() => requestOtp('email')}
+                  style={{
+                    flex: 1,
+                    padding: '8px 6px',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    background: '#18181B',
+                    border: '1px solid #27272A',
+                    color: '#10B981',
+                    cursor: loading || resendCooldown > 0 ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  ✉️ Send to Email
+                </button>
+                <button
+                  type="button"
+                  disabled={loading || resendCooldown > 0}
+                  onClick={() => requestOtp('whatsapp')}
+                  style={{
+                    flex: 1,
+                    padding: '8px 6px',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    background: '#18181B',
+                    border: '1px solid #27272A',
+                    color: '#22C55E',
+                    cursor: loading || resendCooldown > 0 ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  💬 Send to WhatsApp
+                </button>
               </div>
 
               <button

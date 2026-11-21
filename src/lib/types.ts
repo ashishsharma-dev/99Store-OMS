@@ -228,6 +228,11 @@ export interface SystemSettings {
   walabzDefaultCountryCode?: string;
   walabzDefaultDialCode?: string;
   walabzTemplates?: Record<string, string>; // Maps event name (e.g. 'Created', 'Dispatched', 'OFD', 'Delivered', 'NDR', 'login_otp') to Walabz template_id
+  // Email OTP / Resend Configuration
+  adminOtpEmail?: string;
+  resendApiKey?: string;
+  resendFromEmail?: string;
+  otpDeliveryChannel?: 'whatsapp' | 'email' | 'both';
   googleSheetWebhookUrl?: string;
   googleSheetSyncEnabled?: boolean;
   ipWhitelist: string[];
