@@ -42,7 +42,7 @@ export default function Packing() {
   const [showPrintLabel, setShowPrintLabel] = useState(false);
 
   // Selected courier overrides for each order during packing
-  const [courierOverrides, setCourierOverrides] = useState<Record<string, 'DTDC' | 'XpressBees' | 'Delhivery' | 'Shadowfax'>>({});
+  const [courierOverrides, setCourierOverrides] = useState<Record<string, 'DTDC' | 'XpressBees' | 'Delhivery' | 'Shadowfax' | 'Velocity'>>({});
   
   // Shipment-specific contact selection; the order's four contact fields remain unchanged.
   const [phoneSelections, setPhoneSelections] = useState<Record<string, ShipmentContactType>>({});
@@ -113,7 +113,7 @@ export default function Packing() {
   useEffect(() => {
     if (showAwbErrorModal && awbErrorDetails) {
       const checkAllCouriers = async () => {
-        const couriers = ['Delhivery', 'XpressBees', 'DTDC', 'Shadowfax'];
+        const couriers = ['Delhivery', 'XpressBees', 'DTDC', 'Shadowfax', 'Velocity'];
         const pincode = awbErrorDetails.pincode;
         
         const initialStates: Record<string, 'loading' | 'serviceable' | 'unserviceable' | 'unknown'> = {};
@@ -144,14 +144,14 @@ export default function Packing() {
           } else {
             const fallbackStates: Record<string, 'loading' | 'serviceable' | 'unserviceable' | 'unknown'> = {};
             couriers.forEach(c => {
-              fallbackStates[c] = /shadowfax|xpressbees/i.test(c) ? 'unknown' : 'unserviceable';
+              fallbackStates[c] = /shadowfax|xpressbees|velocity/i.test(c) ? 'unknown' : 'unserviceable';
             });
             setModalServiceability(fallbackStates);
           }
         } catch (e) {
           const fallbackStates: Record<string, 'loading' | 'serviceable' | 'unserviceable' | 'unknown'> = {};
           couriers.forEach(c => {
-            fallbackStates[c] = /shadowfax|xpressbees/i.test(c) ? 'unknown' : 'unserviceable';
+            fallbackStates[c] = /shadowfax|xpressbees|velocity/i.test(c) ? 'unknown' : 'unserviceable';
           });
           setModalServiceability(fallbackStates);
         }
@@ -275,7 +275,7 @@ export default function Packing() {
         const activeCourier = courierOverrides[o.id] || o.courier || 'DTDC';
         const cacheKey = `${o.pincode}-${activeCourier}`;
 
-        if ((serviceabilityCache[cacheKey] === undefined || (refresh && /shadowfax|sfx|xpressbees|xbees/i.test(activeCourier))) && !fetchingKeys.current.has(cacheKey)) {
+        if ((serviceabilityCache[cacheKey] === undefined || (refresh && /shadowfax|sfx|xpressbees|xbees|velocity/i.test(activeCourier))) && !fetchingKeys.current.has(cacheKey)) {
           uniqueChecksMap[cacheKey] = { pincode: o.pincode, courier: activeCourier };
         }
       });
@@ -1022,6 +1022,7 @@ export default function Packing() {
             <option value="XpressBees Surface">XpressBees Surface</option>
             <option value="Delhivery">Delhivery Express</option>
             <option value="Shadowfax">Shadowfax (SFX)</option>
+            <option value="Velocity">Velocity Shipping</option>
             <option value="Unassigned">Unassigned</option>
           </select>
           <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />
@@ -1285,6 +1286,7 @@ export default function Packing() {
                               <option value="XpressBees Surface">XpressBees Surface</option>
                               <option value="Delhivery">Delhivery (Priority 3)</option>
                               <option value="Shadowfax">Shadowfax (SFX)</option>
+                              <option value="Velocity">Velocity (Priority 5)</option>
                             </select>
                             {isServiceable == null && <span style={{ color: '#F59E0B', fontSize: '11px' }}>Serviceability unconfirmed; booking will verify.</span>}
                             {isServiceable === false && (
@@ -1752,7 +1754,7 @@ export default function Packing() {
                 <span style={{ color: '#FAFAFA', fontSize: '12px', fontWeight: 600 }}>Alternative Serviceability & Reassignment:</span>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {['Delhivery', 'XpressBees', 'DTDC', 'Shadowfax'].map((cName) => {
+                  {['Delhivery', 'XpressBees', 'DTDC', 'Shadowfax', 'Velocity'].map((cName) => {
                     const status = modalServiceability[cName];
                     const isCurrent = cName === awbErrorDetails.courier;
                     
@@ -1843,6 +1845,7 @@ export default function Packing() {
                   <option value="XpressBees">XpressBees</option>
                   <option value="Delhivery">Delhivery</option>
                   <option value="Shadowfax">Shadowfax</option>
+                  <option value="Velocity">Velocity</option>
                 </select>
               </div>
 
@@ -1895,6 +1898,7 @@ export default function Packing() {
                   <option value="XpressBees">XpressBees Logistics</option>
                   <option value="Delhivery">Delhivery Express</option>
                   <option value="Shadowfax">Shadowfax (SFX Unified)</option>
+                  <option value="Velocity">Velocity (Priority 5)</option>
                 </select>
               </div>
 
@@ -1947,6 +1951,7 @@ export default function Packing() {
                   <option value="XpressBees">XpressBees Logistics</option>
                   <option value="Delhivery">Delhivery Express</option>
                   <option value="Shadowfax">Shadowfax SFX</option>
+                  <option value="Velocity">Velocity Shipping (Priority 5)</option>
                 </select>
               </div>
 
@@ -2040,6 +2045,7 @@ export default function Packing() {
                   <option value="XpressBees">XpressBees Logistics</option>
                   <option value="Delhivery">Delhivery Express</option>
                   <option value="Shadowfax">Shadowfax SFX</option>
+                  <option value="Velocity">Velocity Shipping (Priority 5)</option>
                 </select>
               </div>
 

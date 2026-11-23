@@ -167,6 +167,23 @@ export const mockSettings: SystemSettings = {
     city: 'Delhi',
     state: 'Delhi',
     pincode: '110001'
+  },
+  velocityActive: true,
+  velocityConfig: {
+    apiKey: '',
+    priority: 5,
+    username: '',
+    password: '',
+    warehouseId: 'WH66DU',
+    baseUrl: 'https://shazam.velocity.in',
+    pickupLocationName: 'Main Warehouse',
+    pickupContactPerson: 'Warehouse Manager',
+    pickupPhone: '9870740681',
+    pickupAddress: 'Plot 101, Main Fulfillment Hub',
+    pickupAddress2: 'Industrial Area',
+    pickupCity: 'Delhi',
+    pickupState: 'Delhi',
+    pickupPincode: '110001'
   }
 };
 

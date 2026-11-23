@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { checkXpressBeesServiceability } from '@/lib/xpressbees';
 import { checkShadowfaxOrderServiceability } from '@/lib/shadowfax';
+import { checkVelocityServiceability } from '@/lib/velocity';
 
 // Static check function as fallback
 function checkCourierServiceabilityFallback(pincode: string, courier: string): boolean | null {
@@ -21,6 +22,9 @@ function checkCourierServiceabilityFallback(pincode: string, courier: string): b
     return prefix !== '5';
   }
   if (normalizedCourier.includes('shadowfax') || normalizedCourier.includes('sfx')) {
+    return null;
+  }
+  if (normalizedCourier.includes('velocity')) {
     return null;
   }
 
@@ -84,12 +88,21 @@ export async function GET(request: Request) {
       return NextResponse.json({ serviceable: checkCourierServiceabilityFallback(pincode, courier), method: 'Static Fallback' });
     }
 
-    // 3. Static fallback for couriers without a live serviceability response.
+    // 3. Check Velocity live API if active
+    if (normalizedCourier.includes('velocity')) {
+      if (settings.velocityActive !== false) {
+        const res = await checkVelocityServiceability(pincode, settings.velocityConfig);
+        return NextResponse.json({ serviceable: res.serviceable, method: 'Velocity API', carriers: res.carriers });
+      }
+      return NextResponse.json({ serviceable: checkCourierServiceabilityFallback(pincode, courier), method: 'Static Fallback' });
+    }
+
+    // 4. Static fallback for couriers without a live serviceability response.
     const staticCheck = checkCourierServiceabilityFallback(pincode, courier);
     return NextResponse.json({ serviceable: staticCheck, method: 'Static Fallback' });
 
   } catch (error: any) {
-    const affectedCourier = /shadowfax|sfx|xpressbees|xbees/i.test(new URL(request.url).searchParams.get('courier') || '');
+    const affectedCourier = /shadowfax|sfx|xpressbees|xbees|velocity/i.test(new URL(request.url).searchParams.get('courier') || '');
     return NextResponse.json({ serviceable: affectedCourier ? null : false, error: error.message || 'Verification failed.' });
   }
 }

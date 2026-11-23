@@ -2,6 +2,8 @@ import { db } from '@/lib/db';
 import { CourierApiLog, SystemSettings, Order } from '@/lib/types';
 import { getXpressBeesToken, resolveXpressBeesConfig } from '@/lib/xpressbees';
 import { bookShadowfaxOrder } from '@/lib/shadowfax';
+import { bookVelocityOrder } from '@/lib/velocity';
+export { bookVelocityOrder } from '@/lib/velocity';
 import { isCourierSimulationEnabled } from '@/lib/courierSimulation';
 import { dtdcCustomerReference } from '@/lib/dtdcBooking';
 import { resolveConsigneePhone } from '@/lib/shipmentContact';
@@ -206,6 +208,10 @@ export async function bookCourierShipment(
         isCourierActive = settings.shadowfaxActive;
         apiKey = settings.shadowfaxConfig?.apiKey || '';
         break;
+      case 'Velocity':
+        isCourierActive = settings.velocityActive ?? true;
+        apiKey = settings.velocityConfig?.apiKey || settings.velocityConfig?.username || '';
+        break;
     }
 
     if (!isCourierActive) {
@@ -245,6 +251,32 @@ export async function bookCourierShipment(
         eta: sfxResult.eta,
         courier: 'Shadowfax',
         charge: sfxResult.charge
+      };
+    }
+
+    // LIVE VELOCITY BOOKING
+    if (courier === 'Velocity') {
+      const velResult = await bookVelocityOrder(order, settings, weight, phoneOverride);
+      await db.addCourierLog({
+        id: `cl-vel-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        courier: 'Velocity',
+        action: 'Forward Order Orchestration',
+        requestPayload: JSON.stringify(velResult.requestPayload || { orderId: order.orderId, weight }, null, 2),
+        responsePayload: JSON.stringify(velResult.responsePayload || { error: velResult.error }, null, 2),
+        status: velResult.success ? 'Success' : 'Error'
+      });
+
+      if (!velResult.success) {
+        return { success: false, error: velResult.error || 'Velocity booking failed' };
+      }
+
+      return {
+        success: true,
+        awb: velResult.awb,
+        eta: velResult.eta,
+        courier: 'Velocity',
+        charge: velResult.charge
       };
     }
 

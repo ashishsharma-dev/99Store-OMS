@@ -94,7 +94,10 @@ export function mapCourierStatusToInternal(courierStatus: any): OrderStatus | nu
   }
 
   if (
-    status === 'ndr' || 
+    status === 'ndr' ||
+    status.includes('ndr') ||
+    status.includes('need attention') ||
+    status.includes('reattempt') ||
     status.includes('failed') || 
     status.includes('exception') || 
     status.includes('undelivered') || 

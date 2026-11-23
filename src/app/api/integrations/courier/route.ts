@@ -7,6 +7,7 @@ import { bookOrderCourierShipment, isCourierSimulationEnabled, validateManifestW
 import { resolveConsigneePhone } from '@/lib/shipmentContact';
 import { fetchWithRetry } from '@/lib/fetchWithRetry';
 import { getActiveSession } from '@/lib/authorization';
+import { cancelVelocityOrder } from '@/lib/velocity';
 
 import { handleCourierTracking } from '@/lib/courierTrackingHandler';
 
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
       const isXpressBees = courier === 'XpressBees' || waybill.startsWith('XB');
       const isDtdc = courier === 'DTDC' || waybill.startsWith('DTDC');
       const isShadowfax = courier === 'Shadowfax' || waybill.startsWith('SFX') || waybill.startsWith('SF');
+      const isVelocity = courier === 'Velocity' || waybill.startsWith('VEL');
 
       if (isXpressBees) {
         const xbConfig = resolveXpressBeesConfig(settings.xpressbeesConfig);
@@ -201,6 +203,37 @@ export async function POST(request: Request) {
         });
 
         return NextResponse.json({ success: true, message: 'Shadowfax consignment cancelled.' });
+      }
+
+      if (isVelocity) {
+        const velResult = await cancelVelocityOrder([waybill], settings.velocityConfig);
+        await db.addCourierLog({
+          id: `cl-vel-cancel-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          courier: 'Velocity',
+          action: 'Cancel Shipment',
+          requestPayload: JSON.stringify({ waybill }, null, 2),
+          responsePayload: JSON.stringify(velResult, null, 2),
+          status: velResult.success ? 'Success' : 'Error'
+        });
+
+        if (velResult.success) {
+          const order = (await db.getOrders()).find(o => o.awb === waybill);
+          if (order) {
+            order.cancelled = true;
+            order.status = 'Return';
+            order.history.push({
+              status: 'Return',
+              timestamp: new Date().toISOString(),
+              updatedBy: 'Velocity API',
+              remarks: 'Consignment cancelled via Velocity API.'
+            });
+            await db.saveOrder(order);
+          }
+          return NextResponse.json({ success: true, message: velResult.message || 'Velocity consignment cancelled.' });
+        } else {
+          return NextResponse.json({ error: velResult.error || 'Velocity cancellation failed.' }, { status: 400 });
+        }
       }
     }
 

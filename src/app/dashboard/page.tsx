@@ -13,20 +13,19 @@ import {
   ArrowRight,
   TrendingDown
 } from 'lucide-react';
-import { Order } from '@/lib/types';
+import { Order, OrderStats } from '@/lib/types';
 import { CourierLogo } from '@/components/CourierLogo';
 import { DateRangeFilter, DateRange } from '@/components/DateRangeFilter';
 import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 
 export default function Dashboard() {
-  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState<DateRange>({
     preset: 'all',
     startDate: '',
     endDate: ''
   });
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<OrderStats>({
     total: 0,
     cod: 0,
     paid: 0,
@@ -36,7 +35,14 @@ export default function Dashboard() {
     ndr: 0,
     returns: 0,
     codValue: 0,
-    paidValue: 0
+    paidValue: 0,
+    courierCounts: {
+      DTDC: 0,
+      XpressBees: 0,
+      Delhivery: 0,
+      Shadowfax: 0,
+      Velocity: 0,
+    }
   });
 
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
@@ -54,63 +60,33 @@ export default function Dashboard() {
 
   const fetchOrders = async (start?: string, end?: string, isBackground = false) => {
     try {
-      let url = '/api/orders?limit=1000&sortField=createdAt&sortOrder=desc';
-      if (start) url += `&startDate=${encodeURIComponent(start)}`;
-      if (end) url += `&endDate=${encodeURIComponent(end)}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (res.ok && data.orders) {
-        const allOrders: Order[] = data.orders;
-        setOrders(allOrders);
+      let statsUrl = '/api/orders/stats';
+      let ordersUrl = '/api/orders?limit=10&sortField=createdAt&sortOrder=desc';
+      const params: string[] = [];
+      if (start) params.push(`startDate=${encodeURIComponent(start)}`);
+      if (end) params.push(`endDate=${encodeURIComponent(end)}`);
+      if (params.length > 0) {
+        const query = `?${params.join('&')}`;
+        statsUrl += query;
+        ordersUrl += query;
+      }
 
-        // Compute metrics
-        let cod = 0;
-        let paid = 0;
-        let pendingPacking = 0;
-        let dispatched = 0;
-        let delivered = 0;
-        let ndr = 0;
-        let returns = 0;
-        let codValue = 0;
-        let paidValue = 0;
+      const [statsRes, ordersRes] = await Promise.all([
+        fetch(statsUrl),
+        fetch(ordersUrl)
+      ]);
 
-        allOrders.forEach(o => {
-          if (o.paymentType === 'COD') {
-            cod++;
-            codValue += o.orderValue;
-          } else {
-            paid++;
-            paidValue += o.orderValue;
-          }
+      const [statsData, ordersData] = await Promise.all([
+        statsRes.json(),
+        ordersRes.json()
+      ]);
 
-          if (o.status === 'Created' || o.status === 'Packing') {
-            pendingPacking++;
-          } else if (['Courier Selected', 'Label Generated', 'Dispatched', 'OFD'].includes(o.status)) {
-            dispatched++;
-          } else if (o.status === 'Delivered') {
-            delivered++;
-          } else if (o.status === 'NDR') {
-            ndr++;
-          } else if (o.status === 'Return' || o.status === 'RDC') {
-            returns++;
-          }
-        });
+      if (statsRes.ok && statsData.stats) {
+        setStats(statsData.stats);
+      }
 
-        setStats({
-          total: allOrders.length,
-          cod,
-          paid,
-          pendingPacking,
-          dispatched,
-          delivered,
-          ndr,
-          returns,
-          codValue,
-          paidValue
-        });
-
-        // Set top 5 recent orders
-        setRecentOrders(allOrders.slice(0, 5));
+      if (ordersRes.ok && ordersData.orders) {
+        setRecentOrders(ordersData.orders.slice(0, 5));
       }
       setLoading(false);
     } catch (err) {
@@ -136,10 +112,11 @@ export default function Dashboard() {
 
   // Pure CSS bar chart data for Courier performance
   const courierStats = [
-    { name: 'DTDC', count: orders.filter(o => o.courier === 'DTDC').length, color: '#FFFFFF' },
-    { name: 'XpressBees', count: orders.filter(o => o.courier === 'XpressBees').length, color: '#888888' },
-    { name: 'Delhivery', count: orders.filter(o => o.courier === 'Delhivery').length, color: '#444444' },
-    { name: 'Shadowfax', count: orders.filter(o => o.courier === 'Shadowfax').length, color: '#FF6B00' }
+    { name: 'DTDC', count: stats.courierCounts?.DTDC ?? 0, color: '#FFFFFF' },
+    { name: 'XpressBees', count: stats.courierCounts?.XpressBees ?? 0, color: '#888888' },
+    { name: 'Delhivery', count: stats.courierCounts?.Delhivery ?? 0, color: '#444444' },
+    { name: 'Shadowfax', count: stats.courierCounts?.Shadowfax ?? 0, color: '#FF6B00' },
+    { name: 'Velocity', count: stats.courierCounts?.Velocity ?? 0, color: '#0066FF' }
   ];
   const maxCourierCount = Math.max(...courierStats.map(c => c.count), 1);
 

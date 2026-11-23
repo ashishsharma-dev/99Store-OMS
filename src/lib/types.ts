@@ -91,7 +91,7 @@ export interface Order {
   
   status: OrderStatus;
   awb?: string;
-  courier?: 'DTDC' | 'XpressBees' | 'Delhivery' | 'Shadowfax';
+  courier?: 'DTDC' | 'XpressBees' | 'Delhivery' | 'Shadowfax' | 'Velocity';
   shipmentContactPhone?: string;
   shipmentContactType?: ShipmentContactType;
   courierBookingStatus?: CourierBookingStatus;
@@ -242,6 +242,7 @@ export interface SystemSettings {
   xpressbeesActive: boolean;
   deliveryActive: boolean;
   shadowfaxActive: boolean;
+  velocityActive?: boolean;
   dtdcConfig: {
     apiKey: string;
     priority: number;
@@ -323,7 +324,45 @@ export interface SystemSettings {
     state?: string;
     pincode?: string;
   };
+  velocityConfig?: VelocityConfig;
   xpressbeesAwbPool?: string[];
+}
+
+export interface VelocityConfig {
+  apiKey: string;
+  priority: number;
+  username?: string;
+  password?: string;
+  warehouseId?: string;
+  baseUrl?: string;
+  pickupLocationName?: string;
+  pickupAddress?: string;
+  pickupAddress2?: string;
+  pickupCity?: string;
+  pickupState?: string;
+  pickupPincode?: string;
+  pickupPhone?: string;
+  pickupContactPerson?: string;
+}
+
+export interface OrderStats {
+  total: number;
+  cod: number;
+  paid: number;
+  pendingPacking: number;
+  dispatched: number;
+  delivered: number;
+  ndr: number;
+  returns: number;
+  codValue: number;
+  paidValue: number;
+  courierCounts: {
+    DTDC: number;
+    XpressBees: number;
+    Delhivery: number;
+    Shadowfax: number;
+    Velocity: number;
+  };
 }
 
 export type ActivityLogType = 'order' | 'ndr' | 'ofd' | 'call_placed';

@@ -1233,6 +1233,7 @@ export default function Orders() {
             <option value="XpressBees Surface">XpressBees Surface</option>
             <option value="Delhivery">Delhivery</option>
             <option value="Shadowfax">Shadowfax</option>
+            <option value="Velocity">Velocity</option>
             <option value="Unassigned">Unassigned Courier</option>
           </select>
           <ChevronDown size={12} style={{ position: 'absolute', right: '8px', pointerEvents: 'none', color: '#71717A' }} />

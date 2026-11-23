@@ -42,6 +42,7 @@ export const checkCourierServiceability = (pincode: string, courier: string): bo
     return null;
   }
   if (normalizedCourier.includes('shadowfax') || normalizedCourier.includes('sfx')) return null;
+  if (normalizedCourier.includes('velocity')) return null;
   if (normalizedCourier.includes('delhivery')) {
     return prefix !== '5';
   }

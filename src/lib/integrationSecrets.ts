@@ -58,6 +58,15 @@ export function applyIntegrationSecrets(settings: SystemSettings): SystemSetting
       ...settings.shadowfaxConfig,
       apiKey: fromEnv('SHADOWFAX_API_KEY', settings.shadowfaxConfig?.apiKey),
     },
+    velocityConfig: {
+      ...settings.velocityConfig,
+      apiKey: fromEnv('VELOCITY_API_KEY', settings.velocityConfig?.apiKey),
+      username: fromEnv('VELOCITY_USERNAME', settings.velocityConfig?.username),
+      password: fromEnv('VELOCITY_PASSWORD', settings.velocityConfig?.password),
+      warehouseId: fromEnv('VELOCITY_WAREHOUSE_ID', settings.velocityConfig?.warehouseId),
+      baseUrl: fromEnv('VELOCITY_BASE_URL', settings.velocityConfig?.baseUrl || 'https://shazam.velocity.in'),
+      priority: settings.velocityConfig?.priority ?? 5,
+    },
   };
 }
 
@@ -103,5 +112,10 @@ export function stripIntegrationSecrets(settings: SystemSettings): SystemSetting
     },
     deliveryConfig: { ...settings.deliveryConfig, apiKey: '' },
     shadowfaxConfig: { ...settings.shadowfaxConfig, apiKey: '' },
+    velocityConfig: settings.velocityConfig ? {
+      ...settings.velocityConfig,
+      apiKey: '',
+      password: '',
+    } : undefined,
   };
 }

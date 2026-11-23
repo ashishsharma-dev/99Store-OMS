@@ -5,6 +5,7 @@ import { syncOrderStatus, mapCourierStatusToInternal } from '@/lib/courierSync';
 import { isDtdcStaging } from '@/lib/courierHelper';
 import { isCourierSimulationEnabled } from '@/lib/courierReliability';
 import { trackShadowfaxOrder } from '@/lib/shadowfax';
+import { trackVelocityOrder } from '@/lib/velocity';
 import { fetchWithRetry } from '@/lib/fetchWithRetry';
 import { getLatestDelhiveryScan } from '@/lib/delhiveryTracking';
 import {
@@ -36,6 +37,7 @@ export async function handleCourierTracking(request: Request) {
     const isXpressBees = queryCourier === 'XpressBees' || waybill.startsWith('XB') || waybill.startsWith('5963');
     const isDtdc = queryCourier === 'DTDC' || waybill.startsWith('DTDC');
     const isShadowfax = queryCourier === 'Shadowfax' || waybill.startsWith('SFX') || waybill.startsWith('SF') || (await db.getOrders()).some(o => o.awb === waybill && o.courier === 'Shadowfax');
+    const isVelocity = queryCourier === 'Velocity' || waybill.startsWith('VEL') || (await db.getOrders()).some(o => o.awb === waybill && o.courier === 'Velocity');
 
     if (isXpressBees) {
       if (!settings.xpressbeesActive) {
@@ -532,6 +534,76 @@ export async function handleCourierTracking(request: Request) {
           return NextResponse.json(unifiedData);
         } catch (err: any) {
           return NextResponse.json({ error: `Shadowfax tracking failed: ${err.message}` }, { status: 500 });
+        }
+      }
+    }
+
+    if (isVelocity) {
+      if (settings.velocityActive === false) {
+        return NextResponse.json({ error: 'Velocity integration is disabled in settings.' }, { status: 400 });
+      }
+
+      if (action === 'track') {
+        try {
+          const res = await trackVelocityOrder(waybill, settings.velocityConfig);
+          if (!res.success) {
+            return NextResponse.json({ error: res.error || 'Velocity tracking unavailable.' }, { status: 502 });
+          }
+
+          const rawData = res.data?.result?.[waybill]?.tracking_data || {};
+          const currentStatus = rawData.shipment_status || rawData.track_status || 'in_transit';
+          const activities = Array.isArray(rawData.shipment_track_activities) ? rawData.shipment_track_activities : [];
+          const latestActivity = activities[0] || {};
+          const currentLocation = latestActivity.location || 'Hub';
+          const instructions = latestActivity.activity || currentStatus;
+
+          await db.addCourierLog({
+            id: `cl-vel-track-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            courier: 'Velocity',
+            action: 'Track Shipment',
+            requestPayload: JSON.stringify({ awbs: [waybill] }),
+            responsePayload: JSON.stringify(res.data, null, 2),
+            status: 'Success'
+          });
+
+          const unifiedData = {
+            ShipmentData: [
+              {
+                Shipment: {
+                  AWB: waybill,
+                  Status: {
+                    Status: currentStatus,
+                    StatusLocation: currentLocation,
+                    StatusDateTime: latestActivity.date || new Date().toISOString()
+                  },
+                  Scans: activities.map((act: any) => ({
+                    ScanDetail: {
+                      Scan: act.activity || currentStatus,
+                      ScanDateTime: act.date || new Date().toISOString(),
+                      ScannedLocation: act.location || currentLocation,
+                      Instructions: act.activity || ''
+                    }
+                  }))
+                }
+              }
+            ]
+          };
+
+          if (currentStatus) {
+            await syncTrackedStatus(
+              waybill,
+              currentStatus,
+              currentLocation,
+              `Velocity status: ${currentStatus} - ${instructions}`,
+              undefined,
+              latestActivity.date
+            );
+          }
+
+          return NextResponse.json(unifiedData);
+        } catch (err: any) {
+          return NextResponse.json({ error: `Velocity tracking failed: ${err.message}` }, { status: 500 });
         }
       }
     }

@@ -1,5 +1,5 @@
 import { getDatabase } from './mongodb';
-import { User, Order, NdrRecord, SystemSettings, WhatsAppLog, CourierApiLog, Message, ActivityLogEntry, ActivityLogType } from './types';
+import { User, Order, NdrRecord, SystemSettings, WhatsAppLog, CourierApiLog, Message, ActivityLogEntry, ActivityLogType, OrderStats } from './types';
 import { mockUsers, mockSettings, mockOrders, mockNdrs, mockWhatsAppLogs, mockCourierLogs, mockMessages } from './mockData';
 import fs from 'fs';
 import path from 'path';
@@ -225,6 +225,7 @@ function mergeSettings(overrides?: Partial<SystemSettings>): SystemSettings {
     },
     deliveryConfig: { ...mockSettings.deliveryConfig, ...(overrides?.deliveryConfig || {}) },
     shadowfaxConfig: { ...mockSettings.shadowfaxConfig, ...(overrides?.shadowfaxConfig || {}) },
+    velocityConfig: { ...(mockSettings.velocityConfig || { apiKey: '', priority: 5 }), ...(overrides?.velocityConfig || {}) },
   };
 }
 
@@ -722,6 +723,171 @@ export const db = {
       totalPages: Math.ceil(totalCount / limit),
       currentPage: page,
       limit,
+    };
+  },
+  getOrderStats: async (options?: { startDate?: string; endDate?: string }): Promise<OrderStats> => {
+    const database = await safeGetDb();
+    if (database) {
+      try {
+        const andConditions: any[] = [{ isDeleted: { $ne: true } }];
+        if (options?.startDate || options?.endDate) {
+          const dateFilter: any = {};
+          if (options.startDate) dateFilter.$gte = options.startDate;
+          if (options.endDate) dateFilter.$lte = options.endDate;
+          andConditions.push({ createdAt: dateFilter });
+        }
+        const filter = andConditions.length === 1 ? andConditions[0] : { $and: andConditions };
+
+        const pipeline = [
+          { $match: filter },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: 1 },
+              cod: { $sum: { $cond: [{ $eq: ['$paymentType', 'COD'] }, 1, 0] } },
+              paid: { $sum: { $cond: [{ $ne: ['$paymentType', 'COD'] }, 1, 0] } },
+              pendingPacking: {
+                $sum: {
+                  $cond: [{ $in: ['$status', ['Created', 'Packing']] }, 1, 0]
+                }
+              },
+              dispatched: {
+                $sum: {
+                  $cond: [{ $in: ['$status', ['Courier Selected', 'Label Generated', 'Dispatched', 'OFD']] }, 1, 0]
+                }
+              },
+              delivered: { $sum: { $cond: [{ $eq: ['$status', 'Delivered'] }, 1, 0] } },
+              ndr: { $sum: { $cond: [{ $eq: ['$status', 'NDR'] }, 1, 0] } },
+              returns: { $sum: { $cond: [{ $in: ['$status', ['Return', 'RDC']] }, 1, 0] } },
+              codValue: {
+                $sum: {
+                  $cond: [{ $eq: ['$paymentType', 'COD'] }, { $ifNull: ['$orderValue', 0] }, 0]
+                }
+              },
+              paidValue: {
+                $sum: {
+                  $cond: [{ $ne: ['$paymentType', 'COD'] }, { $ifNull: ['$orderValue', 0] }, 0]
+                }
+              },
+              dtdcCount: {
+                $sum: { $cond: [{ $regexMatch: { input: { $ifNull: ['$courier', ''] }, regex: 'dtdc', options: 'i' } }, 1, 0] }
+              },
+              xpressbeesCount: {
+                $sum: { $cond: [{ $regexMatch: { input: { $ifNull: ['$courier', ''] }, regex: 'xpressbees|xbees', options: 'i' } }, 1, 0] }
+              },
+              delhiveryCount: {
+                $sum: { $cond: [{ $regexMatch: { input: { $ifNull: ['$courier', ''] }, regex: 'delhivery', options: 'i' } }, 1, 0] }
+              },
+              shadowfaxCount: {
+                $sum: { $cond: [{ $regexMatch: { input: { $ifNull: ['$courier', ''] }, regex: 'shadowfax|sfx', options: 'i' } }, 1, 0] }
+              },
+              velocityCount: {
+                $sum: { $cond: [{ $regexMatch: { input: { $ifNull: ['$courier', ''] }, regex: 'velocity', options: 'i' } }, 1, 0] }
+              }
+            }
+          }
+        ];
+
+        const aggResult = await database.collection('orders').aggregate(pipeline).toArray();
+        if (aggResult && aggResult.length > 0) {
+          const row = aggResult[0];
+          return {
+            total: row.total || 0,
+            cod: row.cod || 0,
+            paid: row.paid || 0,
+            pendingPacking: row.pendingPacking || 0,
+            dispatched: row.dispatched || 0,
+            delivered: row.delivered || 0,
+            ndr: row.ndr || 0,
+            returns: row.returns || 0,
+            codValue: row.codValue || 0,
+            paidValue: row.paidValue || 0,
+            courierCounts: {
+              DTDC: row.dtdcCount || 0,
+              XpressBees: row.xpressbeesCount || 0,
+              Delhivery: row.delhiveryCount || 0,
+              Shadowfax: row.shadowfaxCount || 0,
+              Velocity: row.velocityCount || 0,
+            }
+          };
+        }
+      } catch (e) {
+        console.warn('[DB Engine] MongoDB getOrderStats aggregation failed, falling back to memoryOrders:', e);
+      }
+    }
+
+    // Memory fallback
+    let candidateOrders = memoryOrders.filter(o => !o.isDeleted);
+    if (options?.startDate) {
+      candidateOrders = candidateOrders.filter(o => o.createdAt >= options.startDate!);
+    }
+    if (options?.endDate) {
+      candidateOrders = candidateOrders.filter(o => o.createdAt <= options.endDate!);
+    }
+
+    let cod = 0;
+    let paid = 0;
+    let pendingPacking = 0;
+    let dispatched = 0;
+    let delivered = 0;
+    let ndr = 0;
+    let returns = 0;
+    let codValue = 0;
+    let paidValue = 0;
+    let dtdcCount = 0;
+    let xpressbeesCount = 0;
+    let delhiveryCount = 0;
+    let shadowfaxCount = 0;
+    let velocityCount = 0;
+
+    for (const o of candidateOrders) {
+      const val = Number(o.orderValue) || 0;
+      if (o.paymentType === 'COD') {
+        cod++;
+        codValue += val;
+      } else {
+        paid++;
+        paidValue += val;
+      }
+
+      if (o.status === 'Created' || o.status === 'Packing') {
+        pendingPacking++;
+      } else if (['Courier Selected', 'Label Generated', 'Dispatched', 'OFD'].includes(o.status)) {
+        dispatched++;
+      } else if (o.status === 'Delivered') {
+        delivered++;
+      } else if (o.status === 'NDR') {
+        ndr++;
+      } else if (o.status === 'Return' || o.status === 'RDC') {
+        returns++;
+      }
+
+      const courierLower = (o.courier || '').toLowerCase();
+      if (courierLower.includes('dtdc')) dtdcCount++;
+      else if (courierLower.includes('xpressbees') || courierLower.includes('xbees')) xpressbeesCount++;
+      else if (courierLower.includes('delhivery')) delhiveryCount++;
+      else if (courierLower.includes('shadowfax') || courierLower.includes('sfx')) shadowfaxCount++;
+      else if (courierLower.includes('velocity')) velocityCount++;
+    }
+
+    return {
+      total: candidateOrders.length,
+      cod,
+      paid,
+      pendingPacking,
+      dispatched,
+      delivered,
+      ndr,
+      returns,
+      codValue,
+      paidValue,
+      courierCounts: {
+        DTDC: dtdcCount,
+        XpressBees: xpressbeesCount,
+        Delhivery: delhiveryCount,
+        Shadowfax: shadowfaxCount,
+        Velocity: velocityCount,
+      }
     };
   },
   queryActivityLogs: async (options: ActivityLogQueryOptions = {}): Promise<PaginatedResult<ActivityLogEntry>> => {
