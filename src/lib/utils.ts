@@ -24,28 +24,30 @@ export const getUserDisplayName = (username: string): string => {
 
 /**
  * Checks courier serviceability based on the destination pincode.
- * - DTDC: Unserviceable for Zone 7 (pincode starts with 7)
- * - XpressBees / Shadowfax: unknown until the carrier confirms coverage
- * - Delhivery: Unserviceable for Zone 5 (pincode starts with 5)
+ * - Dynamic couriers (XpressBees, Shadowfax, Velocity): returns null (unconfirmed until live booking/API verification)
+ * - Standard couriers (DTDC, Delhivery, etc.): returns true for valid 6-digit Indian postal codes, false for malformed pincodes.
  */
 export const checkCourierServiceability = (pincode: string, courier: string): boolean | null => {
-  if (!pincode || pincode.length !== 6 || !/^\d+$/.test(pincode)) {
+  if (!pincode || pincode.length !== 6 || !/^\d{6}$/.test(pincode)) {
     return false;
   }
-  const prefix = pincode.charAt(0);
   const normalizedCourier = courier.toLowerCase();
 
-  if (normalizedCourier.includes('dtdc')) {
-    return prefix !== '7';
-  }
-  if (normalizedCourier.includes('xpressbees')) {
+  if (
+    normalizedCourier.includes('xpressbees') ||
+    normalizedCourier.includes('xbees') ||
+    normalizedCourier.includes('shadowfax') ||
+    normalizedCourier.includes('sfx') ||
+    normalizedCourier.includes('velocity')
+  ) {
     return null;
   }
-  if (normalizedCourier.includes('shadowfax') || normalizedCourier.includes('sfx')) return null;
-  if (normalizedCourier.includes('velocity')) return null;
-  if (normalizedCourier.includes('delhivery')) {
-    return prefix !== '5';
+
+  // Indian postal codes start with digits 1-9
+  if (!/^[1-9]\d{5}$/.test(pincode)) {
+    return false;
   }
+
   return true;
 };
 

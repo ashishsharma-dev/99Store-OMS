@@ -6,26 +6,23 @@ import { checkVelocityServiceability } from '@/lib/velocity';
 
 // Static check function as fallback
 function checkCourierServiceabilityFallback(pincode: string, courier: string): boolean | null {
-  if (!pincode || pincode.length !== 6 || !/^\d+$/.test(pincode)) {
+  if (!pincode || pincode.length !== 6 || !/^\d{6}$/.test(pincode)) {
     return false;
   }
-  const prefix = pincode.charAt(0);
   const normalizedCourier = courier.toLowerCase();
 
-  if (normalizedCourier.includes('dtdc')) {
-    return prefix !== '7';
-  }
-  if (normalizedCourier.includes('xpressbees') || normalizedCourier.includes('xbees')) {
+  if (
+    normalizedCourier.includes('xpressbees') ||
+    normalizedCourier.includes('xbees') ||
+    normalizedCourier.includes('shadowfax') ||
+    normalizedCourier.includes('sfx') ||
+    normalizedCourier.includes('velocity')
+  ) {
     return null;
   }
-  if (normalizedCourier.includes('delhivery')) {
-    return prefix !== '5';
-  }
-  if (normalizedCourier.includes('shadowfax') || normalizedCourier.includes('sfx')) {
-    return null;
-  }
-  if (normalizedCourier.includes('velocity')) {
-    return null;
+
+  if (!/^[1-9]\d{5}$/.test(pincode)) {
+    return false;
   }
 
   return true;
@@ -169,6 +166,16 @@ export async function POST(request: Request) {
           if (normalizedCourier.includes('xpressbees') || normalizedCourier.includes('xbees')) {
             if (settings.xpressbeesActive) {
               results[key] = await checkXpressBeesServiceability(pincode, settings.xpressbeesConfig, courier);
+              return;
+            }
+            results[key] = checkCourierServiceabilityFallback(pincode, courier);
+            return;
+          }
+
+          if (normalizedCourier.includes('velocity')) {
+            if (settings.velocityActive !== false) {
+              const res = await checkVelocityServiceability(pincode, settings.velocityConfig);
+              results[key] = res.serviceable;
               return;
             }
             results[key] = checkCourierServiceabilityFallback(pincode, courier);

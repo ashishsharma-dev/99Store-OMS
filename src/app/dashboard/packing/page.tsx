@@ -144,14 +144,14 @@ export default function Packing() {
           } else {
             const fallbackStates: Record<string, 'loading' | 'serviceable' | 'unserviceable' | 'unknown'> = {};
             couriers.forEach(c => {
-              fallbackStates[c] = /shadowfax|xpressbees|velocity/i.test(c) ? 'unknown' : 'unserviceable';
+              fallbackStates[c] = 'unknown';
             });
             setModalServiceability(fallbackStates);
           }
         } catch (e) {
           const fallbackStates: Record<string, 'loading' | 'serviceable' | 'unserviceable' | 'unknown'> = {};
           couriers.forEach(c => {
-            fallbackStates[c] = /shadowfax|xpressbees|velocity/i.test(c) ? 'unknown' : 'unserviceable';
+            fallbackStates[c] = 'unknown';
           });
           setModalServiceability(fallbackStates);
         }
@@ -715,6 +715,8 @@ export default function Packing() {
           awb: '',
           eta: '',
           futureDeliveryDate: '',
+          courierBookingError: '',
+          courierBookingStatus: '',
           remarks: reassignRemark,
           updatedBy: currentUser?.username || 'packing_operator'
         })
@@ -751,6 +753,8 @@ export default function Packing() {
           awb: '',
           eta: '',
           futureDeliveryDate: '',
+          courierBookingError: '',
+          courierBookingStatus: '',
           remarks: `Pincode ${pincode} unserviceable. Inline reassigned to ${courierName} from exception modal.`,
           updatedBy: currentUser?.username || 'packing_operator'
         })
@@ -788,6 +792,8 @@ export default function Packing() {
             awb: '',
             eta: '',
             futureDeliveryDate: '',
+            courierBookingError: '',
+            courierBookingStatus: '',
             remarks: `Bulk courier reassign. Courier changed to ${bulkReassignCourier}.`,
             updatedBy: currentUser?.username || 'packing_operator'
           })
@@ -1769,7 +1775,7 @@ export default function Packing() {
                           </span>
                         </div>
                         
-                        {status === 'serviceable' && !isCurrent && (
+                        {(status === 'serviceable' || status === 'unknown') && !isCurrent && (
                           <button
                             type="button"
                             disabled={!!inlineReassignLoading}

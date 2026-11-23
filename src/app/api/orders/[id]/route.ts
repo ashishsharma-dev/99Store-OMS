@@ -59,6 +59,8 @@ export async function PATCH(
       labelPrinted,
       isBooked,
       isPaymentSettled,
+      courierBookingError,
+      courierBookingStatus,
     } = body;
 
     if (isPaymentSettled !== undefined && !hasAllowedRole(session, ['Super Admin', 'Accounts Team'])) {
@@ -109,9 +111,28 @@ export async function PATCH(
     // 1. Update status and tracking details
     order.status = targetStatus as OrderStatus;
     order.updatedAt = now;
-    if (courier) order.courier = courier;
-    if (awb !== undefined) order.awb = awb || undefined;
+    if (courier) {
+      if (order.courier !== courier) {
+        order.courierBookingError = undefined;
+        order.courierBookingStatus = undefined;
+      }
+      order.courier = courier;
+    }
+    if (awb !== undefined) {
+      order.awb = awb || undefined;
+      if (!awb) {
+        order.label_generated = false;
+        order.courierBookingError = undefined;
+        order.courierBookingStatus = undefined;
+      }
+    }
     if (eta !== undefined) order.eta = eta || undefined;
+    if (courierBookingError !== undefined) {
+      order.courierBookingError = courierBookingError ? String(courierBookingError) : undefined;
+    }
+    if (courierBookingStatus !== undefined) {
+      order.courierBookingStatus = courierBookingStatus ? courierBookingStatus : undefined;
+    }
 
     // Additional requirement fields
     if (partiallyPaidAmount !== undefined) {
