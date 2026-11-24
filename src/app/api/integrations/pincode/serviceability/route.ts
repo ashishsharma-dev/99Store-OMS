@@ -33,6 +33,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const pincode = searchParams.get('pincode')?.trim();
     const courier = searchParams.get('courier')?.trim() || '';
+    const paymentMode = (searchParams.get('paymentType') || searchParams.get('payment_mode') || 'cod').toLowerCase() === 'paid' ? 'prepaid' : 'cod';
 
     if (!pincode || pincode.length !== 6 || !/^\d+$/.test(pincode)) {
       return NextResponse.json({ serviceable: false, error: 'Invalid pincode.' }, { status: 400 });
@@ -87,8 +88,8 @@ export async function GET(request: Request) {
 
     // 3. Check Velocity live API if active
     if (normalizedCourier.includes('velocity')) {
-      if (settings.velocityActive !== false) {
-        const res = await checkVelocityServiceability(pincode, settings.velocityConfig);
+      if (settings.velocityActive && (settings.velocityConfig?.apiKey || settings.velocityConfig?.username)) {
+        const res = await checkVelocityServiceability(pincode, settings.velocityConfig, undefined, paymentMode);
         return NextResponse.json({ serviceable: res.serviceable, method: 'Velocity API', carriers: res.carriers });
       }
       return NextResponse.json({ serviceable: checkCourierServiceabilityFallback(pincode, courier), method: 'Static Fallback' });
@@ -173,7 +174,7 @@ export async function POST(request: Request) {
           }
 
           if (normalizedCourier.includes('velocity')) {
-            if (settings.velocityActive !== false) {
+            if (settings.velocityActive && (settings.velocityConfig?.apiKey || settings.velocityConfig?.username)) {
               const res = await checkVelocityServiceability(pincode, settings.velocityConfig);
               results[key] = res.serviceable;
               return;

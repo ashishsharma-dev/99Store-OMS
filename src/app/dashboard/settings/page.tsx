@@ -1358,6 +1358,9 @@ export default function IntegrationsSettings() {
 
                 {velocityActive && (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                    <div style={{ gridColumn: '1 / -1', padding: '10px 14px', borderRadius: '6px', background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.2)', fontSize: '12px', color: '#93C5FD' }}>
+                      ℹ️ <strong>Velocity Authentication:</strong> Generate a long-lived API Key from your Velocity Shipping Portal (<strong>Settings → API Keys → Generate API Key</strong>) and paste it below. (Velocity has deprecated legacy username/password authentication for API endpoints).
+                    </div>
                     <div>
                       <label style={{ display: 'block', fontSize: '11px', color: '#A1A1AA', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>API Key (Bearer Token)</label>
                       <input type="password" className="premium-input" placeholder="Velocity Long-Lived Bearer Token" value={velocityApiKey} onChange={(e) => setVelocityApiKey(e.target.value)} />

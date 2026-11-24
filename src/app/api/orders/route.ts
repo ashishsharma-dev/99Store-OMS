@@ -139,15 +139,16 @@ export async function POST(request: Request) {
     const nextId = `ord-${maxNum + 1}`;
 
     const settings = await db.getSettings();
-    let assignedCourier: 'DTDC' | 'XpressBees' | 'Delhivery' | 'Shadowfax' | undefined = undefined;
+    let assignedCourier: 'DTDC' | 'XpressBees' | 'Delhivery' | 'Shadowfax' | 'Velocity' | undefined = undefined;
 
     // Apply intelligent auto courier routing engine if enabled
     if (settings.autoCourierEnabled) {
-      const courierCandidates: { courier: 'DTDC' | 'XpressBees' | 'Delhivery' | 'Shadowfax'; priority: number; active: boolean }[] = [
+      const courierCandidates: { courier: 'DTDC' | 'XpressBees' | 'Delhivery' | 'Shadowfax' | 'Velocity'; priority: number; active: boolean }[] = [
         { courier: 'DTDC', priority: settings.dtdcConfig?.priority ?? 1, active: settings.dtdcActive },
         { courier: 'XpressBees', priority: settings.xpressbeesConfig?.priority ?? 2, active: settings.xpressbeesActive },
         { courier: 'Delhivery', priority: settings.deliveryConfig?.priority ?? 3, active: settings.deliveryActive },
-        { courier: 'Shadowfax', priority: settings.shadowfaxConfig?.priority ?? 4, active: settings.shadowfaxActive }
+        { courier: 'Shadowfax', priority: settings.shadowfaxConfig?.priority ?? 4, active: settings.shadowfaxActive },
+        { courier: 'Velocity', priority: settings.velocityConfig?.priority ?? 5, active: Boolean(settings.velocityActive && (settings.velocityConfig?.apiKey || settings.velocityConfig?.username)) }
       ];
 
       const activeCandidates = courierCandidates

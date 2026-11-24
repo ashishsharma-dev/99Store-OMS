@@ -71,7 +71,12 @@ export async function checkVelocityServiceability(
   destinationPincode: string,
   config?: VelocityConfig,
   fromPincode?: string,
+  paymentMode: 'cod' | 'prepaid' = 'cod',
 ): Promise<VelocityServiceabilityResult> {
+  if (!destinationPincode || destinationPincode.length !== 6 || !/^\d{6}$/.test(destinationPincode)) {
+    return { serviceable: false, message: 'Invalid destination pincode.' };
+  }
+
   try {
     const authHeader = await getVelocityAuthHeader(config);
     if (!authHeader) {
@@ -90,7 +95,7 @@ export async function checkVelocityServiceability(
       body: JSON.stringify({
         from: originPincode,
         to: destinationPincode,
-        payment_mode: 'cod',
+        payment_mode: paymentMode.toLowerCase(),
         shipment_type: 'forward',
       }),
       signal: AbortSignal.timeout(12000),
@@ -101,15 +106,44 @@ export async function checkVelocityServiceability(
       return { serviceable: null, message: `Velocity serviceability HTTP ${res.status}: ${errText}` };
     }
 
-    const data = await res.json();
-    const carriers = data?.result?.serviceability_results || [];
-    const isServiceable = Array.isArray(carriers) && carriers.length > 0;
+    const data = await res.json().catch(() => null);
+    if (!data) {
+      return { serviceable: null, message: 'Invalid JSON response from Velocity serviceability.' };
+    }
+
+    // Check status
+    const statusStr = String(data?.status || '').toUpperCase();
+    const isSuccessStatus = statusStr === 'SUCCESS' || data?.status === 1 || data?.success === true || data?.meta?.success === true;
+
+    const carriers = data?.result?.serviceability_results
+      || data?.payload?.serviceability_results
+      || data?.data?.serviceability_results
+      || data?.serviceability_results
+      || [];
+
+    if (isSuccessStatus) {
+      const isServiceable = Array.isArray(carriers) && carriers.length > 0;
+      return {
+        serviceable: isServiceable,
+        carriers,
+        zone: data?.result?.zone || data?.zone,
+        message: isServiceable ? undefined : `No serviceable carriers found for pincode ${destinationPincode}`,
+      };
+    }
+
+    // If API returned an error message, check if it's explicitly about unserviceable pincode
+    const msg = data.message || data.error || data?.meta?.message || '';
+    if (/not serviceable|unserviceable|no service|invalid.*pin/i.test(msg)) {
+      return {
+        serviceable: false,
+        carriers: [],
+        message: msg || `Pincode ${destinationPincode} is not serviceable`,
+      };
+    }
 
     return {
-      serviceable: isServiceable,
-      carriers,
-      zone: data?.result?.zone,
-      message: isServiceable ? undefined : `No serviceable carriers found for pincode ${destinationPincode}`,
+      serviceable: null,
+      message: msg || 'Velocity serviceability check returned non-success response.',
     };
   } catch (err: any) {
     return { serviceable: null, message: err.message };

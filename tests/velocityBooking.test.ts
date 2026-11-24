@@ -113,4 +113,15 @@ test('velocity courier integration', async (t) => {
     assert.equal(res.serviceable, null);
     assert.match(res.message || '', /credentials are not configured/i);
   });
+
+  await t.test('serviceability rejects invalid destination pincodes', async () => {
+    const resEmpty = await checkVelocityServiceability('', { apiKey: 'dummy', priority: 5 });
+    assert.equal(resEmpty.serviceable, false);
+
+    const resShort = await checkVelocityServiceability('12345', { apiKey: 'dummy', priority: 5 });
+    assert.equal(resShort.serviceable, false);
+
+    const resAlpha = await checkVelocityServiceability('ABCDEF', { apiKey: 'dummy', priority: 5 });
+    assert.equal(resAlpha.serviceable, false);
+  });
 });
