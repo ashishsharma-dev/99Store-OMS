@@ -140,7 +140,7 @@ export async function POST(request: Request) {
         await db.saveOrder(order);
 
         // XpressBees Escalation integration call if live
-        if (order.courier === 'XpressBees' && order.awb) {
+        if ((order.courier === 'XpressBees' || (order.courier || '').toLowerCase().includes('xpressbees')) && order.awb) {
           const settings = await db.getSettings();
           const email = settings.xpressbeesConfig.email;
           const password = settings.xpressbeesConfig.password;

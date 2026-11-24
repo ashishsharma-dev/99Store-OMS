@@ -33,11 +33,18 @@ export async function handleCourierTracking(request: Request) {
     }
 
     const settings = await db.getSettings();
+    const orders = await db.getOrders();
+    const matchingOrder = orders.find(o =>
+      (o.awb && o.awb.trim().toLowerCase() === waybill.trim().toLowerCase()) ||
+      (o.dtdc_reference_number && o.dtdc_reference_number.trim().toLowerCase() === waybill.trim().toLowerCase())
+    );
+    const orderCourier = matchingOrder?.courier || '';
+    const courierHint = (queryCourier || orderCourier).trim().toLowerCase();
 
-    const isXpressBees = queryCourier === 'XpressBees' || waybill.startsWith('XB') || waybill.startsWith('5963');
-    const isDtdc = queryCourier === 'DTDC' || waybill.startsWith('DTDC');
-    const isShadowfax = queryCourier === 'Shadowfax' || waybill.startsWith('SFX') || waybill.startsWith('SF') || (await db.getOrders()).some(o => o.awb === waybill && o.courier === 'Shadowfax');
-    const isVelocity = queryCourier === 'Velocity' || waybill.startsWith('VEL') || (await db.getOrders()).some(o => o.awb === waybill && o.courier === 'Velocity');
+    const isXpressBees = courierHint.includes('xpressbees') || courierHint.includes('xbees') || waybill.startsWith('XB') || waybill.startsWith('5963');
+    const isDtdc = courierHint.includes('dtdc') || waybill.startsWith('DTDC');
+    const isShadowfax = courierHint.includes('shadowfax') || courierHint.includes('sfx') || waybill.startsWith('SFX') || waybill.startsWith('SF');
+    const isVelocity = courierHint.includes('velocity') || waybill.startsWith('VEL');
 
     if (isXpressBees) {
       if (!settings.xpressbeesActive) {
@@ -45,7 +52,7 @@ export async function handleCourierTracking(request: Request) {
       }
 
       if (action === 'track') {
-        const xbConfig = resolveXpressBeesConfig(settings.xpressbeesConfig);
+        const xbConfig = resolveXpressBeesConfig(settings.xpressbeesConfig, queryCourier || orderCourier);
         const token = await getXpressBeesToken(xbConfig);
         const isMockToken = token === 'MOCK_TOKEN_12345';
         const baseUrl = xbConfig.baseUrl || 'https://shipment.xpressbees.com/api';
@@ -115,6 +122,17 @@ export async function handleCourierTracking(request: Request) {
           return NextResponse.json(simulatedTracking);
         }
 
+        const parseCourierDateTime = (rawDate?: string): string => {
+          if (!rawDate) return '';
+          const trimmed = String(rawDate).trim();
+          const match = trimmed.match(/^(\d{2})[-/](\d{2})[-/](\d{4})(?:\s+|T)(\d{2}:\d{2}(?::\d{2})?)/);
+          if (match) {
+            const [, d, m, y, time] = match;
+            return `${y}-${m}-${d}T${time}`;
+          }
+          return trimmed;
+        };
+
         const authType = xbConfig.authType || 'new';
         let res;
         let data;
@@ -122,31 +140,72 @@ export async function handleCourierTracking(request: Request) {
 
         if (authType === 'new') {
           const trackUrl = xbConfig.trackBulkUrl || 'https://apishipmenttracking.xbees.in/GetCurrentShipmentStatus';
-          reqPayloadStr = `POST ${trackUrl} body: { AWBNumber: ${waybill} }`;
-          res = await fetchWithRetry(
-            trackUrl,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-                'Token': token,
-                'TokenNumber': token,
-                'XBKey': xbConfig.xbKey || '',
-                'versionnumber': 'v1'
+          const auditUrl = xbConfig.trackSummaryUrl || 'https://apishipmenttracking.xbees.in/GetShipmentAuditLog';
+
+          let auditSuccess = false;
+          // Prefer GetShipmentAuditLog to fetch full tracking scan history
+          try {
+            const auditRes = await fetchWithRetry(
+              auditUrl,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`,
+                  'Token': token,
+                  'TokenNumber': token,
+                  'XBKey': xbConfig.xbKey || '',
+                  'versionnumber': 'v1'
+                },
+                body: JSON.stringify({ AWBNumber: waybill })
               },
-              body: JSON.stringify({
-                AWBNumber: waybill
-              })
-            },
-            {
-              awb: waybill,
-              courierName: 'XpressBees',
-              timeoutMs: 10000,
-              maxAttempts: 3
+              {
+                awb: waybill,
+                courierName: 'XpressBees',
+                timeoutMs: 10000,
+                maxAttempts: 2
+              }
+            );
+            if (auditRes.ok) {
+              const auditParsed = await auditRes.json();
+              if (auditParsed && (String(auditParsed.ReturnCode) === '100' || (Array.isArray(auditParsed.ShipmentLogDetails) && auditParsed.ShipmentLogDetails.length > 0))) {
+                res = auditRes;
+                data = auditParsed;
+                reqPayloadStr = `POST ${auditUrl} body: { AWBNumber: ${waybill} }`;
+                auditSuccess = true;
+              }
             }
-          );
-          data = await res.json();
+          } catch (auditErr) {
+            // fallback to GetCurrentShipmentStatus
+          }
+
+          if (!auditSuccess) {
+            reqPayloadStr = `POST ${trackUrl} body: { AWBNumber: ${waybill} }`;
+            res = await fetchWithRetry(
+              trackUrl,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`,
+                  'Token': token,
+                  'TokenNumber': token,
+                  'XBKey': xbConfig.xbKey || '',
+                  'versionnumber': 'v1'
+                },
+                body: JSON.stringify({
+                  AWBNumber: waybill
+                })
+              },
+              {
+                awb: waybill,
+                courierName: 'XpressBees',
+                timeoutMs: 10000,
+                maxAttempts: 3
+              }
+            );
+            data = await res.json();
+          }
         } else {
           reqPayloadStr = `GET ${baseUrl}/shipments2/track/${waybill}`;
           res = await fetchWithRetry(
@@ -169,47 +228,74 @@ export async function handleCourierTracking(request: Request) {
         }
 
         let unifiedData = data;
-
-        // Handle new-style XpressBees response: [{AWBNO, ReturnCode, ReturnMessage, CurrentShipmentStatus}]
         const xbArr = Array.isArray(data) ? data : null;
         const xbEntry = xbArr?.[0];
-        if (xbEntry && 'ReturnCode' in xbEntry) {
-          if (String(xbEntry.ReturnCode) !== '100') {
-            await db.addCourierLog({
-              id: `cl-xb-track-${Date.now()}`,
-              timestamp: new Date().toISOString(),
-              courier: 'XpressBees',
-              action: 'Track Shipment',
-              requestPayload: reqPayloadStr,
-              responsePayload: JSON.stringify(data, null, 2),
-              status: 'Error'
-            });
-            return NextResponse.json({ error: `XpressBees tracking error: ${xbEntry.ReturnMessage || 'Unknown error'} (code ${xbEntry.ReturnCode})` }, { status: 502 });
-          }
-          const css = xbEntry.CurrentShipmentStatus;
+
+        // Handle GetShipmentAuditLog format: { ReturnCode, ReturnMessage, ShipmentLogDetails: [...] }
+        if (data && Array.isArray(data.ShipmentLogDetails) && data.ShipmentLogDetails.length > 0) {
+          const logs = data.ShipmentLogDetails;
+          const latestLog = logs[0];
+          const latestTime = parseCourierDateTime(latestLog?.ShipmentStatusDateTime);
           unifiedData = {
             ShipmentData: [
               {
                 Shipment: {
-                  AWB: xbEntry.AWBNO || waybill,
+                  AWB: waybill,
                   Status: {
-                    Status: css?.Status || '',
-                    StatusLocation: css?.CurrentLocation || css?.OriginLocation || 'Hub',
-                    StatusDateTime: css?.StatusDateTime || ''
+                    Status: latestLog?.Description || latestLog?.ShipmentStatus || '',
+                    StatusLocation: latestLog?.HubLocation || latestLog?.City || 'Hub',
+                    StatusDateTime: latestTime
                   },
-                  Scans: css ? [{
+                  Scans: logs.map((item: any) => ({
                     ScanDetail: {
-                      ScannedLocation: css.CurrentLocation || css.OriginLocation || 'Hub',
-                      ScanDateTime: css.StatusDateTime || '',
-                      Scan: css.Status || 'Scan Recorded',
-                      Instructions: css.Remark || ''
+                      ScannedLocation: item.HubLocation || item.City || 'Hub',
+                      ScanDateTime: parseCourierDateTime(item.ShipmentStatusDateTime),
+                      Scan: item.Description || item.ShipmentStatus || 'Scan Recorded',
+                      Instructions: item.Process || item.Description || ''
                     }
-                  }] : []
+                  }))
                 }
               }
             ]
           };
-        } else if (data && !data.ShipmentData) {
+        } else if (xbEntry && 'ReturnCode' in xbEntry) {
+            if (String(xbEntry.ReturnCode) !== '100') {
+              await db.addCourierLog({
+                id: `cl-xb-track-${Date.now()}`,
+                timestamp: new Date().toISOString(),
+                courier: 'XpressBees',
+                action: 'Track Shipment',
+                requestPayload: reqPayloadStr,
+                responsePayload: JSON.stringify(data, null, 2),
+                status: 'Error'
+              });
+              return NextResponse.json({ error: `XpressBees tracking error: ${xbEntry.ReturnMessage || 'Unknown error'} (code ${xbEntry.ReturnCode})` }, { status: 502 });
+            }
+            const css = xbEntry.CurrentShipmentStatus;
+            const cssTime = parseCourierDateTime(css?.StatusDateTime);
+            unifiedData = {
+              ShipmentData: [
+                {
+                  Shipment: {
+                    AWB: xbEntry.AWBNO || waybill,
+                    Status: {
+                      Status: css?.Status || '',
+                      StatusLocation: css?.CurrentLocation || css?.OriginLocation || 'Hub',
+                      StatusDateTime: cssTime
+                    },
+                    Scans: css ? [{
+                      ScanDetail: {
+                        ScannedLocation: css.CurrentLocation || css.OriginLocation || 'Hub',
+                        ScanDateTime: cssTime,
+                        Scan: css.Status || 'Scan Recorded',
+                        Instructions: css.Remark || ''
+                      }
+                    }] : []
+                  }
+                }
+              ]
+            };
+          } else if (data && !data.ShipmentData) {
           const rawScans = Array.isArray(data.scans)
             ? data.scans
             : Array.isArray(data.data)
@@ -255,7 +341,7 @@ export async function handleCourierTracking(request: Request) {
           action: 'Track Shipment',
           requestPayload: reqPayloadStr,
           responsePayload: JSON.stringify(data, null, 2),
-          status: res.ok ? 'Success' : 'Error'
+          status: res?.ok ? 'Success' : 'Error'
         });
 
         const courierStatus = unifiedData?.ShipmentData?.[0]?.Shipment?.Status?.Status;

@@ -270,3 +270,31 @@ it('does not turn a failed Shadowfax tracking response into a shipment event', a
   assert.equal(order.status, 'OFD');
   assert.equal(order.history.length, 0);
 });
+it('correctly routes XpressBees Surface and Air orders to XpressBees tracking instead of falling through to Delhivery', async () => {
+  const xbOrder: Order = {
+    ...order,
+    id: 'ord-xb-test-1',
+    orderId: '99S-XB-1',
+    awb: '153999418810160',
+    courier: 'XpressBees Surface' as any,
+    status: 'Dispatched'
+  };
+  mock.method(db, 'getOrders', async () => [xbOrder]);
+  mock.method(db, 'getSettings', async () => ({
+    ...mockSettings,
+    xpressbeesActive: true,
+    xpressbeesConfig: { email: '', password: '', activeAccount: 'Surface' } // simulation mode fallback
+  }));
+
+  // 1. With courier='XpressBees Surface'
+  const response1 = await handleCourierTracking(new Request('http://localhost/api/integrations/courier?action=track&waybill=153999418810160&courier=XpressBees+Surface'));
+  assert.equal(response1.status, 200);
+  const data1 = await response1.json();
+  assert.equal(data1.ShipmentData[0].Shipment.AWB, '153999418810160');
+
+  // 2. Without courier query param, resolves from order.courier
+  const response2 = await handleCourierTracking(new Request('http://localhost/api/integrations/courier?action=track&waybill=153999418810160'));
+  assert.equal(response2.status, 200);
+  const data2 = await response2.json();
+  assert.equal(data2.ShipmentData[0].Shipment.AWB, '153999418810160');
+});

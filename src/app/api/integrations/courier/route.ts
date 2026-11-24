@@ -30,13 +30,14 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Missing AWB waybill parameter for cancellation.' }, { status: 400 });
       }
 
-      const isXpressBees = courier === 'XpressBees' || waybill.startsWith('XB');
-      const isDtdc = courier === 'DTDC' || waybill.startsWith('DTDC');
-      const isShadowfax = courier === 'Shadowfax' || waybill.startsWith('SFX') || waybill.startsWith('SF');
-      const isVelocity = courier === 'Velocity' || waybill.startsWith('VEL');
+      const normalizedCourier = (courier || '').toLowerCase();
+      const isXpressBees = normalizedCourier.includes('xpressbees') || normalizedCourier.includes('xbees') || waybill.startsWith('XB') || waybill.startsWith('5963');
+      const isDtdc = normalizedCourier.includes('dtdc') || waybill.startsWith('DTDC');
+      const isShadowfax = normalizedCourier.includes('shadowfax') || normalizedCourier.includes('sfx') || waybill.startsWith('SFX') || waybill.startsWith('SF');
+      const isVelocity = normalizedCourier.includes('velocity') || waybill.startsWith('VEL');
 
       if (isXpressBees) {
-        const xbConfig = resolveXpressBeesConfig(settings.xpressbeesConfig);
+        const xbConfig = resolveXpressBeesConfig(settings.xpressbeesConfig, courier);
         const token = await getXpressBeesToken(xbConfig);
         const isMockToken = token === 'MOCK_TOKEN_12345';
         const baseUrl = xbConfig.baseUrl || 'https://shipment.xpressbees.com/api';
