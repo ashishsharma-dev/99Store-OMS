@@ -1,0 +1,1601 @@
+{
+  "generated_at": "2026-11-04T19:27:07.387812+00:00",
+  "nodes": {
+    "deploy": {
+      "code_fingerprint": "e3c6184d3ccc48529fb2bb66d6dad0b6726c16c506ece3e16a4cea07f9cc65d1",
+      "label": "deploy.sh",
+      "last": "2026-10-12T04:37:33.916646+00:00",
+      "neg": 1,
+      "provenance": [
+        {
+          "date": "2026-10-12T04:37:33.916646+00:00",
+          "outcome": "useful",
+          "q": "push to the live"
+        },
+        {
+          "date": "2026-10-05T14:22:16.357654+00:00",
+          "outcome": "useful",
+          "q": "How is 99Store OMS deployed safely with rollback and database protection?"
+        },
+        {
+          "date": "2026-09-30T12:40:48.995916+00:00",
+          "outcome": "corrected",
+          "q": "See the creds rotation part i will do in the last rest proceed for the steps to make it production ready"
+        },
+        {
+          "date": "2026-09-30T12:39:20.479912+00:00",
+          "outcome": "useful",
+          "q": "See the creds rotation part i will do in the last rest proceed for the steps to make it production ready"
+        },
+        {
+          "date": "2026-09-30T11:32:31.030582+00:00",
+          "outcome": "useful",
+          "q": "Thanks, Now what steps are remaining?"
+        }
+      ],
+      "score": 4.60012228,
+      "source_file": "deploy.sh",
+      "status": "contested",
+      "uses": 11,
+      "verdict": "useful"
+    },
+    "documentation_courier_routing": {
+      "code_fingerprint": "589df34c20838b4f185c08f3b196581d21b1351310005100ba870ad5c95e76f0",
+      "label": "Multi-Courier Routing Engine",
+      "last": "2026-09-29T16:39:11.601975+00:00",
+      "provenance": [
+        {
+          "date": "2026-09-29T16:39:11.601975+00:00",
+          "outcome": "useful",
+          "q": "Whn creating an order and thn generating the AWB Number and selecting the number and courier to send in the request payloads this flow should be working because currently selecting a number is not working i think the courier is generating the manifests with the another numbers check once and let me know."
+        }
+      ],
+      "score": 0.434104035,
+      "source_file": "DOCUMENTATION.md",
+      "status": "tentative",
+      "uses": 1
+    },
+    "documentation_security_ip_firewall": {
+      "code_fingerprint": "589df34c20838b4f185c08f3b196581d21b1351310005100ba870ad5c95e76f0",
+      "label": "IP Whitelist & OTP Security Model",
+      "last": "2026-09-30T12:39:20.479912+00:00",
+      "provenance": [
+        {
+          "date": "2026-09-30T12:39:20.479912+00:00",
+          "outcome": "useful",
+          "q": "See the creds rotation part i will do in the last rest proceed for the steps to make it production ready"
+        },
+        {
+          "date": "2026-09-30T11:32:31.030582+00:00",
+          "outcome": "useful",
+          "q": "Thanks, Now what steps are remaining?"
+        }
+      ],
+      "score": 0.884614454,
+      "source_file": "DOCUMENTATION.md",
+      "status": "preferred",
+      "uses": 2
+    },
+    "documentation_system_architecture": {
+      "code_fingerprint": "589df34c20838b4f185c08f3b196581d21b1351310005100ba870ad5c95e76f0",
+      "label": "99Store OMS Architecture",
+      "last": "2026-09-29T15:30:42.463735+00:00",
+      "provenance": [
+        {
+          "date": "2026-09-29T15:30:42.463735+00:00",
+          "outcome": "useful",
+          "q": "understand this project using graphify skill"
+        }
+      ],
+      "score": 0.433627278,
+      "source_file": "DOCUMENTATION.md",
+      "status": "tentative",
+      "uses": 1
+    },
+    "dtdc_awb_generation": {
+      "code_fingerprint": "fb58705f0ef7cf0fef8356a7aaa4fbdc5504f5ca206d697d31749819bd0195fb",
+      "label": "DTDC AWB & Shipping Label Generation",
+      "last": "2026-09-29T16:39:11.601975+00:00",
+      "provenance": [
+        {
+          "date": "2026-09-29T16:39:11.601975+00:00",
+          "outcome": "useful",
+          "q": "Whn creating an order and thn generating the AWB Number and selecting the number and courier to send in the request payloads this flow should be working because currently selecting a number is not working i think the courier is generating the manifests with the another numbers check once and let me know."
+        }
+      ],
+      "score": 0.434104035,
+      "source_file": "DTDC_Integration_Specification_AI_Agent.txt",
+      "status": "tentative",
+      "uses": 1
+    },
+    "mongodb": {
+      "code_fingerprint": "",
+      "label": "mongodb",
+      "last": "2026-09-30T08:52:14.059419+00:00",
+      "provenance": [
+        {
+          "date": "2026-09-30T08:52:14.059419+00:00",
+          "outcome": "useful",
+          "q": "It is not logging in after entering the creds and otp"
+        },
+        {
+          "date": "2026-09-30T03:49:04.022751+00:00",
+          "outcome": "useful",
+          "q": "First let me know the admin login creds to test this application and next break it down to the doable steps to move forward next"
+        },
+        {
+          "date": "2026-09-30T03:43:28.621831+00:00",
+          "outcome": "useful",
+          "q": "Now lets just check and let me know what steps are remaining further?"
+        },
+        {
+          "date": "2026-09-29T17:24:46.872033+00:00",
+          "outcome": "useful",
+          "q": "Make a plan to do these changes in steps i want you to make this app production ready and for the creds rotation i will do this after these changes lets proceed further"
+        },
+        {
+          "date": "2026-09-29T17:20:13.481179+00:00",
+          "outcome": "useful",
+          "q": "Now what is the plan to move forward and make this application production ready?"
+        }
+      ],
+      "score": 2.187296969,
+      "source_file": "mongodb",
+      "status": "preferred",
+      "uses": 5
+    },
+    "package_scripts": {
+      "code_fingerprint": "720cde2d4191423415198b6d6af395d872d6e342522ada4288047f8cfb898cb2",
+      "label": "scripts",
+      "last": "2026-10-12T04:37:33.916646+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-12T04:37:33.916646+00:00",
+          "outcome": "useful",
+          "q": "push to the live"
+        }
+      ],
+      "score": 0.57944423,
+      "source_file": "package.json",
+      "status": "tentative",
+      "uses": 1
+    },
+    "package_scripts_lint": {
+      "code_fingerprint": "720cde2d4191423415198b6d6af395d872d6e342522ada4288047f8cfb898cb2",
+      "label": "lint",
+      "last": "2026-09-30T12:40:48.995916+00:00",
+      "neg": 1,
+      "provenance": [
+        {
+          "date": "2026-09-30T12:40:48.995916+00:00",
+          "outcome": "corrected",
+          "q": "See the creds rotation part i will do in the last rest proceed for the steps to make it production ready"
+        },
+        {
+          "date": "2026-09-30T12:39:20.479912+00:00",
+          "outcome": "useful",
+          "q": "See the creds rotation part i will do in the last rest proceed for the steps to make it production ready"
+        },
+        {
+          "date": "2026-09-30T11:32:31.030582+00:00",
+          "outcome": "useful",
+          "q": "Thanks, Now what steps are remaining?"
+        },
+        {
+          "date": "2026-09-30T03:49:04.022751+00:00",
+          "outcome": "useful",
+          "q": "First let me know the admin login creds to test this application and next break it down to the doable steps to move forward next"
+        },
+        {
+          "date": "2026-09-30T03:43:28.621831+00:00",
+          "outcome": "useful",
+          "q": "Now lets just check and let me know what steps are remaining further?"
+        }
+      ],
+      "score": 1.319610325,
+      "source_file": "package.json",
+      "status": "contested",
+      "uses": 4,
+      "verdict": "useful"
+    },
+    "package_scripts_test": {
+      "code_fingerprint": "720cde2d4191423415198b6d6af395d872d6e342522ada4288047f8cfb898cb2",
+      "label": "test",
+      "last": "2026-09-30T12:40:48.995916+00:00",
+      "neg": 1,
+      "provenance": [
+        {
+          "date": "2026-09-30T12:40:48.995916+00:00",
+          "outcome": "corrected",
+          "q": "See the creds rotation part i will do in the last rest proceed for the steps to make it production ready"
+        },
+        {
+          "date": "2026-09-30T12:39:20.479912+00:00",
+          "outcome": "useful",
+          "q": "See the creds rotation part i will do in the last rest proceed for the steps to make it production ready"
+        },
+        {
+          "date": "2026-09-30T11:32:31.030582+00:00",
+          "outcome": "useful",
+          "q": "Thanks, Now what steps are remaining?"
+        },
+        {
+          "date": "2026-09-30T10:14:06.903156+00:00",
+          "outcome": "useful",
+          "q": "What are the next steps to move forward??"
+        },
+        {
+          "date": "2026-09-30T03:49:04.022751+00:00",
+          "outcome": "useful",
+          "q": "First let me know the admin login creds to test this application and next break it down to the doable steps to move forward next"
+        }
+      ],
+      "score": 2.191295619,
+      "source_file": "package.json",
+      "status": "contested",
+      "uses": 6,
+      "verdict": "useful"
+    },
+    "scripts_backup_mongodb": {
+      "code_fingerprint": "024edd17c3b25ebb19acf64800ab1ba819d3fdc807112aa7750b7e315267e5c4",
+      "label": "backup-mongodb.js",
+      "last": "2026-09-30T12:40:48.995916+00:00",
+      "neg": 1,
+      "provenance": [
+        {
+          "date": "2026-09-30T12:40:48.995916+00:00",
+          "outcome": "corrected",
+          "q": "See the creds rotation part i will do in the last rest proceed for the steps to make it production ready"
+        },
+        {
+          "date": "2026-09-30T12:39:20.479912+00:00",
+          "outcome": "useful",
+          "q": "See the creds rotation part i will do in the last rest proceed for the steps to make it production ready"
+        },
+        {
+          "date": "2026-09-30T11:32:31.030582+00:00",
+          "outcome": "useful",
+          "q": "Thanks, Now what steps are remaining?"
+        },
+        {
+          "date": "2026-09-30T11:19:33.636774+00:00",
+          "outcome": "useful",
+          "q": "Ok i want to keep mongodb on my vps proceed for the changed and make the things working..."
+        },
+        {
+          "date": "2026-09-30T10:33:26.419173+00:00",
+          "outcome": "useful",
+          "q": "Is it possibile to create a mongo db instance on my vps by using deploy script creds, make sure to not break anything which is running already"
+        }
+      ],
+      "score": 2.20595913,
+      "source_file": "scripts/backup-mongodb.js",
+      "status": "contested",
+      "uses": 6,
+      "verdict": "useful"
+    },
+    "src_app_api_auth_login_route": {
+      "code_fingerprint": "9d1d992527b9358f881f200070ed4073d1c1d123de22fc5d63a41506b1ce6d87",
+      "label": "login/route.ts",
+      "last": "2026-09-30T08:52:14.059419+00:00",
+      "provenance": [
+        {
+          "date": "2026-09-30T08:52:14.059419+00:00",
+          "outcome": "useful",
+          "q": "It is not logging in after entering the creds and otp"
+        },
+        {
+          "date": "2026-09-30T03:39:21.149477+00:00",
+          "outcome": "useful",
+          "q": "Proceed with the next step"
+        }
+      ],
+      "score": 0.879661307,
+      "source_file": "src/app/api/auth/login/route.ts",
+      "status": "preferred",
+      "uses": 2
+    },
+    "src_app_api_auth_send_otp_route": {
+      "code_fingerprint": "04441593a1948d8260fe35a84a4bd1a1ea01cdfcb742c60a7d75ca5812442555",
+      "label": "send-otp/route.ts",
+      "last": "2026-11-04T05:03:12.203640+00:00",
+      "provenance": [
+        {
+          "date": "2026-11-04T05:03:12.203640+00:00",
+          "outcome": "useful",
+          "q": "Check once why the login otps are not working, i have checked the dashboard of labzwaba thn it shows some messages are in preparing status, check once and let me know the solution or one more thing if we can do email otp implementation do let me know"
+        },
+        {
+          "date": "2026-10-05T15:27:02.940123+00:00",
+          "outcome": "useful",
+          "q": "Explain variable 1, keep admin Settings login OTP number, poll delivery, show queued/failure, and add resend after 30 seconds"
+        },
+        {
+          "date": "2026-10-05T14:47:18.520931+00:00",
+          "outcome": "useful",
+          "q": "Login Otp is not recieved but showing sent in the ui what can be the reason of this?"
+        },
+        {
+          "date": "2026-09-30T08:52:14.059419+00:00",
+          "outcome": "useful",
+          "q": "It is not logging in after entering the creds and otp"
+        },
+        {
+          "date": "2026-09-30T03:49:04.022751+00:00",
+          "outcome": "useful",
+          "q": "First let me know the admin login creds to test this application and next break it down to the doable steps to move forward next"
+        }
+      ],
+      "score": 2.861801583,
+      "source_file": "src/app/api/auth/send-otp/route.ts",
+      "status": "preferred",
+      "uses": 5
+    },
+    "src_app_api_health_route": {
+      "code_fingerprint": "75e744ae13e36d4e0cf973fc94b7ac16e3c0254e875ccbaa808e9910657fde56",
+      "label": "health/route.ts",
+      "last": "2026-09-30T12:40:48.995916+00:00",
+      "neg": 1,
+      "provenance": [
+        {
+          "date": "2026-09-30T12:40:48.995916+00:00",
+          "outcome": "corrected",
+          "q": "See the creds rotation part i will do in the last rest proceed for the steps to make it production ready"
+        },
+        {
+          "date": "2026-09-30T12:39:20.479912+00:00",
+          "outcome": "useful",
+          "q": "See the creds rotation part i will do in the last rest proceed for the steps to make it production ready"
+        },
+        {
+          "date": "2026-09-30T11:32:31.030582+00:00",
+          "outcome": "useful",
+          "q": "Thanks, Now what steps are remaining?"
+        },
+        {
+          "date": "2026-09-30T11:19:33.636774+00:00",
+          "outcome": "useful",
+          "q": "Ok i want to keep mongodb on my vps proceed for the changed and make the things working..."
+        },
+        {
+          "date": "2026-09-30T10:33:26.419173+00:00",
+          "outcome": "useful",
+          "q": "Is it possibile to create a mongo db instance on my vps by using deploy script creds, make sure to not break anything which is running already"
+        }
+      ],
+      "score": 2.20595913,
+      "source_file": "src/app/api/health/route.ts",
+      "status": "contested",
+      "uses": 6,
+      "verdict": "useful"
+    },
+    "src_app_api_integrations_courier_route": {
+      "code_fingerprint": "078353ea859d26692fdd7ca87c7fcc62e13861cedd525a1a4ee4f3a9b3645964",
+      "label": "courier/route.ts",
+      "last": "2026-11-02T06:18:28.474126+00:00",
+      "neg": 1,
+      "provenance": [
+        {
+          "date": "2026-11-02T06:18:28.474126+00:00",
+          "outcome": "useful",
+          "q": "Find to way to get the number of the delivery boy after OFD"
+        },
+        {
+          "date": "2026-11-02T06:01:19.391392+00:00",
+          "outcome": "useful",
+          "q": "Check one thing, parcels that are currently OFD check for the Field Executive or the Delivery Boy number if api allows for it and let me know the results"
+        },
+        {
+          "date": "2026-10-12T04:29:39.483638+00:00",
+          "outcome": "useful",
+          "q": "What is Scan parcel to dispatch and why the Real-Time API Scans are showing DTDC Tracking Request failed: HTTP 401 Error this error make a fix for these errors..."
+        },
+        {
+          "date": "2026-10-11T16:12:33.550894+00:00",
+          "outcome": "useful",
+          "q": "Let me know the field executive number and the call placed notification details for all the couriers."
+        },
+        {
+          "date": "2026-10-11T16:07:22.653427+00:00",
+          "outcome": "useful",
+          "q": "Check whether call placed notification is available from courier APIs and implement it for the specific order"
+        }
+      ],
+      "score": 9.106964047,
+      "source_file": "src/app/api/integrations/courier/route.ts",
+      "status": "contested",
+      "uses": 18,
+      "verdict": "useful"
+    },
+    "src_app_api_integrations_courier_shadowfax_webhook_route": {
+      "code_fingerprint": "d307775ca81754abf678bcb2813c2f7184138114a73d0200bfb0e31507a3a729",
+      "label": "shadowfax/webhook/route.ts",
+      "last": "2026-10-11T16:12:33.550894+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-11T16:12:33.550894+00:00",
+          "outcome": "useful",
+          "q": "Let me know the field executive number and the call placed notification details for all the couriers."
+        },
+        {
+          "date": "2026-09-30T03:43:28.621831+00:00",
+          "outcome": "useful",
+          "q": "Now lets just check and let me know what steps are remaining further?"
+        },
+        {
+          "date": "2026-09-30T03:39:21.149477+00:00",
+          "outcome": "useful",
+          "q": "Proceed with the next step"
+        }
+      ],
+      "score": 1.450041278,
+      "source_file": "src/app/api/integrations/courier/shadowfax/webhook/route.ts",
+      "status": "preferred",
+      "uses": 3
+    },
+    "src_app_api_integrations_courier_webhook_route": {
+      "code_fingerprint": "e7d8acf2f129f9b020c4e65a82756b7fe975a83dce898ff492f9285a44ef38b7",
+      "label": "courier/webhook/route.ts",
+      "last": "2026-10-11T16:07:22.653427+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-11T16:07:22.653427+00:00",
+          "outcome": "useful",
+          "q": "Check whether call placed notification is available from courier APIs and implement it for the specific order"
+        },
+        {
+          "date": "2026-09-30T03:39:21.149477+00:00",
+          "outcome": "useful",
+          "q": "Proceed with the next step"
+        },
+        {
+          "date": "2026-09-29T17:24:46.872033+00:00",
+          "outcome": "useful",
+          "q": "Make a plan to do these changes in steps i want you to make this app production ready and for the creds rotation i will do this after these changes lets proceed further"
+        },
+        {
+          "date": "2026-09-29T17:20:13.481179+00:00",
+          "outcome": "useful",
+          "q": "Now what is the plan to move forward and make this application production ready?"
+        },
+        {
+          "date": "2026-09-29T15:30:42.463735+00:00",
+          "outcome": "useful",
+          "q": "understand this project using graphify skill"
+        }
+      ],
+      "score": 2.313676889,
+      "source_file": "src/app/api/integrations/courier/webhook/route.ts",
+      "status": "preferred",
+      "uses": 5
+    },
+    "src_app_api_integrations_pincode_serviceability_route": {
+      "code_fingerprint": "2cef1ef2006c44bebf64c0e17b02d08cb8f0ccfa90fcb19c0b101eb1d8eb0fb7",
+      "label": "serviceability/route.ts",
+      "last": "2026-10-14T17:45:45.139654+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-14T17:45:45.139654+00:00",
+          "outcome": "useful",
+          "q": "Trace WhatsApp dispatch, tracking event freshness and duplicate OFD, and Shadowfax/XpressBees serviceability errors"
+        }
+      ],
+      "score": 0.614571791,
+      "source_file": "src/app/api/integrations/pincode/serviceability/route.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_app_api_notifications_stream_route": {
+      "code_fingerprint": "703dc183c581455fa4b2a7d6fa552d23be01a5e40169e82c496cdbd2d0dd262a",
+      "label": "stream/route.ts",
+      "last": "2026-11-02T05:53:55.286264+00:00",
+      "provenance": [
+        {
+          "date": "2026-11-02T05:53:55.286264+00:00",
+          "outcome": "useful",
+          "q": "The Real-Time Stream Feed is not still not showing real time notifications fix this."
+        }
+      ],
+      "score": 0.942463871,
+      "source_file": "src/app/api/notifications/stream/route.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_app_api_orders_id_route": {
+      "code_fingerprint": "2d8d899a3343afb4215ba067c9af43c330a51a1b78000aca273f853bac14c2ce",
+      "label": "[id]/route.ts",
+      "last": "2026-10-05T13:44:05.417199+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-05T13:44:05.417199+00:00",
+          "outcome": "useful",
+          "q": "I have a question, i want to ask if i make a order with the diff number and whn creating awb i chose a diff number thn what number will go in the payload?"
+        },
+        {
+          "date": "2026-09-29T17:36:43.467075+00:00",
+          "outcome": "useful",
+          "q": "Ok so lets proceed with 0 and 1 together"
+        },
+        {
+          "date": "2026-09-29T15:38:26.374602+00:00",
+          "outcome": "useful",
+          "q": "When creating an order and then generating the AWB, does the selected phone number and courier reach the courier request payload?"
+        }
+      ],
+      "score": 1.36544158,
+      "source_file": "src/app/api/orders/[id]/route.ts",
+      "status": "preferred",
+      "uses": 3
+    },
+    "src_app_api_orders_route": {
+      "code_fingerprint": "a64d429aa6b94d74bb9c6c0abf61c7e094c8387660d437f320f32c86d7205831",
+      "label": "orders/route.ts",
+      "last": "2026-10-11T17:34:33.068216+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-11T17:34:33.068216+00:00",
+          "outcome": "useful",
+          "q": "tell me the current order creation model of shadowfax?"
+        },
+        {
+          "date": "2026-10-08T05:32:23.413928+00:00",
+          "outcome": "useful",
+          "q": "Check orders 99S-1156 and 99S-1157: they show Pickup scheduled and the same information on previous dates; how is that possible?"
+        },
+        {
+          "date": "2026-10-04T11:50:16.115924+00:00",
+          "outcome": "useful",
+          "q": "1. Remove Velocity, i am not using that 2. Whn package is scanned from the bar code scanner and the status of the parcel is changed to scanned thn it should marked as dispatched automatically and dispatch message notification should be delivered to the customer's whatsapp number. 3. All the message notifications shoud be delivered to the customer's whatsapp number only and make the whatsapp number mandatory at the time of order entry. Also use your intelligence and let me know these changes are good or we need to alter something..."
+        }
+      ],
+      "score": 1.58708163,
+      "source_file": "src/app/api/orders/route.ts",
+      "status": "preferred",
+      "uses": 3
+    },
+    "src_app_api_settings_route": {
+      "code_fingerprint": "63f80f39afa5282cc5908a8c703ae26b098c1275cd440cd0b7711024299301d5",
+      "label": "settings/route.ts",
+      "last": "2026-09-30T03:39:21.149477+00:00",
+      "provenance": [
+        {
+          "date": "2026-09-30T03:39:21.149477+00:00",
+          "outcome": "useful",
+          "q": "Proceed with the next step"
+        }
+      ],
+      "score": 0.438726634,
+      "source_file": "src/app/api/settings/route.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_app_api_users_route": {
+      "code_fingerprint": "b3f300708866554601ca3e2a5e2bfe81d616fae0490f4e5bcb6c910685e6f146",
+      "label": "users/route.ts",
+      "last": "2026-09-29T17:24:46.872033+00:00",
+      "provenance": [
+        {
+          "date": "2026-09-29T17:24:46.872033+00:00",
+          "outcome": "useful",
+          "q": "Make a plan to do these changes in steps i want you to make this app production ready and for the creds rotation i will do this after these changes lets proceed further"
+        },
+        {
+          "date": "2026-09-29T17:20:13.481179+00:00",
+          "outcome": "useful",
+          "q": "Now what is the plan to move forward and make this application production ready?"
+        }
+      ],
+      "score": 0.868811602,
+      "source_file": "src/app/api/users/route.ts",
+      "status": "preferred",
+      "uses": 2
+    },
+    "src_app_api_webhooks_dtdc_tracking_route": {
+      "code_fingerprint": "e65d72fd3a6cf2d85880ff7c3f39202a7710f4fd29faa1cabaff6a1aeeaef4d3",
+      "label": "tracking/route.ts",
+      "last": "2026-10-11T16:12:33.550894+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-11T16:12:33.550894+00:00",
+          "outcome": "useful",
+          "q": "Let me know the field executive number and the call placed notification details for all the couriers."
+        }
+      ],
+      "score": 0.572558974,
+      "source_file": "src/app/api/webhooks/dtdc/tracking/route.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_app_api_webhooks_shadowfax_route": {
+      "code_fingerprint": "363afaf07257b9e493a75fde087f7e75d442adeabda2769b5e87c2e6586211ab",
+      "label": "shadowfax/route.ts",
+      "last": "2026-10-08T09:07:15.249874+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-08T09:07:15.249874+00:00",
+          "outcome": "useful",
+          "q": "Check for the FE field executive number after OFD for all couriers and tell me whether the API responses contain it for later implementation."
+        }
+      ],
+      "score": 0.530583303,
+      "source_file": "src/app/api/webhooks/shadowfax/route.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_app_dashboard_layout": {
+      "code_fingerprint": "b074cb4b3de14572d599a771072533763087c67c620bf18792c4ec3bfa9a1d05",
+      "label": "dashboard/layout.tsx",
+      "last": "2026-11-02T05:53:55.286264+00:00",
+      "provenance": [
+        {
+          "date": "2026-11-02T05:53:55.286264+00:00",
+          "outcome": "useful",
+          "q": "The Real-Time Stream Feed is not still not showing real time notifications fix this."
+        }
+      ],
+      "score": 0.942463871,
+      "source_file": "src/app/dashboard/layout.tsx",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_app_dashboard_ofd_page": {
+      "code_fingerprint": "a1ed64812629c6f0fb8f45be5aeed783b47da0410f230c1c9aceda1f79147625",
+      "label": "ofd/page.tsx",
+      "last": "2026-11-02T06:18:28.474126+00:00",
+      "provenance": [
+        {
+          "date": "2026-11-02T06:18:28.474126+00:00",
+          "outcome": "useful",
+          "q": "Find to way to get the number of the delivery boy after OFD"
+        },
+        {
+          "date": "2026-11-02T06:01:19.391392+00:00",
+          "outcome": "useful",
+          "q": "Check one thing, parcels that are currently OFD check for the Field Executive or the Delivery Boy number if api allows for it and let me know the results"
+        }
+      ],
+      "score": 1.885411041,
+      "source_file": "src/app/dashboard/ofd/page.tsx",
+      "status": "preferred",
+      "uses": 2
+    },
+    "src_app_dashboard_packing_page": {
+      "code_fingerprint": "ed3bdaa177b9154c9cbfd0796644407d0837f3b40044ae30fec2cc25f58ce2db",
+      "label": "packing/page.tsx",
+      "last": "2026-09-29T15:38:26.374602+00:00",
+      "provenance": [
+        {
+          "date": "2026-09-29T15:38:26.374602+00:00",
+          "outcome": "useful",
+          "q": "When creating an order and then generating the AWB, does the selected phone number and courier reach the courier request payload?"
+        }
+      ],
+      "score": 0.433681077,
+      "source_file": "src/app/dashboard/packing/page.tsx",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_app_dashboard_packing_page_packing": {
+      "code_fingerprint": "ed3bdaa177b9154c9cbfd0796644407d0837f3b40044ae30fec2cc25f58ce2db",
+      "label": "Packing()",
+      "last": "2026-10-12T10:02:15.701616+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-12T10:02:15.701616+00:00",
+          "outcome": "useful",
+          "q": "Remove Scan parcel to dispatch element"
+        },
+        {
+          "date": "2026-10-12T04:29:39.483638+00:00",
+          "outcome": "useful",
+          "q": "What is Scan parcel to dispatch and why the Real-Time API Scans are showing DTDC Tracking Request failed: HTTP 401 Error this error make a fix for these errors..."
+        },
+        {
+          "date": "2026-10-04T11:50:16.115924+00:00",
+          "outcome": "useful",
+          "q": "1. Remove Velocity, i am not using that 2. Whn package is scanned from the bar code scanner and the status of the parcel is changed to scanned thn it should marked as dispatched automatically and dispatch message notification should be delivered to the customer's whatsapp number. 3. All the message notifications shoud be delivered to the customer's whatsapp number only and make the whatsapp number mandatory at the time of order entry. Also use your intelligence and let me know these changes are good or we need to alter something..."
+        },
+        {
+          "date": "2026-09-29T17:36:43.467075+00:00",
+          "outcome": "useful",
+          "q": "Ok so lets proceed with 0 and 1 together"
+        },
+        {
+          "date": "2026-09-29T17:24:46.872033+00:00",
+          "outcome": "useful",
+          "q": "Make a plan to do these changes in steps i want you to make this app production ready and for the creds rotation i will do this after these changes lets proceed further"
+        }
+      ],
+      "score": 3.384273834,
+      "source_file": "src/app/dashboard/packing/page.tsx",
+      "status": "preferred",
+      "uses": 7
+    },
+    "src_app_dashboard_settings_page": {
+      "code_fingerprint": "137451ac81bbe7e09fea6cbf9c11c91fba82a4bb2dd017660ad0c537f5a0aea6",
+      "label": "settings/page.tsx",
+      "last": "2026-10-05T15:27:02.940123+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-05T15:27:02.940123+00:00",
+          "outcome": "useful",
+          "q": "Explain variable 1, keep admin Settings login OTP number, poll delivery, show queued/failure, and add resend after 30 seconds"
+        },
+        {
+          "date": "2026-09-30T10:14:06.903156+00:00",
+          "outcome": "useful",
+          "q": "What are the next steps to move forward??"
+        },
+        {
+          "date": "2026-09-30T05:02:08.265774+00:00",
+          "outcome": "useful",
+          "q": "Migrate embedded credentials out of mockData.ts and data/db.json into .env.local, update the app to consume them, and defer rotation."
+        },
+        {
+          "date": "2026-09-30T04:25:48.844753+00:00",
+          "outcome": "useful",
+          "q": "Have you removed all the existing creds which are available earlier if not thn please enter thm into the env example file"
+        }
+      ],
+      "score": 1.817955646,
+      "source_file": "src/app/dashboard/settings/page.tsx",
+      "status": "preferred",
+      "uses": 4
+    },
+    "src_app_dashboard_tracking_page_tracking": {
+      "code_fingerprint": "63d51d1f9f3c4bbf88ec449804bb27315311663be6d2be19fe721399b2349d5e",
+      "label": "Tracking()",
+      "last": "2026-11-02T06:01:19.391392+00:00",
+      "provenance": [
+        {
+          "date": "2026-11-02T06:01:19.391392+00:00",
+          "outcome": "useful",
+          "q": "Check one thing, parcels that are currently OFD check for the Field Executive or the Delivery Boy number if api allows for it and let me know the results"
+        },
+        {
+          "date": "2026-11-02T05:53:55.286264+00:00",
+          "outcome": "useful",
+          "q": "The Real-Time Stream Feed is not still not showing real time notifications fix this."
+        },
+        {
+          "date": "2026-10-12T04:29:39.483638+00:00",
+          "outcome": "useful",
+          "q": "What is Scan parcel to dispatch and why the Real-Time API Scans are showing DTDC Tracking Request failed: HTTP 401 Error this error make a fix for these errors..."
+        },
+        {
+          "date": "2026-10-08T05:32:23.413928+00:00",
+          "outcome": "useful",
+          "q": "Check orders 99S-1156 and 99S-1157: they show Pickup scheduled and the same information on previous dates; how is that possible?"
+        }
+      ],
+      "score": 2.99316766,
+      "source_file": "src/app/dashboard/tracking/page.tsx",
+      "status": "preferred",
+      "uses": 4
+    },
+    "src_app_login_page_login": {
+      "code_fingerprint": "43240a9f2894ceb99ebfbba9c4594cd2852d3202615290b0687d826cfff2d159",
+      "label": "Login()",
+      "last": "2026-11-04T05:03:12.203640+00:00",
+      "provenance": [
+        {
+          "date": "2026-11-04T05:03:12.203640+00:00",
+          "outcome": "useful",
+          "q": "Check once why the login otps are not working, i have checked the dashboard of labzwaba thn it shows some messages are in preparing status, check once and let me know the solution or one more thing if we can do email otp implementation do let me know"
+        },
+        {
+          "date": "2026-10-05T15:27:02.940123+00:00",
+          "outcome": "useful",
+          "q": "Explain variable 1, keep admin Settings login OTP number, poll delivery, show queued/failure, and add resend after 30 seconds"
+        },
+        {
+          "date": "2026-10-05T14:47:18.520931+00:00",
+          "outcome": "useful",
+          "q": "Login Otp is not recieved but showing sent in the ui what can be the reason of this?"
+        },
+        {
+          "date": "2026-09-30T08:52:14.059419+00:00",
+          "outcome": "useful",
+          "q": "It is not logging in after entering the creds and otp"
+        },
+        {
+          "date": "2026-09-30T03:39:21.149477+00:00",
+          "outcome": "useful",
+          "q": "Proceed with the next step"
+        }
+      ],
+      "score": 2.861733193,
+      "source_file": "src/app/login/page.tsx",
+      "status": "preferred",
+      "uses": 5
+    },
+    "src_lib_auth": {
+      "code_fingerprint": "aa272a0206c9caea8bb1af64839bad514ce881e9702e8fd8479ce84cf2335321",
+      "label": "auth.ts",
+      "last": "2026-09-30T10:14:06.903156+00:00",
+      "provenance": [
+        {
+          "date": "2026-09-30T10:14:06.903156+00:00",
+          "outcome": "useful",
+          "q": "What are the next steps to move forward??"
+        },
+        {
+          "date": "2026-09-30T08:52:14.059419+00:00",
+          "outcome": "useful",
+          "q": "It is not logging in after entering the creds and otp"
+        },
+        {
+          "date": "2026-09-30T04:25:48.844753+00:00",
+          "outcome": "useful",
+          "q": "Have you removed all the existing creds which are available earlier if not thn please enter thm into the env example file"
+        },
+        {
+          "date": "2026-09-30T03:49:04.022751+00:00",
+          "outcome": "useful",
+          "q": "First let me know the admin login creds to test this application and next break it down to the doable steps to move forward next"
+        },
+        {
+          "date": "2026-09-30T03:43:28.621831+00:00",
+          "outcome": "useful",
+          "q": "Now lets just check and let me know what steps are remaining further?"
+        }
+      ],
+      "score": 3.501492412,
+      "source_file": "src/lib/auth.ts",
+      "status": "preferred",
+      "uses": 8
+    },
+    "src_lib_courierhelper": {
+      "code_fingerprint": "f4aaed91ff2295fb1e12c0abc224c3e97fa99696f216c2a8bef69cba43aedc49",
+      "label": "courierHelper.ts",
+      "last": "2026-10-08T04:59:20.330079+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-08T04:59:20.330079+00:00",
+          "outcome": "useful",
+          "q": "I just want to know in any of the courier is it possibile that a used awb can be assigned to the new parcel whn generating awb?"
+        }
+      ],
+      "score": 0.528476931,
+      "source_file": "src/lib/courierHelper.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_lib_courierhelper_bookcouriershipment": {
+      "code_fingerprint": "f4aaed91ff2295fb1e12c0abc224c3e97fa99696f216c2a8bef69cba43aedc49",
+      "label": "bookCourierShipment()",
+      "last": "2026-10-12T09:55:06.207220+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-12T09:55:06.207220+00:00",
+          "outcome": "useful",
+          "q": "Check DTDC duplicate AWB booking implementation"
+        },
+        {
+          "date": "2026-10-11T17:34:33.068216+00:00",
+          "outcome": "useful",
+          "q": "tell me the current order creation model of shadowfax?"
+        },
+        {
+          "date": "2026-10-05T13:44:05.417199+00:00",
+          "outcome": "useful",
+          "q": "I have a question, i want to ask if i make a order with the diff number and whn creating awb i chose a diff number thn what number will go in the payload?"
+        },
+        {
+          "date": "2026-09-30T11:32:31.030582+00:00",
+          "outcome": "useful",
+          "q": "Thanks, Now what steps are remaining?"
+        },
+        {
+          "date": "2026-09-30T03:22:00.393938+00:00",
+          "outcome": "useful",
+          "q": "proceed with the next steps"
+        }
+      ],
+      "score": 4.704748566,
+      "source_file": "src/lib/courierHelper.ts",
+      "status": "preferred",
+      "uses": 10
+    },
+    "src_lib_courierqueue": {
+      "code_fingerprint": "5044a6b42796ccfb9c8dd18814d750aa0e8603bc0eb2756f102e4241bf100978",
+      "label": "courierQueue.ts",
+      "last": "2026-10-11T17:34:33.068216+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-11T17:34:33.068216+00:00",
+          "outcome": "useful",
+          "q": "tell me the current order creation model of shadowfax?"
+        },
+        {
+          "date": "2026-10-05T13:44:05.417199+00:00",
+          "outcome": "useful",
+          "q": "I have a question, i want to ask if i make a order with the diff number and whn creating awb i chose a diff number thn what number will go in the payload?"
+        },
+        {
+          "date": "2026-09-30T12:39:20.479912+00:00",
+          "outcome": "useful",
+          "q": "See the creds rotation part i will do in the last rest proceed for the steps to make it production ready"
+        },
+        {
+          "date": "2026-09-30T11:32:31.030582+00:00",
+          "outcome": "useful",
+          "q": "Thanks, Now what steps are remaining?"
+        },
+        {
+          "date": "2026-09-30T03:49:04.022751+00:00",
+          "outcome": "useful",
+          "q": "First let me know the admin login creds to test this application and next break it down to the doable steps to move forward next"
+        }
+      ],
+      "score": 4.573628018,
+      "source_file": "src/lib/courierQueue.ts",
+      "status": "preferred",
+      "uses": 10
+    },
+    "src_lib_courierqueue_startcourierqueueprocessor": {
+      "code_fingerprint": "5044a6b42796ccfb9c8dd18814d750aa0e8603bc0eb2756f102e4241bf100978",
+      "label": "startCourierQueueProcessor()",
+      "last": "2026-09-29T15:30:42.463735+00:00",
+      "provenance": [
+        {
+          "date": "2026-09-29T15:30:42.463735+00:00",
+          "outcome": "useful",
+          "q": "understand this project using graphify skill"
+        }
+      ],
+      "score": 0.433627278,
+      "source_file": "src/lib/courierQueue.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_lib_couriersync": {
+      "code_fingerprint": "715ed4a8509605b28a1721dcd9431fc5fd031471937cebfd49f7f4d29111b4fe",
+      "label": "courierSync.ts",
+      "last": "2026-11-02T06:18:28.474126+00:00",
+      "provenance": [
+        {
+          "date": "2026-11-02T06:18:28.474126+00:00",
+          "outcome": "useful",
+          "q": "Find to way to get the number of the delivery boy after OFD"
+        },
+        {
+          "date": "2026-10-14T17:45:45.139654+00:00",
+          "outcome": "useful",
+          "q": "Trace WhatsApp dispatch, tracking event freshness and duplicate OFD, and Shadowfax/XpressBees serviceability errors"
+        }
+      ],
+      "score": 1.557407026,
+      "source_file": "src/lib/courierSync.ts",
+      "status": "preferred",
+      "uses": 2
+    },
+    "src_lib_couriersync_syncorderstatus": {
+      "code_fingerprint": "715ed4a8509605b28a1721dcd9431fc5fd031471937cebfd49f7f4d29111b4fe",
+      "label": "syncOrderStatus()",
+      "last": "2026-11-02T05:33:19.462393+00:00",
+      "provenance": [
+        {
+          "date": "2026-11-02T05:33:19.462393+00:00",
+          "outcome": "useful",
+          "q": "orderdispatch_label_v1 you created this? if yes thn i want to tell you this is working do for all templates which are used after label generation"
+        },
+        {
+          "date": "2026-10-11T16:12:33.550894+00:00",
+          "outcome": "useful",
+          "q": "Let me know the field executive number and the call placed notification details for all the couriers."
+        },
+        {
+          "date": "2026-10-11T16:07:22.653427+00:00",
+          "outcome": "useful",
+          "q": "Check whether call placed notification is available from courier APIs and implement it for the specific order"
+        },
+        {
+          "date": "2026-10-08T09:07:15.249874+00:00",
+          "outcome": "useful",
+          "q": "Check for the FE field executive number after OFD for all couriers and tell me whether the API responses contain it for later implementation."
+        },
+        {
+          "date": "2026-10-08T05:32:23.413928+00:00",
+          "outcome": "useful",
+          "q": "Check orders 99S-1156 and 99S-1157: they show Pickup scheduled and the same information on previous dates; how is that possible?"
+        }
+      ],
+      "score": 3.14656337,
+      "source_file": "src/lib/courierSync.ts",
+      "status": "preferred",
+      "uses": 5
+    },
+    "src_lib_db": {
+      "code_fingerprint": "2e14db54a8b4b4d0bc3ea55b9ad53d9c059d06b230a24b8f4d9cc59890fae2c0",
+      "label": "db.ts",
+      "last": "2026-11-02T05:53:55.286264+00:00",
+      "provenance": [
+        {
+          "date": "2026-11-02T05:53:55.286264+00:00",
+          "outcome": "useful",
+          "q": "The Real-Time Stream Feed is not still not showing real time notifications fix this."
+        },
+        {
+          "date": "2026-09-30T11:19:33.636774+00:00",
+          "outcome": "useful",
+          "q": "Ok i want to keep mongodb on my vps proceed for the changed and make the things working..."
+        },
+        {
+          "date": "2026-09-30T10:14:06.903156+00:00",
+          "outcome": "useful",
+          "q": "What are the next steps to move forward??"
+        },
+        {
+          "date": "2026-09-30T09:07:03.989124+00:00",
+          "outcome": "useful",
+          "q": "While creating AWB with Delhivery showing this error: The primary database is unavailable, so courier booking was stopped to prevent a duplicate AWB."
+        },
+        {
+          "date": "2026-09-30T08:52:14.059419+00:00",
+          "outcome": "useful",
+          "q": "It is not logging in after entering the creds and otp"
+        }
+      ],
+      "score": 3.586294324,
+      "source_file": "src/lib/db.ts",
+      "status": "preferred",
+      "uses": 7
+    },
+    "src_lib_db_db": {
+      "code_fingerprint": "2e14db54a8b4b4d0bc3ea55b9ad53d9c059d06b230a24b8f4d9cc59890fae2c0",
+      "label": "db",
+      "last": "2026-09-29T17:24:46.872033+00:00",
+      "provenance": [
+        {
+          "date": "2026-09-29T17:24:46.872033+00:00",
+          "outcome": "useful",
+          "q": "Make a plan to do these changes in steps i want you to make this app production ready and for the creds rotation i will do this after these changes lets proceed further"
+        },
+        {
+          "date": "2026-09-29T17:20:13.481179+00:00",
+          "outcome": "useful",
+          "q": "Now what is the plan to move forward and make this application production ready?"
+        },
+        {
+          "date": "2026-09-29T15:30:42.463735+00:00",
+          "outcome": "useful",
+          "q": "understand this project using graphify skill"
+        }
+      ],
+      "score": 1.302438881,
+      "source_file": "src/lib/db.ts",
+      "status": "preferred",
+      "uses": 3
+    },
+    "src_lib_mockdata": {
+      "code_fingerprint": "151b0f0c896c22f529b783f7d43af044bce167670c3a10d8954106b3ddac8f38",
+      "label": "mockData.ts",
+      "last": "2026-09-30T05:02:08.265774+00:00",
+      "provenance": [
+        {
+          "date": "2026-09-30T05:02:08.265774+00:00",
+          "outcome": "useful",
+          "q": "Migrate embedded credentials out of mockData.ts and data/db.json into .env.local, update the app to consume them, and defer rotation."
+        },
+        {
+          "date": "2026-09-30T04:25:48.844753+00:00",
+          "outcome": "useful",
+          "q": "Have you removed all the existing creds which are available earlier if not thn please enter thm into the env example file"
+        }
+      ],
+      "score": 0.878363599,
+      "source_file": "src/lib/mockData.ts",
+      "status": "preferred",
+      "uses": 2
+    },
+    "src_lib_mongodb": {
+      "code_fingerprint": "a8c521e2fd447cf7d023001ccf09800cae6bd7792768eb361757345127f1100d",
+      "label": "mongodb.ts",
+      "last": "2026-09-30T12:40:48.995916+00:00",
+      "neg": 1,
+      "provenance": [
+        {
+          "date": "2026-09-30T12:40:48.995916+00:00",
+          "outcome": "corrected",
+          "q": "See the creds rotation part i will do in the last rest proceed for the steps to make it production ready"
+        },
+        {
+          "date": "2026-09-30T12:39:20.479912+00:00",
+          "outcome": "useful",
+          "q": "See the creds rotation part i will do in the last rest proceed for the steps to make it production ready"
+        },
+        {
+          "date": "2026-09-30T11:32:31.030582+00:00",
+          "outcome": "useful",
+          "q": "Thanks, Now what steps are remaining?"
+        },
+        {
+          "date": "2026-09-30T11:19:33.636774+00:00",
+          "outcome": "useful",
+          "q": "Ok i want to keep mongodb on my vps proceed for the changed and make the things working..."
+        },
+        {
+          "date": "2026-09-30T10:33:26.419173+00:00",
+          "outcome": "useful",
+          "q": "Is it possibile to create a mongo db instance on my vps by using deploy script creds, make sure to not break anything which is running already"
+        }
+      ],
+      "score": 2.208243081,
+      "source_file": "src/lib/mongodb.ts",
+      "status": "contested",
+      "uses": 6,
+      "verdict": "useful"
+    },
+    "src_lib_mongodb_getdatabase": {
+      "code_fingerprint": "a8c521e2fd447cf7d023001ccf09800cae6bd7792768eb361757345127f1100d",
+      "label": "getDatabase()",
+      "last": "2026-09-30T11:19:33.636774+00:00",
+      "provenance": [
+        {
+          "date": "2026-09-30T11:19:33.636774+00:00",
+          "outcome": "useful",
+          "q": "Ok i want to keep mongodb on my vps proceed for the changed and make the things working..."
+        },
+        {
+          "date": "2026-09-30T09:07:03.989124+00:00",
+          "outcome": "useful",
+          "q": "While creating AWB with Delhivery showing this error: The primary database is unavailable, so courier booking was stopped to prevent a duplicate AWB."
+        }
+      ],
+      "score": 0.883017835,
+      "source_file": "src/lib/mongodb.ts",
+      "status": "preferred",
+      "uses": 2
+    },
+    "src_lib_screenshot": {
+      "code_fingerprint": "9daeea7cdd3330d2465c11ca5c4c58834144c4f8904854e662f0d62c428dfab7",
+      "label": "screenshot.ts",
+      "last": "2026-11-02T09:34:10.701501+00:00",
+      "provenance": [
+        {
+          "date": "2026-11-02T09:34:10.701501+00:00",
+          "outcome": "useful",
+          "q": "Check for this issue and make a solution for the same, its a dispatch message failure check once"
+        }
+      ],
+      "score": 0.945800467,
+      "source_file": "src/lib/screenshot.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_lib_screenshot_generatepackingslipimage": {
+      "code_fingerprint": "9daeea7cdd3330d2465c11ca5c4c58834144c4f8904854e662f0d62c428dfab7",
+      "label": "generatePackingSlipImage()",
+      "last": "2026-11-02T09:34:10.701501+00:00",
+      "provenance": [
+        {
+          "date": "2026-11-02T09:34:10.701501+00:00",
+          "outcome": "useful",
+          "q": "Check for this issue and make a solution for the same, its a dispatch message failure check once"
+        }
+      ],
+      "score": 0.945800467,
+      "source_file": "src/lib/screenshot.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_lib_shadowfax": {
+      "code_fingerprint": "71f24329b3c09aa77e8e59cdd30bb7c9b4d74e9a69c3df311a2bff4ab5ca1c95",
+      "label": "shadowfax.ts",
+      "last": "2026-11-02T06:18:28.474126+00:00",
+      "provenance": [
+        {
+          "date": "2026-11-02T06:18:28.474126+00:00",
+          "outcome": "useful",
+          "q": "Find to way to get the number of the delivery boy after OFD"
+        },
+        {
+          "date": "2026-11-02T06:01:19.391392+00:00",
+          "outcome": "useful",
+          "q": "Check one thing, parcels that are currently OFD check for the Field Executive or the Delivery Boy number if api allows for it and let me know the results"
+        },
+        {
+          "date": "2026-10-21T12:42:51.800260+00:00",
+          "outcome": "useful",
+          "q": "Fix live Shadowfax pickup booking rejection and verify/fix DTDC booking"
+        },
+        {
+          "date": "2026-10-17T08:44:05.294852+00:00",
+          "outcome": "useful",
+          "q": "Fix Shadowfax fallback that mixed Agra address with Delhi pincode 110060"
+        },
+        {
+          "date": "2026-10-17T08:38:08.911570+00:00",
+          "outcome": "useful",
+          "q": "What pickup address is configured for Shadowfax on live OMS?"
+        }
+      ],
+      "score": 6.224475982,
+      "source_file": "src/lib/shadowfax.ts",
+      "status": "preferred",
+      "uses": 10
+    },
+    "src_lib_shadowfax_bookshadowfaxorder": {
+      "code_fingerprint": "71f24329b3c09aa77e8e59cdd30bb7c9b4d74e9a69c3df311a2bff4ab5ca1c95",
+      "label": "bookShadowfaxOrder()",
+      "last": "2026-10-11T17:34:33.068216+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-11T17:34:33.068216+00:00",
+          "outcome": "useful",
+          "q": "tell me the current order creation model of shadowfax?"
+        },
+        {
+          "date": "2026-10-08T04:59:20.330079+00:00",
+          "outcome": "useful",
+          "q": "I just want to know in any of the courier is it possibile that a used awb can be assigned to the new parcel whn generating awb?"
+        }
+      ],
+      "score": 1.10178964,
+      "source_file": "src/lib/shadowfax.ts",
+      "status": "preferred",
+      "uses": 2
+    },
+    "src_lib_types_order": {
+      "code_fingerprint": "2eb7610891c43405eec981d44e509b0b1761f414b6c0939b9667a23c8effb960",
+      "label": "Order",
+      "last": "2026-11-02T09:34:10.701501+00:00",
+      "provenance": [
+        {
+          "date": "2026-11-02T09:34:10.701501+00:00",
+          "outcome": "useful",
+          "q": "Check for this issue and make a solution for the same, its a dispatch message failure check once"
+        },
+        {
+          "date": "2026-11-02T06:18:28.474126+00:00",
+          "outcome": "useful",
+          "q": "Find to way to get the number of the delivery boy after OFD"
+        },
+        {
+          "date": "2026-11-02T06:01:19.391392+00:00",
+          "outcome": "useful",
+          "q": "Check one thing, parcels that are currently OFD check for the Field Executive or the Delivery Boy number if api allows for it and let me know the results"
+        },
+        {
+          "date": "2026-11-02T05:53:55.286264+00:00",
+          "outcome": "useful",
+          "q": "The Real-Time Stream Feed is not still not showing real time notifications fix this."
+        },
+        {
+          "date": "2026-11-02T05:33:19.462393+00:00",
+          "outcome": "useful",
+          "q": "orderdispatch_label_v1 you created this? if yes thn i want to tell you this is working do for all templates which are used after label generation"
+        }
+      ],
+      "score": 13.858873096,
+      "source_file": "src/lib/types.ts",
+      "status": "preferred",
+      "uses": 24
+    },
+    "src_lib_types_systemsettings": {
+      "code_fingerprint": "2eb7610891c43405eec981d44e509b0b1761f414b6c0939b9667a23c8effb960",
+      "label": "SystemSettings",
+      "last": "2026-09-30T05:02:08.265774+00:00",
+      "provenance": [
+        {
+          "date": "2026-09-30T05:02:08.265774+00:00",
+          "outcome": "useful",
+          "q": "Migrate embedded credentials out of mockData.ts and data/db.json into .env.local, update the app to consume them, and defer rotation."
+        },
+        {
+          "date": "2026-09-30T04:25:48.844753+00:00",
+          "outcome": "useful",
+          "q": "Have you removed all the existing creds which are available earlier if not thn please enter thm into the env example file"
+        },
+        {
+          "date": "2026-09-30T03:39:21.149477+00:00",
+          "outcome": "useful",
+          "q": "Proceed with the next step"
+        },
+        {
+          "date": "2026-09-29T17:24:46.872033+00:00",
+          "outcome": "useful",
+          "q": "Make a plan to do these changes in steps i want you to make this app production ready and for the creds rotation i will do this after these changes lets proceed further"
+        },
+        {
+          "date": "2026-09-29T17:20:13.481179+00:00",
+          "outcome": "useful",
+          "q": "Now what is the plan to move forward and make this application production ready?"
+        }
+      ],
+      "score": 2.185901835,
+      "source_file": "src/lib/types.ts",
+      "status": "preferred",
+      "uses": 5
+    },
+    "src_lib_types_user": {
+      "code_fingerprint": "2eb7610891c43405eec981d44e509b0b1761f414b6c0939b9667a23c8effb960",
+      "label": "User",
+      "last": "2026-09-30T03:49:04.022751+00:00",
+      "provenance": [
+        {
+          "date": "2026-09-30T03:49:04.022751+00:00",
+          "outcome": "useful",
+          "q": "First let me know the admin login creds to test this application and next break it down to the doable steps to move forward next"
+        },
+        {
+          "date": "2026-09-30T03:39:21.149477+00:00",
+          "outcome": "useful",
+          "q": "Proceed with the next step"
+        }
+      ],
+      "score": 0.877521659,
+      "source_file": "src/lib/types.ts",
+      "status": "preferred",
+      "uses": 2
+    },
+    "src_lib_types_userrole": {
+      "code_fingerprint": "2eb7610891c43405eec981d44e509b0b1761f414b6c0939b9667a23c8effb960",
+      "label": "UserRole",
+      "last": "2026-09-30T03:39:21.149477+00:00",
+      "provenance": [
+        {
+          "date": "2026-09-30T03:39:21.149477+00:00",
+          "outcome": "useful",
+          "q": "Proceed with the next step"
+        }
+      ],
+      "score": 0.438726634,
+      "source_file": "src/lib/types.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_lib_velocity": {
+      "code_fingerprint": "",
+      "label": "velocity.ts",
+      "last": "2026-09-30T03:22:00.393938+00:00",
+      "provenance": [
+        {
+          "date": "2026-09-30T03:22:00.393938+00:00",
+          "outcome": "useful",
+          "q": "proceed with the next steps"
+        },
+        {
+          "date": "2026-09-29T17:36:43.467075+00:00",
+          "outcome": "useful",
+          "q": "Ok so lets proceed with 0 and 1 together"
+        },
+        {
+          "date": "2026-09-29T16:39:11.601975+00:00",
+          "outcome": "useful",
+          "q": "Whn creating an order and thn generating the AWB Number and selecting the number and courier to send in the request payloads this flow should be working because currently selecting a number is not working i think the courier is generating the manifests with the another numbers check once and let me know."
+        },
+        {
+          "date": "2026-09-29T15:38:26.374602+00:00",
+          "outcome": "useful",
+          "q": "When creating an order and then generating the AWB, does the selected phone number and courier reach the courier request payload?"
+        }
+      ],
+      "score": 1.740894595,
+      "source_file": "src/lib/velocity.ts",
+      "status": "preferred",
+      "uses": 4
+    },
+    "src_lib_walabz_campaignresult": {
+      "code_fingerprint": "e6606ff2f9aa8324efc4314f2a19afd807314319e4952f925c19dd08421ab133",
+      "label": "CampaignResult",
+      "last": "2026-11-04T08:18:53.351966+00:00",
+      "provenance": [
+        {
+          "date": "2026-11-04T08:18:53.351966+00:00",
+          "outcome": "useful",
+          "q": "Resend the pending whatsapp messages and clear the pending queue"
+        }
+      ],
+      "score": 0.989335412,
+      "source_file": "src/lib/walabz.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_lib_walabz_walabzclient": {
+      "code_fingerprint": "e6606ff2f9aa8324efc4314f2a19afd807314319e4952f925c19dd08421ab133",
+      "label": "WalabzClient",
+      "last": "2026-11-04T08:18:53.351966+00:00",
+      "provenance": [
+        {
+          "date": "2026-11-04T08:18:53.351966+00:00",
+          "outcome": "useful",
+          "q": "Resend the pending whatsapp messages and clear the pending queue"
+        },
+        {
+          "date": "2026-11-04T05:03:12.203640+00:00",
+          "outcome": "useful",
+          "q": "Check once why the login otps are not working, i have checked the dashboard of labzwaba thn it shows some messages are in preparing status, check once and let me know the solution or one more thing if we can do email otp implementation do let me know"
+        },
+        {
+          "date": "2026-11-02T09:34:10.701501+00:00",
+          "outcome": "useful",
+          "q": "Check for this issue and make a solution for the same, its a dispatch message failure check once"
+        },
+        {
+          "date": "2026-11-02T05:33:19.462393+00:00",
+          "outcome": "useful",
+          "q": "orderdispatch_label_v1 you created this? if yes thn i want to tell you this is working do for all templates which are used after label generation"
+        },
+        {
+          "date": "2026-10-05T14:47:18.520931+00:00",
+          "outcome": "useful",
+          "q": "Login Otp is not recieved but showing sent in the ui what can be the reason of this?"
+        }
+      ],
+      "score": 4.36128252,
+      "source_file": "src/lib/walabz.ts",
+      "status": "preferred",
+      "uses": 5
+    },
+    "src_lib_walabz_walabzclient_getauthtoken": {
+      "code_fingerprint": "e6606ff2f9aa8324efc4314f2a19afd807314319e4952f925c19dd08421ab133",
+      "label": ".getAuthToken()",
+      "last": "2026-10-17T08:27:02.893091+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-17T08:27:02.893091+00:00",
+          "outcome": "useful",
+          "q": "Fix WhatsApp OTP after Walabz moved to labzwaba.com"
+        },
+        {
+          "date": "2026-10-17T08:03:16.343502+00:00",
+          "outcome": "useful",
+          "q": "whatsapp otp walabz login authentication campaign fetch"
+        }
+      ],
+      "score": 1.305357823,
+      "source_file": "src/lib/walabz.ts",
+      "status": "preferred",
+      "uses": 2
+    },
+    "src_lib_walabz_walabzclient_getcampaignprogress": {
+      "code_fingerprint": "e6606ff2f9aa8324efc4314f2a19afd807314319e4952f925c19dd08421ab133",
+      "label": ".getCampaignProgress()",
+      "last": "2026-11-04T05:03:12.203640+00:00",
+      "provenance": [
+        {
+          "date": "2026-11-04T05:03:12.203640+00:00",
+          "outcome": "useful",
+          "q": "Check once why the login otps are not working, i have checked the dashboard of labzwaba thn it shows some messages are in preparing status, check once and let me know the solution or one more thing if we can do email otp implementation do let me know"
+        },
+        {
+          "date": "2026-10-05T15:27:02.940123+00:00",
+          "outcome": "useful",
+          "q": "Explain variable 1, keep admin Settings login OTP number, poll delivery, show queued/failure, and add resend after 30 seconds"
+        }
+      ],
+      "score": 1.484311676,
+      "source_file": "src/lib/walabz.ts",
+      "status": "preferred",
+      "uses": 2
+    },
+    "src_lib_walabz_walabzclient_sendcampaign": {
+      "code_fingerprint": "e6606ff2f9aa8324efc4314f2a19afd807314319e4952f925c19dd08421ab133",
+      "label": ".sendCampaign()",
+      "last": "2026-10-05T14:47:18.520931+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-05T14:47:18.520931+00:00",
+          "outcome": "useful",
+          "q": "Login Otp is not recieved but showing sent in the ui what can be the reason of this?"
+        }
+      ],
+      "score": 0.49776021,
+      "source_file": "src/lib/walabz.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_lib_whatsapp": {
+      "code_fingerprint": "0f412a09ca5fe58a413e7e51cc56a628650507a062c9830b0ae214e845ea23a9",
+      "label": "whatsapp.ts",
+      "last": "2026-11-04T08:18:53.351966+00:00",
+      "provenance": [
+        {
+          "date": "2026-11-04T08:18:53.351966+00:00",
+          "outcome": "useful",
+          "q": "Resend the pending whatsapp messages and clear the pending queue"
+        },
+        {
+          "date": "2026-11-02T09:34:10.701501+00:00",
+          "outcome": "useful",
+          "q": "Check for this issue and make a solution for the same, its a dispatch message failure check once"
+        },
+        {
+          "date": "2026-11-02T05:33:19.462393+00:00",
+          "outcome": "useful",
+          "q": "orderdispatch_label_v1 you created this? if yes thn i want to tell you this is working do for all templates which are used after label generation"
+        },
+        {
+          "date": "2026-10-14T17:45:45.139654+00:00",
+          "outcome": "useful",
+          "q": "Trace WhatsApp dispatch, tracking event freshness and duplicate OFD, and Shadowfax/XpressBees serviceability errors"
+        }
+      ],
+      "score": 3.491860126,
+      "source_file": "src/lib/whatsapp.ts",
+      "status": "preferred",
+      "uses": 4
+    },
+    "src_lib_whatsapp_sendloginotp": {
+      "code_fingerprint": "0f412a09ca5fe58a413e7e51cc56a628650507a062c9830b0ae214e845ea23a9",
+      "label": "sendLoginOTP()",
+      "last": "2026-11-04T05:03:12.203640+00:00",
+      "provenance": [
+        {
+          "date": "2026-11-04T05:03:12.203640+00:00",
+          "outcome": "useful",
+          "q": "Check once why the login otps are not working, i have checked the dashboard of labzwaba thn it shows some messages are in preparing status, check once and let me know the solution or one more thing if we can do email otp implementation do let me know"
+        },
+        {
+          "date": "2026-10-05T15:27:02.940123+00:00",
+          "outcome": "useful",
+          "q": "Explain variable 1, keep admin Settings login OTP number, poll delivery, show queued/failure, and add resend after 30 seconds"
+        },
+        {
+          "date": "2026-10-05T14:47:18.520931+00:00",
+          "outcome": "useful",
+          "q": "Login Otp is not recieved but showing sent in the ui what can be the reason of this?"
+        }
+      ],
+      "score": 1.982071886,
+      "source_file": "src/lib/whatsapp.ts",
+      "status": "preferred",
+      "uses": 3
+    },
+    "src_lib_whatsapp_triggerwhatsappnotification": {
+      "code_fingerprint": "0f412a09ca5fe58a413e7e51cc56a628650507a062c9830b0ae214e845ea23a9",
+      "label": "triggerWhatsAppNotification()",
+      "last": "2026-11-02T05:33:19.462393+00:00",
+      "provenance": [
+        {
+          "date": "2026-11-02T05:33:19.462393+00:00",
+          "outcome": "useful",
+          "q": "orderdispatch_label_v1 you created this? if yes thn i want to tell you this is working do for all templates which are used after label generation"
+        },
+        {
+          "date": "2026-10-05T13:44:05.417199+00:00",
+          "outcome": "useful",
+          "q": "I have a question, i want to ask if i make a order with the diff number and whn creating awb i chose a diff number thn what number will go in the payload?"
+        },
+        {
+          "date": "2026-10-04T11:50:16.115924+00:00",
+          "outcome": "useful",
+          "q": "1. Remove Velocity, i am not using that 2. Whn package is scanned from the bar code scanner and the status of the parcel is changed to scanned thn it should marked as dispatched automatically and dispatch message notification should be delivered to the customer's whatsapp number. 3. All the message notifications shoud be delivered to the customer's whatsapp number only and make the whatsapp number mandatory at the time of order entry. Also use your intelligence and let me know these changes are good or we need to alter something..."
+        },
+        {
+          "date": "2026-09-29T17:20:13.481179+00:00",
+          "outcome": "useful",
+          "q": "Now what is the plan to move forward and make this application production ready?"
+        },
+        {
+          "date": "2026-09-29T15:30:42.463735+00:00",
+          "outcome": "useful",
+          "q": "understand this project using graphify skill"
+        }
+      ],
+      "score": 2.79243688,
+      "source_file": "src/lib/whatsapp.ts",
+      "status": "preferred",
+      "uses": 5
+    },
+    "src_lib_xpressbees": {
+      "code_fingerprint": "3b0debc4feebc73685a1ee61ff7f0a08fd860480d11e7af3799c0e6af4286e9c",
+      "label": "xpressbees.ts",
+      "last": "2026-11-02T06:18:28.474126+00:00",
+      "provenance": [
+        {
+          "date": "2026-11-02T06:18:28.474126+00:00",
+          "outcome": "useful",
+          "q": "Find to way to get the number of the delivery boy after OFD"
+        }
+      ],
+      "score": 0.942835235,
+      "source_file": "src/lib/xpressbees.ts",
+      "status": "tentative",
+      "uses": 1
+    }
+  },
+  "version": 1
+}

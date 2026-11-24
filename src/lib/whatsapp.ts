@@ -125,15 +125,42 @@ export function buildTemplateVariables(data: {
     '11': courierSupportNumber,
   };
 
-  // Shipping templates use the approved logistics variable order.
-  if (['Dispatched', 'RDC', 'OFD', 'Delivered', 'Label Generated', 'NDR', 'Return'].includes(status)) {
-    mappings['5'] = awb && awb !== 'PENDING' ? awb : 'N/A';
-    mappings['6'] = courier && courier !== 'PENDING' ? courier : 'N/A';
+  // Status-specific positional variable mapping matching registered Meta templates
+  const cleanAwb = awb && awb !== 'PENDING' ? awb : 'N/A';
+  const cleanCourier = courier && courier !== 'PENDING' ? courier : 'N/A';
+
+  if (['Dispatched', 'Label Generated'].includes(status)) {
+    mappings['5'] = cleanAwb;
+    mappings['6'] = cleanCourier;
     mappings['7'] = eta;
     mappings['8'] = supportName;
     mappings['9'] = supportNumber;
     mappings['10'] = courierSupportName;
     mappings['11'] = courierSupportNumber;
+  } else if (status === 'OFD') {
+    // order_ofd_v2: 1:name, 2:product, 3:orderId, 4:amount, 5:awb, 6:courier, 7:supportName, 8:supportNumber
+    mappings['5'] = cleanAwb;
+    mappings['6'] = cleanCourier;
+    mappings['7'] = supportName;
+    mappings['8'] = supportNumber;
+  } else if (status === 'Delivered') {
+    // order_delivered_v2: 1:name, 2:product, 3:orderId, 4:amount, 5:supportName, 6:supportNumber
+    mappings['5'] = supportName;
+    mappings['6'] = supportNumber;
+  } else if (status === 'NDR') {
+    // order_ndr_v2: 1:name, 2:product, 3:orderId, 4:awb, 5:courier, 6:reason, 7:supportName, 8:supportNumber, 9:courierSupportNumber
+    mappings['4'] = cleanAwb;
+    mappings['5'] = cleanCourier;
+    mappings['6'] = 'Customer unavailable / Rescheduled';
+    mappings['7'] = supportName;
+    mappings['8'] = supportNumber;
+    mappings['9'] = courierSupportNumber || supportNumber;
+  } else if (status === 'RDC') {
+    // order_rdc_v2: 1:name, 2:product, 3:orderId, 4:awb, 5:courier, 6:supportName, 7:supportNumber
+    mappings['4'] = cleanAwb;
+    mappings['5'] = cleanCourier;
+    mappings['6'] = supportName;
+    mappings['7'] = supportNumber;
   }
 
   return mappings;
