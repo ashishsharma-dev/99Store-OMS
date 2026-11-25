@@ -84,7 +84,7 @@ export async function checkVelocityServiceability(
     }
 
     const baseUrl = getVelocityBaseUrl(config);
-    const originPincode = fromPincode || config?.pickupPincode || '282006';
+    const originPincode = fromPincode || config?.pickupPincode || '282001';
 
     const res = await fetch(`${baseUrl}/custom/api/v1/serviceability`, {
       method: 'POST',

@@ -60,7 +60,7 @@ export function applyIntegrationSecrets(settings: SystemSettings): SystemSetting
     },
     velocityConfig: {
       ...settings.velocityConfig,
-      apiKey: fromEnv('VELOCITY_API_KEY', settings.velocityConfig?.apiKey),
+      apiKey: fromEnv('VELOCITY_API_KEY', fromEnv('VELOCITY_API', settings.velocityConfig?.apiKey)),
       username: fromEnv('VELOCITY_USERNAME', settings.velocityConfig?.username),
       password: fromEnv('VELOCITY_PASSWORD', settings.velocityConfig?.password),
       warehouseId: fromEnv('VELOCITY_WAREHOUSE_ID', settings.velocityConfig?.warehouseId),

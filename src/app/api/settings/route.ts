@@ -40,6 +40,7 @@ export async function GET(request: Request) {
       xpressbeesActive: settings.xpressbeesActive,
       deliveryActive: settings.deliveryActive,
       shadowfaxActive: settings.shadowfaxActive,
+      velocityActive: settings.velocityActive,
     };
 
     return NextResponse.json({
@@ -121,10 +122,12 @@ export async function POST(request: Request) {
       xpressbeesActive: typeof body.xpressbeesActive === 'boolean' ? body.xpressbeesActive : settings.xpressbeesActive,
       deliveryActive: typeof body.deliveryActive === 'boolean' ? body.deliveryActive : settings.deliveryActive,
       shadowfaxActive: typeof body.shadowfaxActive === 'boolean' ? body.shadowfaxActive : settings.shadowfaxActive,
+      velocityActive: typeof body.velocityActive === 'boolean' ? body.velocityActive : settings.velocityActive,
       dtdcConfig: body.dtdcConfig ? { ...settings.dtdcConfig, ...body.dtdcConfig } : settings.dtdcConfig,
       xpressbeesConfig: body.xpressbeesConfig ? { ...settings.xpressbeesConfig, ...body.xpressbeesConfig } : settings.xpressbeesConfig,
       deliveryConfig: body.deliveryConfig ? { ...settings.deliveryConfig, ...body.deliveryConfig } : settings.deliveryConfig,
       shadowfaxConfig: body.shadowfaxConfig ? { ...settings.shadowfaxConfig, ...body.shadowfaxConfig } : settings.shadowfaxConfig,
+      velocityConfig: body.velocityConfig ? { ...settings.velocityConfig, ...body.velocityConfig } : settings.velocityConfig,
     };
 
     await db.saveSettings(updatedSettings);
