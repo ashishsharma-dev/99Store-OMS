@@ -84,7 +84,7 @@ export async function checkVelocityServiceability(
     }
 
     const baseUrl = getVelocityBaseUrl(config);
-    const originPincode = fromPincode || config?.pickupPincode || '282001';
+    const originPincode = fromPincode || config?.pickupPincode || '282007';
 
     const res = await fetch(`${baseUrl}/custom/api/v1/serviceability`, {
       method: 'POST',
@@ -236,8 +236,8 @@ export async function bookVelocityOrder(
     }
 
     const baseUrl = getVelocityBaseUrl(config);
-    const warehouseId = config.warehouseId || 'WH66DU';
-    const pickupLocation = config.pickupLocationName || 'Main Warehouse';
+    const warehouseId = config.warehouseId || 'WHUFWP';
+    const pickupLocation = config.pickupLocationName || 'Shivay Ayurveda Agra';
 
     const orderItems = [
       {
@@ -306,7 +306,12 @@ export async function bookVelocityOrder(
     const data = await res.json().catch(() => null);
 
     if (!res.ok) {
-      const errorMsg = data?.message || data?.error || (data?.errors ? JSON.stringify(data.errors) : `HTTP ${res.status}`);
+      const errorMsg =
+        data?.meta?.details ||
+        data?.meta?.message ||
+        data?.message ||
+        data?.error ||
+        (data?.errors ? JSON.stringify(data.errors) : `HTTP ${res.status}`);
       return {
         success: false,
         error: `Velocity Booking Failed: ${errorMsg}`,
