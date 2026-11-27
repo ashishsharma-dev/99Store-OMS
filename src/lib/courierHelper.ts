@@ -182,7 +182,7 @@ export async function bookCourierShipment(
 ): Promise<CourierBookingResult> {
   try {
     const rawCourier = courierOverride || order.courier || 'DTDC';
-    const weight = weightOverride !== undefined ? weightOverride : (order.weight || 0.5);
+    const weight = (weightOverride !== undefined && weightOverride > 0) ? weightOverride : (order.weight || 0.2);
     const paymentType = order.paymentType || 'COD';
 
     const isXpressBeesBooking = rawCourier.toLowerCase().includes('xpressbees');

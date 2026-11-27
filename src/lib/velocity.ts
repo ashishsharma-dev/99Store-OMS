@@ -186,7 +186,7 @@ export async function bookVelocityOrder(
 
     // Consignee phone: MUST be resolved via resolveConsigneePhone to honor user's chosen contact!
     const cleanPhone = resolveConsigneePhone(order, phoneOverride);
-    const weightInKg = weightOverride !== undefined ? weightOverride : (order.weight || 0.5);
+    const weightInKg = (weightOverride !== undefined && weightOverride > 0) ? weightOverride : (order.weight || 0.2);
     const isCod = order.paymentType === 'COD';
     const subTotal = Number(order.orderValue) || 990;
     const codCollectible = isCod ? (Number(order.finalPayableAmount ?? order.orderValue) || subTotal) : 0;

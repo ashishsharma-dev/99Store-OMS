@@ -200,7 +200,7 @@ export async function bookShadowfaxOrder(
     const config = settings.shadowfaxConfig || { apiKey: '', priority: 5 };
     const apiKey = (config.apiKey || '').trim();
     const isMock = !apiKey || apiKey.startsWith('MOCK') || apiKey.includes('test') || apiKey.includes('dummy');
-    const weightInKg = weightOverride !== undefined ? weightOverride : (order.weight || 0.5);
+    const weightInKg = (weightOverride !== undefined && weightOverride > 0) ? weightOverride : (order.weight || 0.2);
     const weightInGrams = Math.round(weightInKg * 1000);
     const paymentMode = order.paymentType === 'COD' ? 'COD' : 'Prepaid';
 
