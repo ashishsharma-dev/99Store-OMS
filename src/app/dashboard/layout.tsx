@@ -29,6 +29,7 @@ import {
 import { User, UserRole, Message } from '@/lib/types';
 import { SHOW_FULL_CLIENT_RELEASE } from '@/lib/utils';
 import { DashboardSkeleton } from '@/components/DashboardSkeleton';
+import { ChangelogModal } from '@/components/ChangelogModal';
 
 type StreamEvent = { id: string; title: string; message: string; timestamp: string; type: string; initial?: boolean };
 
@@ -1298,6 +1299,7 @@ export default function DashboardLayout({
         </div>
 
         {/* 4. Auth Checker / View Render Panel */}
+        <ChangelogModal username={user.username} />
         <main className="dashboard-main" style={{
           flex: 1,
           padding: '40px',
